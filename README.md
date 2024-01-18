@@ -3,7 +3,7 @@
 Chipped 8 is a Chip-8 emulator written in Python. It is designed to have the
 GUI decoupled from the core system allowing different GUI's to be used.
 
-# Chip-8 Version
+## Chip-8 Instruction Version
 
 There have been multiple [revisions / versions](https://chip-8.github.io) of
 Chip-8 that are incompatible with each other. The original 35 opcodes are
