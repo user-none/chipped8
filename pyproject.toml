@@ -1,0 +1,26 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel"
+]
+
+[project]
+name = "chipped8"
+version = "1.0.0"
+authors = [
+    { name = "John Schember", email = "john@nachtimwald.com" },
+]
+
+description = "Chip8 Emulator"
+readme = "README.md"
+license = { file = "LICENSE"  }
+keywords = [ "chip8", "emulator", "game" ]
+
+requires-python = ">=3.11.0"
+dependencies = [
+    "pysdl2 >= 0.9.16",
+    "pysdl2-dll >= 2.28.5"
+]
+
+[project.scripts]
+chipped8 = "chipped8.main_cli:main"
