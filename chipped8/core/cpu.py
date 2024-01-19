@@ -65,10 +65,8 @@ class CPU():
             sprite = self._memory.get_byte(self._registers.get_I() + i)
 
             for j in range(8):
-                bit = sprite & (0x80 >> j)
-
                 # XOR with 0 won't change the value
-                if bit == 0:
+                if sprite & (0x80 >> j) == 0:
                     continue
 
                 col = (x + j) % SCREEN_WIDTH
@@ -79,7 +77,7 @@ class CPU():
                 if self._screen_buffer[idx] == 1:
                     self._registers.set_V(0xF, 1)
 
-                self._screen_buffer[idx] = self._screen_buffer[idx] ^ bit
+                self._screen_buffer[idx] = self._screen_buffer[idx] ^ 1
 
         self._update_screen = True
 
