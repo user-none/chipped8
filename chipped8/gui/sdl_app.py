@@ -38,7 +38,6 @@ class SDLApp():
         self._color_fore = sdl2.ext.color.convert_to_color(args.fore_color)
 
     def _fill_screen_buffer(self, pixels):
-        self._prev_screen_buffer = self._screen_buffer
         self._screen_buffer = pixels
 
     def _blit_screen(self, window):
