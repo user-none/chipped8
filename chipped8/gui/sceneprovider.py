@@ -30,34 +30,35 @@ class SceneProvider(QQuickImageProvider):
     blit_ready = Signal(list)
     blitImage = Signal()
 
-    def __init__(self):
+    def __init__(self, back_color, fore_color):
         QQuickImageProvider.__init__(self, QQuickImageProvider.Image)
 
         self.blit_ready.connect(self.blit_screen)
 
+        self._back_color = QColor(back_color)
+        self._fore_color = QColor(fore_color)
         self._img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
-        self._img.fill(QColor(Qt.black))
+        self._img.fill(self._back_color)
 
     def _fill_screen_buffer(self, pixels):
         self.blit_ready.emit(pixels)
 
     def blit_screen(self, pixels):
         img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
-        img.fill(QColor(Qt.black))
+        img.fill(self._back_color)
 
         for i in range(chipped8.SCREEN_HEIGHT):
             for j in range(chipped8.SCREEN_WIDTH):
                 idx = i * chipped8.SCREEN_WIDTH + j
                 if pixels[idx]:
-                    img.setPixelColor(j, i, Qt.white)
+                    img.setPixelColor(j, i, self._fore_color)
 
         self._img = img
         self.blitImage.emit()
 
     def requestImage(self, id, size, requestedSize):
-        size.width = chipped8.SCREEN_WIDTH
-        size.height = chipped8.SCREEN_HEIGHT
-        requestedSize.width = chipped8.SCREEN_WIDTH
-        requestedSize.height = chipped8.SCREEN_HEIGHT
-        return self._img
+        size.setWidth(chipped8.SCREEN_WIDTH*10)
+        size.setHeight(chipped8.SCREEN_HEIGHT*10)
+
+        return self._img.scaled(size, Qt.KeepAspectRatio)
 

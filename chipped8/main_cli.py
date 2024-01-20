@@ -33,7 +33,6 @@ def parse_args():
             description = 'Chip8 Emulator')
     parser.add_argument('in_file', help='Input ROM file')
     parser.add_argument('-z', '--hz', type=int, default=400, help='hz the emulator should run')
-    parser.add_argument('-s', '--scaling-factor', type=int, default=8, help='scaling to increase window size from the original 64x32 screen size')
     parser.add_argument('-b', '--back_color', default='#009E4B', help='background color as hex with proceeding #')
     parser.add_argument('-f', '--fore_color', default='#00DC9D', help='foreground color as hex with proceeding #')
     parser.add_argument('--version', action='version', version='%(prog)s {v}'.format(v=chipped8.__version__))
