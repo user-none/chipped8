@@ -20,38 +20,54 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import argparse
 import os
 import sys
+import time
 
-from .gui.qt_app import QtApp
+from pathlib import Path
+from threading import Thread
+
+from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQml import QQmlApplicationEngine
+
+from .sceneprovider import SceneProvider
 import chipped8
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-            prog = os.path.basename(sys.argv[0]),
-            description = 'Chip8 Emulator')
-    parser.add_argument('in_file', help='Input ROM file')
-    parser.add_argument('-z', '--hz', type=int, default=400, help='hz the emulator should run')
-    parser.add_argument('-s', '--scaling-factor', type=int, default=8, help='scaling to increase window size from the original 64x32 screen size')
-    parser.add_argument('-b', '--back_color', default='#009E4B', help='background color as hex with proceeding #')
-    parser.add_argument('-f', '--fore_color', default='#00DC9D', help='foreground color as hex with proceeding #')
-    parser.add_argument('--version', action='version', version='%(prog)s {v}'.format(v=chipped8.__version__))
-    return parser.parse_args()
+class QtApp(QObject):
+    def __init__(self, args):
+        QObject.__init__(self)
 
-def main():
-    args = parse_args()
-    app = QtApp(args)
+        self._args = args
 
-    app.run()
-    #try:
-    #    app.run()
-    #except Exception as e:
-    #    print('Error: {0}'.format(e))
-    #    return 1
+    def _beep(self):
+        #os.system("echo -ne '\007'")
+        pass
 
-    return 0
+    def run(self):
+        cpu = chipped8.cpu.CPU(self._args.hz)
+        cpu.set_sound_cb(self._beep)
 
-if __name__ == '__main__':
-    sys.exit(main())
+        with open(self._args.in_file, 'rb') as f:
+            cpu.load_rom(f.read())
+
+        scene = SceneProvider()
+        cpu.set_blit_screen_cb(scene._fill_screen_buffer)
+
+        app = QApplication(sys.argv)
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty('SceneProvider', scene)
+        engine.addImageProvider("SceneProvider", scene)
+
+        qml_file = Path(__file__).parent / 'view.qml'
+        engine.load(qml_file)
+
+        if not engine.rootObjects():
+            return -1
+
+        Thread(target=cpu.run).start()
+
+        ret = app.exec()
+        cpu.stop()
+        sys.exit(ret)
 
