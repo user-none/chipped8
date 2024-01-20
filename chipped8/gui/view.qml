@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Scene2D
-import Qt3D.Render
+import Qt.labs.platform
 
 ApplicationWindow {
     id: win
+    title: "Chipped8"
     width: 640;
     height: 320;
     minimumWidth: 64
@@ -13,6 +13,26 @@ ApplicationWindow {
 
     signal windowFocusChanged(bool active)
     signal keyEvent(int key, bool pressed)
+    signal loadRom(url filename)
+
+    MenuBar {
+        id: menuBar
+
+        Menu {
+            id: fileMenu
+            title: "File"
+
+            MenuItem {
+                id: menuItemOpen
+                text: "Open..."
+                shortcut: "Ctrl+O"
+
+                onTriggered: (event) => {
+                    fileDialog.open()
+                }
+            }
+        }
+    }
 
     Image {
         id: scene
@@ -33,6 +53,15 @@ ApplicationWindow {
 
     }
 
+    FileDialog {
+        id: fileDialog
+        nameFilters: ["Chip-8 (*.ch8)", "BIN (*.bin)"]
+
+        onAccepted: {
+            loadRom(currentFile)
+        }
+    }
+
     onActiveChanged: {
         windowFocusChanged(active)
     }
@@ -40,7 +69,7 @@ ApplicationWindow {
     Connections {
         target: SceneProvider
 
-        function onBlitImage() {
+        function onBlitReady() {
             scene.source = ""
             scene.source = "image://SceneProvider/scene"
         }

@@ -31,7 +31,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
             prog = os.path.basename(sys.argv[0]),
             description = 'Chip8 Emulator')
-    parser.add_argument('in_file', help='Input ROM file')
+    parser.add_argument('in_file', help='Input ROM file', nargs='?')
     parser.add_argument('-z', '--hz', type=int, default=400, help='hz the emulator should run')
     parser.add_argument('-b', '--back_color', default='#009E4B', help='background color as hex with proceeding #')
     parser.add_argument('-f', '--fore_color', default='#00DC9D', help='foreground color as hex with proceeding #')
@@ -42,12 +42,12 @@ def main():
     args = parse_args()
     app = QtApp(args)
 
-    app.run()
-    #try:
-    #    app.run()
-    #except Exception as e:
-    #    print('Error: {0}'.format(e))
-    #    return 1
+    #app.run()
+    try:
+        app.run()
+    except Exception as e:
+        print('Error: {0}'.format(e))
+        return 1
 
     return 0
 

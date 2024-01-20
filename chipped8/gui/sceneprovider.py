@@ -20,30 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtGui import QImage, QColor
 
 import chipped8
 
 class SceneProvider(QQuickImageProvider):
-    blit_ready = Signal(list)
-    blitImage = Signal()
+    blitReady = Signal()
 
     def __init__(self, back_color, fore_color):
         QQuickImageProvider.__init__(self, QQuickImageProvider.Image)
-
-        self.blit_ready.connect(self.blit_screen)
 
         self._back_color = QColor(back_color)
         self._fore_color = QColor(fore_color)
         self._img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
         self._img.fill(self._back_color)
 
-    def _fill_screen_buffer(self, pixels):
-        self.blit_ready.emit(pixels)
-
-    def blit_screen(self, pixels):
+    @Slot(list)
+    def blitScreen(self, pixels):
         img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
         img.fill(self._back_color)
 
@@ -54,7 +49,7 @@ class SceneProvider(QQuickImageProvider):
                     img.setPixelColor(j, i, self._fore_color)
 
         self._img = img
-        self.blitImage.emit()
+        self.blitReady.emit()
 
     def requestImage(self, id, size, requestedSize):
         size.setWidth(chipped8.SCREEN_WIDTH*10)
