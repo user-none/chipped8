@@ -29,6 +29,8 @@ Chip-8  | Keyboard
 A 0 B F | Z X C V
 ```
 
+`P` -> Pause and unpause emulation.
+
 ## Install and Run
 
 ```
