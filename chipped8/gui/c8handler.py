@@ -23,7 +23,7 @@
 import time
 
 from PySide6.QtCore import Qt, QObject, Slot, Signal, QTimer, QUrl
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 import chipped8
 
@@ -43,6 +43,9 @@ class c8Handler(QObject):
 
     def _fill_screen_buffer(self, pixels):
         self.blitReady.emit(pixels)
+
+    def _beep(self):
+        QApplication.beep()
 
     @Slot(bool)
     def process_frames(self, run):
@@ -115,6 +118,7 @@ class c8Handler(QObject):
             return
 
         self._cpu.set_blit_screen_cb(self._fill_screen_buffer)
+        self._cpu.set_sound_cb(self._beep)
         self._process_timer.start(0)
 
     @Slot()
