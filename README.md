@@ -35,7 +35,7 @@ Key        | Modifier | description
 ---------- | -------- | -----------
 `P`        |          | Pause and unpause emulation.
 Left arrow |          | Rewind 1 frame
-Left arrow | Shift    | Rewind 1 second (60 frames)
+Left arrow | Shift    | Rewind 60 frames (1 second)
 
 
 
