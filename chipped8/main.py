@@ -42,7 +42,6 @@ def main():
     args = parse_args()
     app = QtApp(args)
 
-    #app.run()
     try:
         app.run()
     except Exception as e:

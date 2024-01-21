@@ -22,4 +22,4 @@ dependencies = [
 ]
 
 [project.scripts]
-chipped8 = "chipped8.main_cli:main"
+chipped8 = "chipped8.main:main"
