@@ -29,7 +29,15 @@ Chip-8  | Keyboard
 A 0 B F | Z X C V
 ```
 
-`P` -> Pause and unpause emulation.
+Emulator Controls
+
+Key        | Modifier | description
+---------- | -------- | -----------
+`P`        |          | Pause and unpause emulation.
+Left arrow |          | Rewind 1 frame
+Left arrow | Shift    | Rewind 1 second (60 frames)
+
+
 
 ## Install and Run
 

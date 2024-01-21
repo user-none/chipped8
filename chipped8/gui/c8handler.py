@@ -22,10 +22,14 @@
 
 import time
 
+from copy import deepcopy
+
 from PySide6.QtCore import Qt, QObject, Slot, Signal, QTimer, QUrl
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 import chipped8
+
+max_rewind_frames = 60*60*2 # 60 frame per sec, 60 secs in a minute, 2 minutes
 
 class c8Handler(QObject):
     blitReady = Signal(list)
@@ -40,6 +44,8 @@ class c8Handler(QObject):
         self._process_timer.setTimerType(Qt.PreciseTimer)
         self._process_timer.timeout.connect(self._process_frame)
         self._last_process_ns = 0
+
+        self._rewind_stack = []
 
     def _fill_screen_buffer(self, pixels):
         self.blitReady.emit(pixels)
@@ -57,8 +63,8 @@ class c8Handler(QObject):
         else:
             self._process_timer.stop()
 
-    @Slot(int, bool)
-    def key_event(self, key, pressed):
+    @Slot(int, bool, int)
+    def key_event(self, key, pressed, modifiers):
         if not self._cpu:
             return
 
@@ -100,11 +106,32 @@ class c8Handler(QObject):
                 self._process_timer.stop()
             else:
                 self._process_timer.start(0)
+        elif key == Qt.Key_Left and pressed:
+            self._process_timer.stop()
+
+            if len(self._rewind_stack) == 0:
+                return
+
+            frames = 1
+            if modifiers & Qt.ShiftModifier.value:
+                frames = 60
+            if frames > len(self._rewind_stack):
+                frames = len(self._rewind_stack)
+
+            for i in range(frames):
+                self._cpu = self._rewind_stack.pop()
+
+            if len(self._rewind_stack) == 0:
+                self._record_frame()
+
+            self.blitReady.emit(self._cpu.screen_buffer())
 
     @Slot(QUrl)
     @Slot(str)
     def load_rom(self, fname):
         self._cpu = chipped8.cpu.CPU(self._hz)
+
+        self._rewind_stack = []
 
         if isinstance(fname, QUrl):
             fname = fname.path()
@@ -119,7 +146,13 @@ class c8Handler(QObject):
 
         self._cpu.set_blit_screen_cb(self._fill_screen_buffer)
         self._cpu.set_sound_cb(self._beep)
+        self._record_frame()
         self._process_timer.start(0)
+
+    def _record_frame(self):
+        if len(self._rewind_stack) > max_rewind_frames:
+            self._rewind_stack = self._rewind_stack[1:]
+        self._rewind_stack.append(deepcopy(self._cpu))
 
     @Slot()
     def _process_frame(self):
@@ -128,6 +161,7 @@ class c8Handler(QObject):
             return
 
         self._cpu.process_frame()
+        self._record_frame()
 
         ns = time.perf_counter_ns()
         wait_ms = 16.666666 - ((ns - self._last_process_ns) / 1000000)

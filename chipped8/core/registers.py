@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from copy import deepcopy
+
 from . import maths
 
 class Registers:
@@ -29,6 +31,13 @@ class Registers:
         self._I = 0
         self._PC = 512
 
+    def __deepcopy__(self, memo):
+        r = Registers()
+        r._V = deepcopy(self._V)
+        r._I = self._I
+        r._PC = self._PC
+        return r
+        
     def set_V(self, idx, val):
         if idx < 0 or idx > 15:
             raise Exception('Invalid register V{0}'.format(idx))

@@ -12,7 +12,7 @@ ApplicationWindow {
     visible: true
 
     signal windowFocusChanged(bool active)
-    signal keyEvent(int key, bool pressed)
+    signal keyEvent(int key, bool pressed, int modifiers)
     signal loadRom(url filename)
 
     MenuBar {
@@ -44,11 +44,11 @@ ApplicationWindow {
         focus: true
 
         Keys.onPressed: (event) => {
-            keyEvent(event.key, true)
+            keyEvent(event.key, true, event.modifiers)
         }
 
         Keys.onReleased: (event) => {
-            keyEvent(event.key, false)
+            keyEvent(event.key, false, event.modifiers)
         }
 
     }

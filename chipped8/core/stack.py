@@ -20,10 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from copy import deepcopy
+
 class Stack:
     
     def __init__(self):
         self._stack = []
+
+    def __deepcopy__(self, memo):
+        s = Stack()
+        s._stack = deepcopy(self._stack)
+        return s
 
     def push(self, addr):
         if len(self._stack) >= 16:

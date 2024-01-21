@@ -20,13 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import copy
+from copy import deepcopy
 
 class Memory:
     
     def __init__(self):
         self._memory = bytearray(4096)
         self._load_fonts()
+
+    def __deepcopy__(self, memo):
+        m = Memory()
+        m._memory = deepcopy(self._memory)
+        return m
 
     def _load_fonts(self):
         fonts = [
@@ -62,7 +67,7 @@ class Memory:
         return self._memory[idx]
 
     def get_range(self, start, length):
-        return copy.deepcopy(self._memory[start, start+length])
+        return deepcopy(self._memory[start, start+length])
 
     def set_byte(self, idx, val):
         self._memory[idx] = val

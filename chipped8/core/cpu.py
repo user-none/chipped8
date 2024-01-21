@@ -53,6 +53,19 @@ class CPU():
         if self._cycles_per_frame <= 0:
             self._cycles_per_frame = 1
 
+    def __deepcopy__(self, memo):
+        c = CPU(self._hz)
+        c._registers = deepcopy(self._registers)
+        c._stack = deepcopy(self._stack)
+        c._memory = deepcopy(self._memory)
+        c._timers = deepcopy(self._timers)
+        c._screen_buffer = deepcopy(self._screen_buffer)
+        c._update_screen = self._update_screen
+        c._keys = deepcopy(self._keys)
+        c._blit_screen_cb = self._blit_screen_cb
+        c._sound_cb = self._sound_cb
+        return c
+
     def _blit_screen(self):
         if not self._update_screen:
             return
@@ -439,6 +452,9 @@ class CPU():
 
     def load_rom(self, data):
         self._memory.load_rom(data)
+
+    def screen_buffer(self):
+        return deepcopy(self._screen_buffer)
 
     def process_frame(self):
         for i in range(self._cycles_per_frame):

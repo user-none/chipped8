@@ -28,6 +28,12 @@ class Timers:
         self._sound = 0
         self._delay = 0
 
+    def __deepcopy__(self, memo):
+        t = Timers()
+        t._sound = self._sound
+        t._delay = self._delay
+        return t
+
     def set_sound(self, val):
         self._sound = maths.reduce_ushort(val)
 
