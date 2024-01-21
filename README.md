@@ -45,7 +45,7 @@ Use `-e` with the `pip` step if installing for development where you will be abl
 to edit the source without running `pip` again.
 
 Also, if testing new entry point, the following can be used:
-`python -m chipped8.main_cli_new_testing rom.ch8`
+`python -m chipped8.main_new_testing rom.ch8`
 
 ## Roms
 
