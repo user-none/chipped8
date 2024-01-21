@@ -38,6 +38,9 @@ Left arrow |          | Rewind 1 frame
 Left arrow | Shift    | Rewind 60 frames (1 second)
 
 
+## Rewind
+
+Basic rewind is supported for a two minutes.
 
 ## Install and Run
 
