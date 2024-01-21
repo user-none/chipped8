@@ -24,16 +24,15 @@ import argparse
 import os
 import sys
 
-from .gui.sdl_app import SDLApp
+from .gui.qt_app import QtApp
 import chipped8
 
 def parse_args():
     parser = argparse.ArgumentParser(
             prog = os.path.basename(sys.argv[0]),
             description = 'Chip8 Emulator')
-    parser.add_argument('in_file', help='Input ROM file')
+    parser.add_argument('in_file', help='Input ROM file', nargs='?')
     parser.add_argument('-z', '--hz', type=int, default=400, help='hz the emulator should run')
-    parser.add_argument('-s', '--scaling-factor', type=int, default=8, help='scaling to increase window size from the original 64x32 screen size')
     parser.add_argument('-b', '--back_color', default='#009E4B', help='background color as hex with proceeding #')
     parser.add_argument('-f', '--fore_color', default='#00DC9D', help='foreground color as hex with proceeding #')
     parser.add_argument('--version', action='version', version='%(prog)s {v}'.format(v=chipped8.__version__))
@@ -41,7 +40,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    app = SDLApp(args)
+    app = QtApp(args)
 
     try:
         app.run()
