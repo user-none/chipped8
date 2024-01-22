@@ -150,6 +150,9 @@ class c8Handler(QObject):
         self._process_timer.start(0)
 
     def _record_frame(self):
+        if self._cpu == None:
+            return
+
         if len(self._rewind_stack) > max_rewind_frames:
             self._rewind_stack = self._rewind_stack[1:]
         self._rewind_stack.append(deepcopy(self._cpu))
@@ -160,7 +163,15 @@ class c8Handler(QObject):
             self._process_timer.stop()
             return
 
-        self._cpu.process_frame()
+        try:
+            self._cpu.process_frame()
+        except Exception as e:
+            QMessageBox.critical(None, 'Run Error', str(e))
+            self._cpu = None
+            self._rewind_stack = []
+            self._process_timer.stop()
+            return
+
         self._record_frame()
 
         ns = time.perf_counter_ns()
