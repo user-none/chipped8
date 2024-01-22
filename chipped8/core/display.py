@@ -20,7 +20,46 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SCREEN_WIDTH = 64
-SCREEN_HEIGHT = 32
-SCREEN_PIXEL_COUNT = SCREEN_WIDTH * SCREEN_HEIGHT
+from copy import deepcopy
+
+from .constants import *
+
+class Displaly():
+
+    def __init__(self):
+        self._screen_buffer = bytearray(SCREEN_PIXEL_COUNT)
+        self._update_screen = False
+
+    def __deepcopy__(self, memo):
+        d = Displaly()
+        d._screen_buffer = deepcopy(self._screen_buffer)
+        d._update_screen = self._update_screen
+        return d
+
+    def clear_screen(self):
+        self._screen_buffer = bytearray(SCREEN_PIXEL_COUNT)
+        self._update_screen = True
+
+    def screen_buffer(self):
+        return deepcopy(self._screen_buffer)
+
+    def screen_changed(self):
+        return self._update_screen
+
+    def screen_updated(self):
+        self._update_screen = False
+
+    def get_pixel(self, x, y):
+        x = x % SCREEN_WIDTH
+        y = y % SCREEN_HEIGHT
+        idx = x + (y * SCREEN_WIDTH)
+        return self._screen_buffer[idx]
+
+    def set_pixel(self, x, y, v):
+        x = x % SCREEN_WIDTH
+        y = y % SCREEN_HEIGHT
+        idx = x + (y * SCREEN_WIDTH)
+
+        self._screen_buffer[idx] = self._screen_buffer[idx] ^ v
+        self._update_screen = True
 

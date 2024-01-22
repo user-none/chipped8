@@ -20,57 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import time
-
 from copy import deepcopy
 from random import randint
 
 from . import maths
 from .constants import *
-from .registers import Registers
-from .timers import Timers
-from .stack import Stack
-from .memory import Memory
+from .keys import KeyState
 
 class CPU():
 
-    def __init__(self, hz=400):
-        self._registers = Registers()
-        self._stack = Stack()
-        self._memory = Memory()
-        self._timers = Timers()
-
-        self._screen_buffer = bytearray(SCREEN_PIXEL_COUNT)
-        self._update_screen = False
-
-        self._keys = [KeyState.up] * len(Keys)
-
-        self._blit_screen_cb = lambda *args: None
-        self._sound_cb = lambda *args: None
-
-        self._hz = hz
-        self._cycles_per_frame = self._hz // 60
-        if self._cycles_per_frame <= 0:
-            self._cycles_per_frame = 1
-
-    def __deepcopy__(self, memo):
-        c = CPU(self._hz)
-        c._registers = deepcopy(self._registers)
-        c._stack = deepcopy(self._stack)
-        c._memory = deepcopy(self._memory)
-        c._timers = deepcopy(self._timers)
-        c._screen_buffer = deepcopy(self._screen_buffer)
-        c._update_screen = self._update_screen
-        c._keys = deepcopy(self._keys)
-        c._blit_screen_cb = self._blit_screen_cb
-        c._sound_cb = self._sound_cb
-        return c
-
-    def _blit_screen(self):
-        if not self._update_screen:
-            return
-        self._blit_screen_cb(deepcopy(self._screen_buffer))
-        self._update_screen = False
+    def __init__(self, registers, stack, memory, timers, keys, display):
+        self._registers = registers
+        self._stack = stack
+        self._memory = memory
+        self._timers = timers
+        self._keys = keys
+        self._display = display
 
     def _draw(self, x, y, n):
         self._registers.set_V(0xF, 0)
@@ -82,17 +47,14 @@ class CPU():
                 if sprite & (0x80 >> j) == 0:
                     continue
 
-                col = (x + j) % SCREEN_WIDTH
-                row = (y + i) % SCREEN_HEIGHT
-                idx = col + (row * SCREEN_WIDTH)
+                col = x + j
+                row = y + i
 
                 # XOR can only flip if the current bit is 1.
-                if self._screen_buffer[idx] == 1:
+                if self._display.get_pixel(col, row) == 1:
                     self._registers.set_V(0xF, 1)
 
-                self._screen_buffer[idx] = self._screen_buffer[idx] ^ 1
-
-        self._update_screen = True
+                self._display.set_pixel(col, row, 1)
 
     def _execute_0(self, opcode):
         subcode = opcode & 0x00FF
@@ -106,8 +68,7 @@ class CPU():
 
     # 00E0: Clears the screen
     def _execute_00E0(self):
-        self._screen_buffer = bytearray(SCREEN_PIXEL_COUNT)
-        self._update_screen = True
+        self._display.clear_screen()
         self._registers.advance_PC()
 
     # 00EE: Return from subroutine
@@ -308,13 +269,13 @@ class CPU():
 
     # EX9E: Skips the next instruction if the key stored in VX is pressed
     def _execute_EX9E(self, x):
-        if self._keys[self._registers.get_V(x)] == KeyState.down:
+        if self._keys.get_key_state(self._registers.get_V(x)) == KeyState.down:
             self._registers.advance_PC()
         self._registers.advance_PC()
 
     # EXA1: Skips the next instruction if the key stored in VX is not pressed
     def _execute_EXA1(self, x):
-        if self._keys[self._registers.get_V(x)] == KeyState.up:
+        if self._keys.get_key_state(self._registers.get_V(x)) == KeyState.up:
             self._registers.advance_PC()
         self._registers.advance_PC()
 
@@ -350,7 +311,7 @@ class CPU():
 
     # FX0A: Wait for a keypress and store the result in register VX (blocking operation, all instruction halted until next key event)
     def _execute_FX0A(self, x):
-        for i, ks in enumerate(self._keys):
+        for i, ks in enumerate(self._keys.get_keys()):
             if ks == KeyState.down:
                 self._registers.set_V(x, i)
                 self._registers.advance_PC()
@@ -441,48 +402,7 @@ class CPU():
         else:
             raise Exception('Unknown opcode: {:04X}'.format(opcode))
 
-    def set_blit_screen_cb(self, cb):
-        self._blit_screen_cb = cb
-
-    def set_sound_cb(self, cb):
-        self._sound_cb = cb
-
-    def set_key_state(self, key: Keys, state: KeyState):
-        self._keys[key] = state
-
-    def load_rom(self, data):
-        self._memory.load_rom(data)
-
-    def screen_buffer(self):
-        return deepcopy(self._screen_buffer)
-
-    def process_frame(self):
-        for i in range(self._cycles_per_frame):
-            opcode = (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
-            self._execute_op(opcode)
-
-        self._timers.update_delay()
-
-        if self._timers.get_sound() == 1:
-            self._sound_cb()
-        self._timers.update_sound()
-
-        self._blit_screen()
-
-    def run(self):
-        self._process = True
-
-        while True:
-            if not self._process:
-                break
-
-            ns = time.perf_counter_ns()
-            self.process_frame()
-
-            wait_sec = (16666666 - (time.perf_counter_ns() - ns)) / 1000000000
-            if wait_sec > 0:
-                time.sleep(wait_sec)
-
-    def stop(self):
-        self._process = False
+    def execute_next_op(self):
+        opcode = (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
+        self._execute_op(opcode)
 

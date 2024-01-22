@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright 2024 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -18,13 +20,49 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.constants import *
-from .core.keys import Keys, KeyState
+from copy import deepcopy
+from enum import Enum, IntEnum, auto
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class Keys(IntEnum):
+    Key_0 = 0x0,
+    Key_1 = 0x1,
+    Key_2 = 0x2,
+    Key_3 = 0x3,
+    Key_4 = 0x4,
+    Key_5 = 0x5,
+    Key_6 = 0x6,
+    Key_7 = 0x7,
+    Key_8 = 0x8,
+    Key_9 = 0x9,
+    Key_A = 0xA,
+    Key_B = 0xB,
+    Key_C = 0xC,
+    Key_D = 0xD,
+    Key_E = 0xE,
+    Key_F = 0xF
+
+class KeyState(Enum):
+    up = auto(),
+    down = auto()
+
+class KeyInput():
+
+    def __init__(self):
+        self._keys = [KeyState.up] * len(Keys)
+
+    def __deepcopy__(self, memo):
+        d = KeyInput()
+        d._keys = deepcopy(self._keys)
+        return d
+
+    def set_key_state(self, key: Keys, state: KeyState):
+        self._keys[key] = state
+
+    def get_key_state(self, key):
+        if key < 0 or key > 0xF:
+            raise Exception('Error: Invalid key {0}'.format(key))
+        return self._keys[key]
+
+    def get_keys(self):
+        return self._keys
+

@@ -37,7 +37,7 @@ class c8Handler(QObject):
     def __init__(self, hz=400):
         QObject.__init__(self)
 
-        self._cpu = None
+        self._emulator = None
         self._hz = hz
         self._process = False
         self._process_timer = QTimer(self)
@@ -55,7 +55,7 @@ class c8Handler(QObject):
 
     @Slot(bool)
     def process_frames(self, run):
-        if not self._cpu:
+        if not self._emulator:
             return
 
         if run:
@@ -65,42 +65,42 @@ class c8Handler(QObject):
 
     @Slot(int, bool, int)
     def key_event(self, key, pressed, modifiers):
-        if not self._cpu:
+        if not self._emulator:
             return
 
         state = chipped8.KeyState.down if pressed else chipped8.KeyState.up
         if key == Qt.Key_1:
-            self._cpu.set_key_state(chipped8.Keys.Key_1, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_1, state)
         elif key == Qt.Key_2:
-            self._cpu.set_key_state(chipped8.Keys.Key_2, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_2, state)
         elif key == Qt.Key_3:
-            self._cpu.set_key_state(chipped8.Keys.Key_3, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_3, state)
         elif key == Qt.Key_4:
-            self._cpu.set_key_state(chipped8.Keys.Key_C, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_C, state)
         elif key == Qt.Key_Q:
-            self._cpu.set_key_state(chipped8.Keys.Key_4, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_4, state)
         elif key == Qt.Key_W:
-            self._cpu.set_key_state(chipped8.Keys.Key_5, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_5, state)
         elif key == Qt.Key_E:
-            self._cpu.set_key_state(chipped8.Keys.Key_6, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_6, state)
         elif key == Qt.Key_R:
-            self._cpu.set_key_state(chipped8.Keys.Key_D, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_D, state)
         elif key == Qt.Key_A:
-            self._cpu.set_key_state(chipped8.Keys.Key_7, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_7, state)
         elif key == Qt.Key_S:
-            self._cpu.set_key_state(chipped8.Keys.Key_8, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_8, state)
         elif key == Qt.Key_D:
-            self._cpu.set_key_state(chipped8.Keys.Key_9, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_9, state)
         elif key == Qt.Key_F:
-            self._cpu.set_key_state(chipped8.Keys.Key_E, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_E, state)
         elif key == Qt.Key_Z:
-            self._cpu.set_key_state(chipped8.Keys.Key_A, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_A, state)
         elif key == Qt.Key_X:
-            self._cpu.set_key_state(chipped8.Keys.Key_0, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_0, state)
         elif key == Qt.Key_C:
-            self._cpu.set_key_state(chipped8.Keys.Key_B, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_B, state)
         elif key == Qt.Key_V:
-            self._cpu.set_key_state(chipped8.Keys.Key_F, state)
+            self._emulator.set_key_state(chipped8.Keys.Key_F, state)
         elif key == Qt.Key_P and pressed:
             if self._process_timer.isActive():
                 self._process_timer.stop()
@@ -119,17 +119,17 @@ class c8Handler(QObject):
                 frames = len(self._rewind_stack)
 
             for i in range(frames):
-                self._cpu = self._rewind_stack.pop()
+                self._emulator = self._rewind_stack.pop()
 
             if len(self._rewind_stack) == 0:
                 self._record_frame()
 
-            self.blitReady.emit(self._cpu.screen_buffer())
+            self.blitReady.emit(self._emulator.screen_buffer())
 
     @Slot(QUrl)
     @Slot(str)
     def load_rom(self, fname):
-        self._cpu = chipped8.cpu.CPU(self._hz)
+        self._emulator = chipped8.Emulator(self._hz)
 
         self._rewind_stack = []
 
@@ -138,36 +138,36 @@ class c8Handler(QObject):
 
         try:
             with open(fname, 'rb') as f:
-                self._cpu.load_rom(f.read())
+                self._emulator.load_rom(f.read())
         except Exception as e:
             QMessageBox.critical(None, 'Load Error', str(e))
-            self._cpu = None
+            self._emulator = None
             return
 
-        self._cpu.set_blit_screen_cb(self._fill_screen_buffer)
-        self._cpu.set_sound_cb(self._beep)
+        self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
+        self._emulator.set_sound_cb(self._beep)
         self._record_frame()
         self._process_timer.start(0)
 
     def _record_frame(self):
-        if self._cpu == None:
+        if self._emulator == None:
             return
 
         if len(self._rewind_stack) > max_rewind_frames:
             self._rewind_stack = self._rewind_stack[1:]
-        self._rewind_stack.append(deepcopy(self._cpu))
+        self._rewind_stack.append(deepcopy(self._emulator))
 
     @Slot()
     def _process_frame(self):
-        if not self._cpu:
+        if not self._emulator:
             self._process_timer.stop()
             return
 
         try:
-            self._cpu.process_frame()
+            self._emulator.process_frame()
         except Exception as e:
             QMessageBox.critical(None, 'Run Error', str(e))
-            self._cpu = None
+            self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()
             return
