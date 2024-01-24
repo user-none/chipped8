@@ -25,6 +25,7 @@ from enum import Enum, auto
 
 SCREEN_WIDTH = 64
 SCREEN_HEIGHT = 32
+SCREEN_PIXEL_COUNT = SCREEN_WIDTH * SCREEN_HEIGHT
 
 class Displaly():
 
@@ -39,14 +40,22 @@ class Displaly():
         return d
 
     def _generate_empty_buffer(self):
-        return [ [ 0 for y in range(SCREEN_HEIGHT) ] for x in range(SCREEN_WIDTH) ]
+        return bytearray(SCREEN_PIXEL_COUNT)
 
     def clear_screen(self):
         self._screen_buffer = self._generate_empty_buffer()
         self._update_screen = True
 
-    def screen_buffer(self):
-        return deepcopy(self._screen_buffer)
+    def get_pixels(self):
+        pixels = []
+        for x in range(SCREEN_WIDTH):
+            row = []
+            for y in range(SCREEN_HEIGHT):
+                idx = x + (y * SCREEN_WIDTH)
+                row.append(self._screen_buffer[idx])
+            pixels.append(row)
+
+        return pixels
 
     def screen_changed(self):
         return self._update_screen
@@ -57,12 +66,13 @@ class Displaly():
     def get_pixel(self, x, y):
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
-        return self._screen_buffer[x][y]
+        idx = x + (y * SCREEN_WIDTH)
+        return self._screen_buffer[idx]
 
     def set_pixel(self, x, y, v):
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
-
-        self._screen_buffer[x][y] = self._screen_buffer[x][y] ^ v
+        idx = x + (y * SCREEN_WIDTH)
+        self._screen_buffer[idx] = self._screen_buffer[idx] ^ v
         self._update_screen = True
 

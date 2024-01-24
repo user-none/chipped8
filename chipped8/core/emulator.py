@@ -84,7 +84,7 @@ class Emulator():
     def _blit_screen(self):
         if not self._display.screen_changed():
             return
-        self._blit_screen_cb(self.screen_buffer())
+        self._blit_screen_cb(self._display.get_pixels())
         self._display.screen_updated()
 
     def set_blit_screen_cb(self, cb):
@@ -98,9 +98,6 @@ class Emulator():
 
     def load_rom(self, data):
         self._memory.load_rom(data)
-
-    def screen_buffer(self):
-        return self._display.screen_buffer()
 
     def process_frame(self):
         for i in range(self._cycles_per_frame):
