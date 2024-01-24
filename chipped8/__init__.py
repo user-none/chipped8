@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 from .core.emulator import Emulator
-from .core.constants import *
+from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
 from .core.keys import Keys, KeyState
 
 from importlib import metadata

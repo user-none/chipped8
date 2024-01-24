@@ -42,11 +42,10 @@ class SceneProvider(QQuickImageProvider):
         img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
         img.fill(self._back_color)
 
-        for i in range(chipped8.SCREEN_HEIGHT):
-            for j in range(chipped8.SCREEN_WIDTH):
-                idx = i * chipped8.SCREEN_WIDTH + j
-                if pixels[idx]:
-                    img.setPixelColor(j, i, self._fore_color)
+        for i in range(chipped8.SCREEN_WIDTH):
+            for j in range(chipped8.SCREEN_HEIGHT):
+                if pixels[i][j]:
+                    img.setPixelColor(i, j, self._fore_color)
 
         self._img = img
         self.blitReady.emit()

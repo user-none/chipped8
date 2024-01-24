@@ -24,7 +24,6 @@ from copy import deepcopy
 from random import randint
 
 from . import maths
-from .constants import *
 from .keys import KeyState
 
 class CPU():
@@ -47,14 +46,14 @@ class CPU():
                 if sprite & (0x80 >> j) == 0:
                     continue
 
-                col = x + j
-                row = y + i
+                row = x + j
+                col = y + i
 
                 # XOR can only flip if the current bit is 1.
-                if self._display.get_pixel(col, row) == 1:
+                if self._display.get_pixel(row, col) == 1:
                     self._registers.set_V(0xF, 1)
 
-                self._display.set_pixel(col, row, 1)
+                self._display.set_pixel(row, col, 1)
 
     def _execute_0(self, opcode):
         subcode = opcode & 0x00FF

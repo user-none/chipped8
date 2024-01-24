@@ -21,13 +21,15 @@
 # SOFTWARE.
 
 from copy import deepcopy
+from enum import Enum, auto
 
-from .constants import *
+SCREEN_WIDTH = 64
+SCREEN_HEIGHT = 32
 
 class Displaly():
 
     def __init__(self):
-        self._screen_buffer = bytearray(SCREEN_PIXEL_COUNT)
+        self._screen_buffer = self._generate_empty_buffer()
         self._update_screen = False
 
     def __deepcopy__(self, memo):
@@ -36,8 +38,11 @@ class Displaly():
         d._update_screen = self._update_screen
         return d
 
+    def _generate_empty_buffer(self):
+        return [ [ 0 for y in range(SCREEN_HEIGHT) ] for x in range(SCREEN_WIDTH) ]
+
     def clear_screen(self):
-        self._screen_buffer = bytearray(SCREEN_PIXEL_COUNT)
+        self._screen_buffer = self._generate_empty_buffer()
         self._update_screen = True
 
     def screen_buffer(self):
@@ -52,14 +57,12 @@ class Displaly():
     def get_pixel(self, x, y):
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
-        idx = x + (y * SCREEN_WIDTH)
-        return self._screen_buffer[idx]
+        return self._screen_buffer[x][y]
 
     def set_pixel(self, x, y, v):
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
-        idx = x + (y * SCREEN_WIDTH)
 
-        self._screen_buffer[idx] = self._screen_buffer[idx] ^ v
+        self._screen_buffer[x][y] = self._screen_buffer[x][y] ^ v
         self._update_screen = True
 
