@@ -46,7 +46,7 @@ class QtApp(QObject):
         pass
 
     def run(self):
-        scene = SceneProvider(self._args.back_color, self._args.fore_color)
+        scene = SceneProvider()
         self._c8handler.blitReady.connect(scene.blitScreen)
 
         app = QApplication(sys.argv)

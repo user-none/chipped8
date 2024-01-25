@@ -21,6 +21,7 @@
 from .core.emulator import Emulator
 from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
 from .core.keys import Keys, KeyState
+from .core.display import Colors
 
 from importlib import metadata
 try:

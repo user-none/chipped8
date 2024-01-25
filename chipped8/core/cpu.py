@@ -49,11 +49,9 @@ class CPU():
                 row = x + j
                 col = y + i
 
-                # XOR can only flip if the current bit is 1.
-                if self._display.get_pixel(row, col) == 1:
+                unset = self._display.set_pixel(row, col, 1)
+                if unset:
                     self._registers.set_V(0xF, 1)
-
-                self._display.set_pixel(row, col, 1)
 
     def _execute_0(self, opcode):
         subcode = opcode & 0x00FF
