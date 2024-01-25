@@ -42,53 +42,82 @@ class Plane(Flag):
     p2 = auto()
 
 class Displaly():
+    '''
+    Chip-8 uses a 64x32 pixel screen. Super Chip 1.0/1 and XO-Chip adds a high resolution
+    mode which doubles the resolutions to 128x64 pixels. To allow more code reuse a 128x64
+    screen is always used. When in low resolution mode the pixels will be doubled to effectively
+    look 64x32.
+
+    This allows us to only need to know which mode is being used when writing to the screen.
+    In order to know if we need to write one or a 2x2 pixel square (for low res mode). Otherwise,
+    all other display operations are the same.
+
+    Super Chip 1.0/1 and XO-Chip support screen scrolling. In low resolution mode half the pixels
+    are scrolled vs what is specified. By doubling the pixels in low resolution mode and always
+    using a 128x64 size, we effectively scroll half as many pixels because the image on screen
+    is doubled.
+
+    A screen buffer is a one dimensional array of 0 or 1 denoting if the pixel is set or not.
+    The pixels in the buffer are rows next to each other instead of on top of each other.
+    In the buffer: | row | row | row | row |. Each row is a row of pixels.
+
+    XO-Chip uses 2 screen planes (layers) that get overlaid when rendering the screen.
+    This allows for 4 colors. Pixel off, plane 1 pixel on, plane 2 pixel on, and plane
+    1 and 2 overlapping pixel on.
+
+    Chip-8 and Super Chip 1.0/1 only use plane 1 which is the default. They retain their
+    two color support.
+
+    Multiple planes can be selected and written to at the same time.
+    '''
 
     def __init__(self):
-        # There are 2 screen planes that get overlaid when outputting the screen.
-        # A screen buffer is a one dimensional array of 0 or 1 denoting if the pixel is set or not.
-        # The pixels in the buffer are rows next to each other instead of on top of each other.
-        # In the buffer: | row | row | row | row |. Each row is a row of pixels.
-        self._screen_buffer = [ self._generate_empty_buffer(), self._generate_empty_buffer() ]
+        self._screen_planes = [ self._generate_empty_plane(), self._generate_empty_plane() ]
         self._update_screen = False
-        self._mode = ResolutionMode.lowres
-        self._plane = Plane.p1
+        self._res_mode = ResolutionMode.lowres
+        self._target_plane = Plane.p1
 
     def __deepcopy__(self, memo):
         d = Displaly()
-        d._screen_buffer = deepcopy(self._screen_buffer)
+        d._screen_planes = deepcopy(self._screen_planes)
         d._update_screen = self._update_screen
-        d._mode = self._mode
-        d._plane = self._plane
+        d._res_mode = self._res_mode
+        d._target_plane = self._target_plane
         return d
 
-    def _generate_empty_buffer(self):
+    def _generate_empty_plane(self):
         return bytearray(SCREEN_PIXEL_COUNT)
 
     def set_resmode(self, mode: ResolutionMode):
-        self._mode = mode
+        self._res_mode = mode
 
     def set_plane(self, plane: Plane):
-        if self._plane == plane:
+        if self._target_plane == plane:
             return
 
-        self._plane = plane
+        self._target_plane = plane
         self.clear_screen()
 
     def _get_plane_buffers(self):
-        plane_buffers = []
+        buffers = []
 
-        if self._plane & Plane.p1:
-            plane_buffers.append(self._screen_buffer[0])
-        if self._plane & Plane.p2:
-            plane_buffers.append(self._screen_buffer[1])
+        if self._target_plane & Plane.p1:
+            buffers.append(self._screen_planes[0])
+        if self._target_plane & Plane.p2:
+            buffers.append(self._screen_planes[1])
 
-        return plane_buffers
+        return buffers
 
     def clear_screen(self):
-        self._screen_buffer = [ self._generate_empty_buffer(), self._generate_empty_buffer() ]
+        self._screen_planes = [ self._generate_empty_plane(), self._generate_empty_plane() ]
         self._update_screen = True
 
     def get_pixels(self):
+        '''
+        Convert the flat array of on / off bytes that represent pixels to a
+        multi dimensional array of colors based on what pixels are set in each
+        plane.
+        '''
         pixels = []
         for x in range(SCREEN_WIDTH):
             row = []
@@ -97,11 +126,11 @@ class Displaly():
                 idx = x + (y * SCREEN_WIDTH)
 
                 color = Colors.color_1
-                if self._screen_buffer[0][idx] == 1 and self._screen_buffer[1][idx] == 0:
+                if self._screen_planes[0][idx] == 1 and self._screen_planes[1][idx] == 0:
                     color = Colors.color_2
-                elif self._screen_buffer[0][idx] == 0 and self._screen_buffer[1][idx] == 1:
+                elif self._screen_planes[0][idx] == 0 and self._screen_planes[1][idx] == 1:
                     color = Colors.color_3
-                elif self._screen_buffer[0][idx] == 1 and self._screen_buffer[1][idx] == 1:
+                elif self._screen_planes[0][idx] == 1 and self._screen_planes[1][idx] == 1:
                     color = Colors.color_4
 
                 row.append(color)
@@ -116,7 +145,7 @@ class Displaly():
     def screen_updated(self):
         self._update_screen = False
 
-    def _set_pixel_lowres(self, screen_buffer, x, y, v):
+    def _set_pixel_lowres(self, plane_buffer, x, y, v):
         unset = False
         x = x * 2
         y = y * 2
@@ -129,30 +158,24 @@ class Displaly():
                 idx = col + (row * SCREEN_WIDTH)
 
                 # XOR can only flip if the current bit is 1
-                if screen_buffer[idx] == 1:
+                if plane_buffer[idx] == 1:
                     unset = True
-                screen_buffer[idx] = screen_buffer[idx] ^ v
+                plane_buffer[idx] = plane_buffer[idx] ^ v
 
         return unset
 
-    def _set_pixel_hires(self, screen_buffer, x, y, v):
+    def _set_pixel_hires(self, plane_buffer, x, y, v):
         unset = False
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
         idx = x + (y * SCREEN_WIDTH)
 
         # XOR can only flip if the current bit is 1
-        if screen_buffer[idx] == 1:
+        if plane_buffer[idx] == 1:
             unset = True
-        screen_buffer[idx] = screen_buffer[idx] ^ v
+        plane_buffer[idx] = plane_buffer[idx] ^ v
 
         return unset
-
-    def _set_pixel_buffer(self, screen_buffer, x, y, v):
-        if self._mode == ResolutionMode.lowres:
-            return self._set_pixel_lowres(screen_buffer, x, y, v)
-        else:
-            return self._set_pixel_hires(screen_buffer, x, y, v)
 
     def set_pixel(self, x, y, v):
         # XOR with 0 won't change the value
@@ -161,8 +184,12 @@ class Displaly():
 
         unset = False
         plane_buffers = self._get_plane_buffers()
-        for screen_buffer in plane_buffers:
-            u = self._set_pixel_buffer(screen_buffer, x, y, v)
+        for plane_buffer in plane_buffers:
+            if self._res_mode == ResolutionMode.lowres:
+                u = self._set_pixel_lowres(plane_buffer, x, y, v)
+            else:
+                u = self._set_pixel_hires(plane_buffer, x, y, v)
+
             if u:
                 unset = True
 
@@ -171,49 +198,49 @@ class Displaly():
 
     def scroll_down(self, num_pixels):
         plane_buffers = self._get_plane_buffers()
-        for screen_buffer in plane_buffers:
-            screen_buffer[:] = bytearray(SCREEN_WIDTH * num_pixels) + screen_buffer[ : -1 * SCREEN_WIDTH * num_pixels ]
+        for plane_buffer in plane_buffers:
+            plane_buffer[:] = bytearray(SCREEN_WIDTH * num_pixels) + plane_buffer[ : -1 * SCREEN_WIDTH * num_pixels ]
         self._update_screen = True
 
     def scroll_up(self, num_pixels):
         plane_buffers = self._get_plane_buffers()
-        for screen_buffer in plane_buffers:
-            screen_buffer[:] = screen_buffer[ SCREEN_WIDTH * num_pixels : ] + bytearray(SCREEN_WIDTH * num_pixels)
+        for plane_buffer in plane_buffers:
+            plane_buffer[:] = plane_buffer[ SCREEN_WIDTH * num_pixels : ] + bytearray(SCREEN_WIDTH * num_pixels)
         self._update_screen = True
 
     def scroll_left(self):
         plane_buffers = self._get_plane_buffers()
 
-        for screen_buffer in plane_buffers:
+        for plane_buffer in plane_buffers:
             buffer = bytearray()
 
             for x in range(SCREEN_WIDTH):
                 row = bytearray(SCREEN_WIDTH)
 
                 for y in range(SCREEN_HEIGHT):
-                    row =  screen_buffer[SCREEN_WIDTH * y + 4: SCREEN_WIDTH * y + SCREEN_WIDTH ] + bytearray(4)
+                    row =  plane_buffer[SCREEN_WIDTH * y + 4: SCREEN_WIDTH * y + SCREEN_WIDTH ] + bytearray(4)
 
                 buffer.extend(row)
 
-            screen_buffer[:] = buffer
+            plane_buffer[:] = buffer
 
         self._update_screen = True
 
     def scroll_right(self):
         plane_buffers = self._get_plane_buffers()
 
-        for screen_buffer in plane_buffers:
+        for plane_buffer in plane_buffers:
             buffer = bytearray()
 
             for x in range(SCREEN_WIDTH):
                 row = bytearray(SCREEN_WIDTH)
 
                 for y in range(SCREEN_HEIGHT):
-                    row = bytearray(4) + screen_buffer[SCREEN_WIDTH * y : SCREEN_WIDTH * y + SCREEN_WIDTH - 4 ]
+                    row = bytearray(4) + plane_buffer[SCREEN_WIDTH * y : SCREEN_WIDTH * y + SCREEN_WIDTH - 4 ]
 
                 buffer.extend(row)
 
-            screen_buffer[:] = buffer
+            plane_buffer[:] = buffer
 
         self._update_screen = True
 
