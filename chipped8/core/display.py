@@ -90,13 +90,15 @@ class Displaly():
 
     def set_resmode(self, mode: ResolutionMode):
         self._res_mode = mode
+        self.clear_screen()
+
+    def get_planes(self):
+        return self._target_plane
 
     def set_plane(self, plane: Plane):
-        if self._target_plane == plane:
+        if plane == self._target_plane or plane == Plane(0):
             return
-
         self._target_plane = plane
-        self.clear_screen()
 
     def _get_plane_buffers(self):
         buffers = []
@@ -177,21 +179,23 @@ class Displaly():
 
         return unset
 
-    def set_pixel(self, x, y, v):
+    def set_pixel(self, plane, x, y, v):
         # XOR with 0 won't change the value
         if v == 0:
             return False
 
-        unset = False
-        plane_buffers = self._get_plane_buffers()
-        for plane_buffer in plane_buffers:
-            if self._res_mode == ResolutionMode.lowres:
-                u = self._set_pixel_lowres(plane_buffer, x, y, v)
-            else:
-                u = self._set_pixel_hires(plane_buffer, x, y, v)
+        if not (plane & self._target_plane):
+            return False
 
-            if u:
-                unset = True
+        unset = False
+        plane_buffer = self._screen_planes[0] if plane == Plane.p1 else self._screen_planes[1]
+        if self._res_mode == ResolutionMode.lowres:
+            u = self._set_pixel_lowres(plane_buffer, x, y, v)
+        else:
+            u = self._set_pixel_hires(plane_buffer, x, y, v)
+
+        if u:
+            unset = True
 
         self._update_screen = True
         return unset
@@ -214,12 +218,8 @@ class Displaly():
         for plane_buffer in plane_buffers:
             buffer = bytearray()
 
-            for x in range(SCREEN_WIDTH):
-                row = bytearray(SCREEN_WIDTH)
-
-                for y in range(SCREEN_HEIGHT):
-                    row =  plane_buffer[SCREEN_WIDTH * y + 4: SCREEN_WIDTH * y + SCREEN_WIDTH ] + bytearray(4)
-
+            for x in range(SCREEN_HEIGHT):
+                row =  plane_buffer[SCREEN_WIDTH * x + 4: SCREEN_WIDTH * x + SCREEN_WIDTH ] + bytearray(4)
                 buffer.extend(row)
 
             plane_buffer[:] = buffer
@@ -232,12 +232,8 @@ class Displaly():
         for plane_buffer in plane_buffers:
             buffer = bytearray()
 
-            for x in range(SCREEN_WIDTH):
-                row = bytearray(SCREEN_WIDTH)
-
-                for y in range(SCREEN_HEIGHT):
-                    row = bytearray(4) + plane_buffer[SCREEN_WIDTH * y : SCREEN_WIDTH * y + SCREEN_WIDTH - 4 ]
-
+            for x in range(SCREEN_HEIGHT):
+                row = bytearray(4) + plane_buffer[SCREEN_WIDTH * x : SCREEN_WIDTH * x + SCREEN_WIDTH - 4 ]
                 buffer.extend(row)
 
             plane_buffer[:] = buffer

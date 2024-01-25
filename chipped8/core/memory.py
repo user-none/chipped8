@@ -26,15 +26,8 @@ class Memory:
     
     def __init__(self):
         self._memory = bytearray(64*1024)
-        self._load_fonts()
 
-    def __deepcopy__(self, memo):
-        m = Memory()
-        m._memory = deepcopy(self._memory)
-        return m
-
-    def _load_fonts(self):
-        font_small = [
+        self._font_small = [
             0xF0, 0x90, 0x90, 0x90, 0xF0, # 0
             0x20, 0x60, 0x20, 0x20, 0x70, # 1
             0xF0, 0x10, 0xF0, 0x80, 0xF0, # 2
@@ -52,7 +45,7 @@ class Memory:
             0xF0, 0x80, 0xF0, 0x80, 0xF0, # E
             0xF0, 0x80, 0xF0, 0x80, 0x80, # F
         ]
-        font_large = [
+        self._font_large = [
             0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, # 0
             0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, # 1
             0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, # 2
@@ -70,8 +63,15 @@ class Memory:
             0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, # E
             0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  # F
         ]
+        self._load_fonts()
 
-        for i, v in enumerate(font_small + font_large):
+    def __deepcopy__(self, memo):
+        m = Memory()
+        m._memory = deepcopy(self._memory)
+        return m
+
+    def _load_fonts(self):
+        for i, v in enumerate(self._font_small + self._font_large):
             self._memory[i] = v
 
     def load_rom(self, data):
@@ -85,7 +85,7 @@ class Memory:
         return self._memory[idx]
 
     def get_range(self, start, length):
-        return deepcopy(self._memory[start, start+length])
+        return deepcopy(self._memory[start : start+length])
 
     def set_byte(self, idx, val):
         self._memory[idx] = val
@@ -96,4 +96,5 @@ class Memory:
             idx = idx + 1
 
     def font_large_offset(self):
-        return self.len(font_small)
+        return len(self._font_small)
+

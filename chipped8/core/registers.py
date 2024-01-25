@@ -30,12 +30,16 @@ class Registers:
         self._V = bytearray(16)
         self._I = 0
         self._PC = 512
+        # Flags register. They're supposed to be saved to persist
+        # between loading different ROMs.
+        self._RPL = bytearray(16)
 
     def __deepcopy__(self, memo):
         r = Registers()
         r._V = deepcopy(self._V)
         r._I = self._I
         r._PC = self._PC
+        r._RPL = deepcopy(self._RPL)
         return r
         
     def set_V(self, idx, val):
@@ -49,6 +53,9 @@ class Registers:
             raise Exception('V{0} not a valid register'.format(idx))
 
         return self._V[idx]
+
+    def dump_V(self):
+        return [ x for x in self._V ]
 
     def set_I(self, val):
         self._I = maths.reduce_ushort(val)
@@ -67,4 +74,24 @@ class Registers:
 
     def advance_PC(self):
         self.set_PC(self.get_PC() + 2)
+
+    def set_RPL(self, idx, val):
+        if idx < 0 or idx > 15:
+            raise Exception('Invalid flag slot RPL{0}'.format(idx))
+
+        self._RPL[idx] = maths.reduce_ushort(val)
+
+    def get_RPL(self, idx):
+        if idx < 0 or idx > 15:
+            raise Exception('RPL{0} not a valid flag slot'.format(idx))
+
+        return self._RPL[idx]
+
+    def export_RPL(self):
+        return deepcopy(self._RPL)
+
+    def import_RPL(self, rpl=bytearray(0)):
+        if len(rpl) != 16:
+            raise Exception('RPL flags wrong length: need 16 have {0}', len(rpl))
+        self._RPL = deepcopy(rpl)
 

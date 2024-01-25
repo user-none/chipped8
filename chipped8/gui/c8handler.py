@@ -166,7 +166,7 @@ class c8Handler(QObject):
 
         try:
             self._emulator.process_frame()
-        except ExitInterpreterException:
+        except chipped8.ExitInterpreterException:
             self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()

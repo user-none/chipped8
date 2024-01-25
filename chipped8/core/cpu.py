@@ -25,7 +25,7 @@ from random import randint
 
 from . import maths
 from .keys import KeyState
-from .display import ResolutionMode
+from .display import Plane, ResolutionMode
 
 class ExitInterpreterException(Exception):
     pass
@@ -40,7 +40,7 @@ class CPU():
         self._keys = keys
         self._display = display
 
-    def get_opcode(self):
+    def _get_opcode(self):
         return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
 
     def _draw(self, x, y, n):
@@ -51,45 +51,53 @@ class CPU():
 
     def _draw_s8(self, x, y, n):
         self._registers.set_V(0xF, 0)
-        for i in range(n):
-            sprite = self._memory.get_byte(self._registers.get_I() + i)
+        I = self._registers.get_I()
+        for plane in self._display.get_planes():
+            for i in range(n):
+                sprite = self._memory.get_byte(I + i)
 
-            for j in range(8):
-                # XOR with 0 won't change the value
-                if sprite & (0x80 >> j) == 0:
-                    continue
+                for j in range(8):
+                    # XOR with 0 won't change the value
+                    if sprite & (0x80 >> j) == 0:
+                        continue
 
-                row = x + j
-                col = y + i
+                    row = x + j
+                    col = y + i
 
-                unset = self._display.set_pixel(row, col, 1)
-                if unset:
-                    self._registers.set_V(0xF, 1)
+                    unset = self._display.set_pixel(plane, row, col, 1)
+                    if unset:
+                        self._registers.set_V(0xF, 1)
+            I = I + n
 
     def _draw_s16(self, x, y):
-        for i in range(16):
-            sprite = (self._memory.get_byte(self._registers.get_I() + (i*2)) << 8) | self._memory.get_byte(self._registers.get_I() + (i*2) + 1)
+        self._registers.set_V(0xF, 0)
+        I = self._registers.get_I()
+        for plane in self._display.get_planes():
+            for i in range(16):
+                sprite = (self._memory.get_byte(I + (i*2)) << 8) | self._memory.get_byte(I + (i*2) + 1)
 
-            for j in range(16):
-                # XOR with 0 won't change the value
-                if sprite & (0x8000 >> j) == 0:
-                    continue
+                for j in range(16):
+                    # XOR with 0 won't change the value
+                    if sprite & (0x8000 >> j) == 0:
+                        continue
 
-                row = x + j
-                col = y + i
+                    row = x + j
+                    col = y + i
 
-                unset = self._display.set_pixel(row, col, 1)
-                if unset:
-                    self._registers.set_V(0xF, 1)
+                    unset = self._display.set_pixel(plane, row, col, 1)
+                    if unset:
+                        self._registers.set_V(0xF, 1)
+            I = I + 32
 
     def _execute_0(self, opcode):
         subcode = opcode & 0x00FF
-        subn = opcode & 0x00F0
+        microcode = opcode & 0x00F0
+        n = opcode & 0x000F
 
-        if subn == 0x00C0:
-            self._execute_00C0()
-        elif subn == 0x00D0:
-            self._execute_00D0()
+        if microcode == 0x00C0:
+            self._execute_00CN(n)
+        elif microcode == 0x00D0:
+            self._execute_00DN(n)
         elif subcode == 0x00E0:
             self._execute_00E0()
         elif subcode == 0x00EE:
@@ -107,15 +115,13 @@ class CPU():
         else:
             raise Exception('Unknown opcode: 00{:02X}'.format(subcode))
 
-    # Scroll display N pixels down; in low resolution mode, N/2 pixels
-    def _execute_00C0(self):
-        n = opcode & 0x000F
+    # 00CN: Scroll down N pixels
+    def _execute_00CN(self, n):
         self._display.scroll_down(n)
         self._registers.advance_PC()
 
-    # Scroll display N pixels up; in low resolution mode, N/2 pixels
-    def _execute_00D0(self):
-        n = opcode & 0x000F
+    # 00DN: Scroll up N pixels
+    def _execute_00DN(self, n):
         self._display.scroll_up(n)
         self._registers.advance_PC()
 
@@ -140,7 +146,7 @@ class CPU():
         self._registers.advance_PC()
 
     # Exit interpreter
-    def _execute_00FC(self):
+    def _execute_00FD(self):
         raise ExitInterpreterException()
 
     # Switch to low resolution mode
@@ -171,7 +177,7 @@ class CPU():
 
         if self._registers.get_V(x) == n:
             self._registers.advance_PC()
-            if self.get_opcode() == 0xF000:
+            if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
         self._registers.advance_PC()
 
@@ -184,7 +190,7 @@ class CPU():
 
         if self._registers.get_V(x) != n:
             self._registers.advance_PC()
-            if self.get_opcode() == 0xF000:
+            if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
         self._registers.advance_PC()
 
@@ -208,30 +214,25 @@ class CPU():
     def _execute_5XY0(self, x, y):
         if self._registers.get_V(x) == self._registers.get_V(y):
             self._registers.advance_PC()
-            if self.get_opcode() == 0xF000:
+            if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
         self._registers.advance_PC()
 
     # 5XY2: Save VX..VY inclusive to memory starting at I.
     #       order can be ascending or descending. Does not increment I
     def _execute_5XY2(self, x, y):
-        if x >= y:
-            for i, v in enumerate(range(x, y+1)):
-                self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(v))
-        else:
-            for i, v in enumerate(range(y, x-1, -1)):
-                self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(v))
+        step = 1 if x <= y else -1
+        for i, v in enumerate(range(x, y+step, step)):
+            self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(v))
         self._registers.advance_PC()
+        #print(self._registers.dump_V(), self._memory.get_range(self._registers.get_I(), y-x+1))
 
     # 5XY2: Load VX..VY inclusive from memory starting at I.
     #       order can be ascending or descending. Does not increment I
     def _execute_5XY3(self, x, y):
-        if x >= y:
-            for i, r in enumerate(range(x, y+1)):
-                self._registers.set_V(r, self._memory.get_byte(self._registers.get_I() + i))
-        else:
-            for i, r in enumerate(range(y, x-1, -1)):
-                self._registers.set_V(r, self._memory.get_byte(self._registers.get_I() + i))
+        step = 1 if x <= y else -1
+        for i, v in enumerate(range(x, y+step, step)):
+            self._registers.set_V(v, self._memory.get_byte(self._registers.get_I() + i))
         self._registers.advance_PC()
 
     # 6XNN: Sets VX to NN
@@ -268,11 +269,11 @@ class CPU():
         elif subcode == 0x0005:
             self._execute_8XY5(x, y)
         elif subcode == 0x0006:
-            self._execute_8XY6(x)
+            self._execute_8XY6(x, y)
         elif subcode == 0x0007:
             self._execute_8XY7(x, y)
         elif subcode == 0x000E:
-            self._execute_8XYE(x)
+            self._execute_8XYE(x, y)
         else:
             raise Exception('Unknown opcode: 8XY{:01X}'.format(subcode))
 
@@ -309,16 +310,19 @@ class CPU():
         vy = self._registers.get_V(y)
         n = vx - vy
 
-        self._registers.set_V(x, n)
         self._registers.set_V(0xF, 1 if vx >= vy else 0)
+        self._registers.set_V(x, n)
 
         self._registers.advance_PC()
 
     # 8XY6: Stores the least significant bit of VX in VF and then shifts VX to the right by 1
-    def _execute_8XY6(self, x):
-        n = self._registers.get_V(x)
+    #       Set register VF to the most significant bit prior to the shift
+    def _execute_8XY6(self, x, y):
+        n = self._registers.get_V(y)
+
         self._registers.set_V(0xF, n & 0x1)
         self._registers.set_V(x, n >> 1)
+
         self._registers.advance_PC()
 
     # 8XY7: Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not
@@ -332,9 +336,10 @@ class CPU():
 
         self._registers.advance_PC()
 
-    # 8XYE: Stores the most significant bit of VX in VF and then shifts VX to the left by 1
-    def _execute_8XYE(self, x):
-        n = self._registers.get_V(x)
+    # 8XYE: Store the value of register VY shifted left one bit in register VX.
+    #       Set register VF to the most significant bit prior to the shift
+    def _execute_8XYE(self, x, y):
+        n = self._registers.get_V(y)
         self._registers.set_V(0xF, n >> 7)
         self._registers.set_V(x, n << 1)
         self._registers.advance_PC()
@@ -347,7 +352,7 @@ class CPU():
         y = (opcode & 0x00F0) >> 4
 
         if self._registers.get_V(x) != self._registers.get_V(y):
-            if self.get_opcode() == 0xF000:
+            if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
             self._registers.advance_PC()
         self._registers.advance_PC()
@@ -399,7 +404,7 @@ class CPU():
     def _execute_EX9E(self, x):
         if self._keys.get_key_state(self._registers.get_V(x)) == KeyState.down:
             self._registers.advance_PC()
-            if self.get_opcode() == 0xF000:
+            if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
         self._registers.advance_PC()
 
@@ -409,7 +414,7 @@ class CPU():
     def _execute_EXA1(self, x):
         if self._keys.get_key_state(self._registers.get_V(x)) == KeyState.up:
             self._registers.advance_PC()
-            if self.get_opcode() == 0xF000:
+            if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
         self._registers.advance_PC()
 
@@ -417,7 +422,13 @@ class CPU():
         subcode = opcode & 0x00FF
         x = (opcode & 0x0F00) >> 8
 
-        if subcode == 0x07:
+        if subcode == 0x00:
+            self._execute_F000()
+        elif subcode == 0x01:
+            self._execute_FX01(x)
+        elif subcode == 0x02:
+            self._execute_FX02(x)
+        elif subcode == 0x07:
             self._execute_FX07(x)
         elif subcode == 0x0A:
             self._execute_FX0A(x)
@@ -429,14 +440,45 @@ class CPU():
             self._execute_FX1E(x)
         elif subcode == 0x29:
             self._execute_FX29(x)
+        elif subcode == 0x30:
+            self._execute_FX30(x)
         elif subcode == 0x33:
             self._execute_FX33(x)
+        elif subcode == 0x3A:
+            self._execute_FX3A(x)
         elif subcode == 0x55:
             self._execute_FX55(x)
         elif subcode == 0x65:
             self._execute_FX65(x)
+        elif subcode == 0x75:
+            self._execute_FX75(x)
+        elif subcode == 0x85:
+            self._execute_FX85(x)
         else:
             raise Exception('Unknown opcode: FX{:02X}'.format(subcode))
+
+    # F000 NNNN: Load I with 16-bit address NNNN this is a four byte instruction
+    def _execute_F000(self):
+        # Advance to NNNN address
+        self._registers.advance_PC()
+        # Get NNNN which is typically an opcode but in this case it's a 16-bit address
+        self._registers.set_I(self._get_opcode())
+        self._registers.advance_PC()
+
+    # FN01: Select drawing planes by bitmask (0 planes, plane 1, plane 2 or both planes (3))
+    def _execute_FX01(self, x):
+        plane = Plane(0)
+        if x & 1:
+            plane = plane | Plane.p1
+        if x & 2:
+            plane = plane | Plane.p2
+        self._display.set_plane(plane)
+        self._registers.advance_PC()
+
+    # F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
+    def _execute_FX02(self, x):
+        # TODO
+        self._registers.advance_PC()
 
     # FX07: Sets VX to the value of the delay timer
     def _execute_FX07(self, x):
@@ -472,6 +514,12 @@ class CPU():
         self._registers.set_I(n * 5)
         self._registers.advance_PC()
 
+    # FX30: Point I to 10-byte font sprite for digit VX
+    def _execute_FX30(self, x):
+        n = self._registers.get_V(x)
+        self._registers.set_I(self._memory.font_large_offset() + (n * 10))
+        self._registers.advance_PC()
+
     # FX33: Stores the binary-coded decimal representation of VX, with the
     #       hundreds digit in memory at location in I, the tens digit at location
     #       I+1, and the ones digit at location I+2
@@ -482,20 +530,44 @@ class CPU():
         self._memory.set_byte(self._registers.get_I() + 2, (n % 100) % 10)
         self._registers.advance_PC()
 
+    # Set the pitch register to the value in VX.
+    def _execute_FX3A(self, x):
+        # TODO
+        self._registers.advance_PC()
+
     # FX55: Stores from V0 to VX (including VX) in memory, starting at address
-    #       I. The offset from I is increased by 1 for each value written, but I
-    #       itself is left unmodified
+    #       I. The offset from I is increased by 1 for each value written
     def _execute_FX55(self, x):
         for i in range(x + 1):
             self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(i))
+        self._registers.set_I(self._registers.get_I() + x + 1)
         self._registers.advance_PC()
 
     # FX65: Fills from V0 to VX (including VX) with values from memory,
     #       starting at address I. The offset from I is increased by 1 for each value
-    #       read, but I itself is left unmodified
+    #       read
     def _execute_FX65(self, x):
         for i in range(x + 1):
             self._registers.set_V(i, self._memory.get_byte(self._registers.get_I() + i))
+        self._registers.set_I(self._registers.get_I() + x + 1)
+        self._registers.advance_PC()
+
+    # FX75: Store V0..VX in RPL user flags
+    def _execute_FX75(self, x):
+        n = self._registers.get_V(x)
+
+        for i in range(n+1):
+            self._registers.set_RPL(i, self._registers.get_V(i))
+
+        self._registers.advance_PC()
+
+    # FX85: Read V0..VX from RPL user flags
+    def _execute_FX85(self, x):
+        n = self._registers.get_V(x)
+
+        for i in range(n+1):
+            self._registers.set_V(i, self._registers.get_RPL(i))
+
         self._registers.advance_PC()
 
     def _execute_op(self, opcode):
@@ -537,6 +609,6 @@ class CPU():
             raise Exception('Unknown opcode: {:04X}'.format(opcode))
 
     def execute_next_op(self):
-        opcode = self.get_opcode()
+        opcode = self._get_opcode()
         self._execute_op(opcode)
 
