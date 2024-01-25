@@ -166,17 +166,50 @@ class CPU():
                 self._registers.advance_PC()
         self._registers.advance_PC()
 
-    # 5XY0: Skips the next instruction if VX equals VY 
-    #       XO-Chip uses 0xF000 with a following 2 byte
-    #       address that also needs to be skipped.
-    def _execute_5XY0(self, opcode):
+    def _execute_5(self, opcode):
+        subcode = opcode & 0x000F
         x = (opcode & 0x0F00) >> 8
         y = (opcode & 0x00F0) >> 4
 
+        if subcode == 0x0:
+            self._execute_5XY0(x, y)
+        elif subcode == 0x2:
+            self._execute_5XY2(x, y)
+        elif subcode == 0x3:
+            self._execute_5XY3(x, y)
+        else:
+            raise Exception('Unknown opcode: 5XY{:01X}'.format(subcode))
+
+    # 5XY0: Skips the next instruction if VX equals VY
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
+    def _execute_5XY0(self, x, y):
         if self._registers.get_V(x) == self._registers.get_V(y):
             self._registers.advance_PC()
             if self.get_opcode() == 0xF000:
                 self._registers.advance_PC()
+        self._registers.advance_PC()
+
+    # 5XY2: Save VX..VY inclusive to memory starting at I.
+    #       order can be ascending or descending. Does not increment I
+    def _execute_5XY2(self, x, y):
+        if x >= y:
+            for i, v in enumerate(range(x, y+1)):
+                self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(v))
+        else:
+            for i, v in enumerate(range(y, x-1, -1)):
+                self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(v))
+        self._registers.advance_PC()
+
+    # 5XY2: Load VX..VY inclusive from memory starting at I.
+    #       order can be ascending or descending. Does not increment I
+    def _execute_5XY3(self, x, y):
+        if x >= y:
+            for i, r in enumerate(range(x, y+1)):
+                self._registers.set_V(r, self._memory.get_byte(self._registers.get_I() + i))
+        else:
+            for i, r in enumerate(range(y, x-1, -1)):
+                self._registers.set_V(r, self._memory.get_byte(self._registers.get_I() + i))
         self._registers.advance_PC()
 
     # 6XNN: Sets VX to NN
@@ -457,7 +490,7 @@ class CPU():
         elif code == 0x4000:
             self._execute_4XNN(opcode)
         elif code == 0x5000:
-            self._execute_5XY0(opcode)
+            self._execute_5(opcode)
         elif code == 0x6000:
             self._execute_6XNN(opcode)
         elif code == 0x7000:
