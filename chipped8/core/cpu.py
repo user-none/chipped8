@@ -141,6 +141,8 @@ class CPU():
         self._registers.set_PC(opcode & 0x0FFF)
 
     # 3XNN: Skips the next instruction if VX equals NN 
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
     def _execute_3XNN(self, opcode):
         x = (opcode & 0x0F00) >> 8
         n = opcode & 0x00FF
@@ -152,6 +154,8 @@ class CPU():
         self._registers.advance_PC()
 
     # 4XNN: Skips the next instruction if VX does not equal NN
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
     def _execute_4XNN(self, opcode):
         x = (opcode & 0x0F00) >> 8
         n = opcode & 0x00FF
