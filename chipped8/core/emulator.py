@@ -99,6 +99,9 @@ class Emulator():
     def load_rom(self, data):
         self._memory.load_rom(data)
 
+    def screen_buffer(self):
+        return self._display.get_pixels()
+
     def process_frame(self):
         for i in range(self._cycles_per_frame):
             self._cpu.execute_next_op()
