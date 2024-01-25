@@ -24,25 +24,25 @@ from copy import deepcopy
 from enum import Enum, IntEnum, auto
 
 class Keys(IntEnum):
-    Key_0 = 0x0,
-    Key_1 = 0x1,
-    Key_2 = 0x2,
-    Key_3 = 0x3,
-    Key_4 = 0x4,
-    Key_5 = 0x5,
-    Key_6 = 0x6,
-    Key_7 = 0x7,
-    Key_8 = 0x8,
-    Key_9 = 0x9,
-    Key_A = 0xA,
-    Key_B = 0xB,
-    Key_C = 0xC,
-    Key_D = 0xD,
-    Key_E = 0xE,
+    Key_0 = 0x0
+    Key_1 = 0x1
+    Key_2 = 0x2
+    Key_3 = 0x3
+    Key_4 = 0x4
+    Key_5 = 0x5
+    Key_6 = 0x6
+    Key_7 = 0x7
+    Key_8 = 0x8
+    Key_9 = 0x9
+    Key_A = 0xA
+    Key_B = 0xB
+    Key_C = 0xC
+    Key_D = 0xD
+    Key_E = 0xE
     Key_F = 0xF
 
 class KeyState(Enum):
-    up = auto(),
+    up = auto()
     down = auto()
 
 class KeyInput():
