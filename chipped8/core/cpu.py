@@ -167,12 +167,16 @@ class CPU():
         self._registers.advance_PC()
 
     # 5XY0: Skips the next instruction if VX equals VY 
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
     def _execute_5XY0(self, opcode):
         x = (opcode & 0x0F00) >> 8
         y = (opcode & 0x00F0) >> 4
 
         if self._registers.get_V(x) == self._registers.get_V(y):
             self._registers.advance_PC()
+            if self.get_opcode() == 0xF000:
+                self._registers.advance_PC()
         self._registers.advance_PC()
 
     # 6XNN: Sets VX to NN
@@ -281,11 +285,15 @@ class CPU():
         self._registers.advance_PC()
 
     # 9XY0: Skips the next instruction if VX does not equal VY
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
     def _execute_9XY0(self, opcode):
         x = (opcode & 0x0F00) >> 8
         y = (opcode & 0x00F0) >> 4
 
         if self._registers.get_V(x) != self._registers.get_V(y):
+            if self.get_opcode() == 0xF000:
+                self._registers.advance_PC()
             self._registers.advance_PC()
         self._registers.advance_PC()
 
@@ -331,15 +339,23 @@ class CPU():
             raise Exception('Unknown opcode: EX{:02X}'.format(subcode))
 
     # EX9E: Skips the next instruction if the key stored in VX is pressed
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
     def _execute_EX9E(self, x):
         if self._keys.get_key_state(self._registers.get_V(x)) == KeyState.down:
             self._registers.advance_PC()
+            if self.get_opcode() == 0xF000:
+                self._registers.advance_PC()
         self._registers.advance_PC()
 
     # EXA1: Skips the next instruction if the key stored in VX is not pressed
+    #       XO-Chip uses 0xF000 with a following 2 byte
+    #       address that also needs to be skipped.
     def _execute_EXA1(self, x):
         if self._keys.get_key_state(self._registers.get_V(x)) == KeyState.up:
             self._registers.advance_PC()
+            if self.get_opcode() == 0xF000:
+                self._registers.advance_PC()
         self._registers.advance_PC()
 
     def _execute_F(self, opcode):
