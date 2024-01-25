@@ -48,6 +48,7 @@ class QtApp(QObject):
     def run(self):
         scene = SceneProvider()
         self._c8handler.blitReady.connect(scene.blitScreen)
+        self._c8handler.clearScreenReady.connect(scene.clearScreen)
 
         app = QApplication(sys.argv)
         engine = QQmlApplicationEngine()

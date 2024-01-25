@@ -29,10 +29,11 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 import chipped8
 
-max_rewind_frames = 60*60*2 # 60 frame per sec, 60 secs in a minute, 2 minutes
+max_rewind_frames = 60*30 # 60 frame per sec, 30 seconds
 
 class c8Handler(QObject):
     blitReady = Signal(list)
+    clearScreenReady = Signal()
 
     def __init__(self, hz=400):
         QObject.__init__(self)
@@ -165,6 +166,12 @@ class c8Handler(QObject):
 
         try:
             self._emulator.process_frame()
+        except ExitInterpreterException:
+            self._emulator = None
+            self._rewind_stack = []
+            self._process_timer.stop()
+            self.clearScreenReady.emit()
+            return
         except Exception as e:
             QMessageBox.critical(None, 'Run Error', str(e))
             self._emulator = None

@@ -25,6 +25,10 @@ from random import randint
 
 from . import maths
 from .keys import KeyState
+from .display import ResolutionMode
+
+class ExitInterpreterException(Exception):
+    pass
 
 class CPU():
 
@@ -35,6 +39,9 @@ class CPU():
         self._timers = timers
         self._keys = keys
         self._display = display
+
+    def get_opcode(self):
+        return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
 
     def _draw(self, x, y, n):
         self._registers.set_V(0xF, 0)
@@ -55,13 +62,40 @@ class CPU():
 
     def _execute_0(self, opcode):
         subcode = opcode & 0x00FF
+        subn = opcode & 0x00F0
 
-        if subcode == 0x00E0:
+        if subn == 0x00C0:
+            self._execute_00C0()
+        elif subn == 0x00D0:
+            self._execute_00D0()
+        elif subcode == 0x00E0:
             self._execute_00E0()
         elif subcode == 0x00EE:
             self._execute_00EE()
+        elif subcode == 0x00FB:
+            self._execute_00FB()
+        elif subcode == 0x00FC:
+            self._execute_00FC()
+        elif subcode == 0x00FD:
+            self._execute_00FD()
+        elif subcode == 0x00FE:
+            self._execute_00FE()
+        elif subcode == 0x00FF:
+            self._execute_00FF()
         else:
             raise Exception('Unknown opcode: 00{:02X}'.format(subcode))
+
+    # Scroll display N pixels down; in low resolution mode, N/2 pixels
+    def _execute_00C0(self):
+        n = opcode & 0x000F
+        self._display.scroll_down(n)
+        self._registers.advance_PC()
+
+    # Scroll display N pixels up; in low resolution mode, N/2 pixels
+    def _execute_00D0(self):
+        n = opcode & 0x000F
+        self._display.scroll_up(n)
+        self._registers.advance_PC()
 
     # 00E0: Clears the screen
     def _execute_00E0(self):
@@ -71,6 +105,30 @@ class CPU():
     # 00EE: Return from subroutine
     def _execute_00EE(self):
         self._registers.set_PC(self._stack.pop())
+        self._registers.advance_PC()
+
+    # Scroll right by 4 pixels; in low resolution mode, 2 pixels
+    def _execute_00FB(self):
+        self._display.scroll_right()
+        self._registers.advance_PC()
+
+    # Scroll left by 4 pixels; in low resolution mode, 2 pixels
+    def _execute_00FC(self):
+        self._display.scroll_left()
+        self._registers.advance_PC()
+
+    # Exit interpreter
+    def _execute_00FC(self):
+        raise ExitInterpreterException()
+
+    # Switch to low resolution mode
+    def _execute_00FE(self):
+        self._display.set_resmode(ResolutionMode.lowres)
+        self._registers.advance_PC()
+
+    # Switch to high resolution mode
+    def _execute_00FF(self):
+        self._display.set_resmode(ResolutionMode.hires)
         self._registers.advance_PC()
 
     # 1NNN: Jump to address NNN
@@ -89,6 +147,8 @@ class CPU():
 
         if self._registers.get_V(x) == n:
             self._registers.advance_PC()
+            if self.get_opcode() == 0xF000:
+                self._registers.advance_PC()
         self._registers.advance_PC()
 
     # 4XNN: Skips the next instruction if VX does not equal NN
@@ -98,6 +158,8 @@ class CPU():
 
         if self._registers.get_V(x) != n:
             self._registers.advance_PC()
+            if self.get_opcode() == 0xF000:
+                self._registers.advance_PC()
         self._registers.advance_PC()
 
     # 5XY0: Skips the next instruction if VX equals VY 
@@ -400,6 +462,6 @@ class CPU():
             raise Exception('Unknown opcode: {:04X}'.format(opcode))
 
     def execute_next_op(self):
-        opcode = (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
+        opcode = self.get_opcode()
         self._execute_op(opcode)
 

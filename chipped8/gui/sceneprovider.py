@@ -59,6 +59,13 @@ class SceneProvider(QQuickImageProvider):
         self._img = img
         self.blitReady.emit()
 
+    @Slot()
+    def clearScreen(self):
+        img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
+        img.fill(self._color_1)
+        self._img = img
+        self.blitReady.emit()
+
     def requestImage(self, id, size, requestedSize):
         size.setWidth(chipped8.SCREEN_WIDTH * UPSCALE_FACTOR)
         size.setHeight(chipped8.SCREEN_HEIGHT * UPSCALE_FACTOR)

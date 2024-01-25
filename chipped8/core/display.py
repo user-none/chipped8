@@ -44,6 +44,10 @@ class Plane(Flag):
 class Displaly():
 
     def __init__(self):
+        # There are 2 screen planes that get overlaid when outputting the screen.
+        # A screen buffer is a one dimensional array of 0 or 1 denoting if the pixel is set or not.
+        # The pixels in the buffer are rows next to each other instead of on top of each other.
+        # In the buffer: | row | row | row | row |. Each row is a row of pixels.
         self._screen_buffer = [ self._generate_empty_buffer(), self._generate_empty_buffer() ]
         self._update_screen = False
         self._mode = ResolutionMode.lowres
@@ -60,11 +64,8 @@ class Displaly():
     def _generate_empty_buffer(self):
         return bytearray(SCREEN_PIXEL_COUNT)
 
-    def set_mode(self, mode: ResolutionMode):
+    def set_resmode(self, mode: ResolutionMode):
         self._mode = mode
-
-    def mode(self):
-        return self._mode
 
     def set_plane(self, plane: Plane):
         if self._plane == plane:
@@ -72,6 +73,16 @@ class Displaly():
 
         self._plane = plane
         self.clear_screen()
+
+    def _get_plane_buffers(self):
+        plane_buffers = []
+
+        if self._plane & Plane.p1:
+            plane_buffers.append(self._screen_buffer[0])
+        if self._plane & Plane.p2:
+            plane_buffers.append(self._screen_buffer[1])
+
+        return plane_buffers
 
     def clear_screen(self):
         self._screen_buffer = [ self._generate_empty_buffer(), self._generate_empty_buffer() ]
@@ -81,6 +92,7 @@ class Displaly():
         pixels = []
         for x in range(SCREEN_WIDTH):
             row = []
+
             for y in range(SCREEN_HEIGHT):
                 idx = x + (y * SCREEN_WIDTH)
 
@@ -143,19 +155,65 @@ class Displaly():
             return self._set_pixel_hires(screen_buffer, x, y, v)
 
     def set_pixel(self, x, y, v):
-        unset_p1 = False
-        unset_p2 = False
-
         # XOR with 0 won't change the value
         if v == 0:
             return False
 
-        if self._plane & Plane.p1:
-            unset_p1 = self._set_pixel_buffer(self._screen_buffer[0], x, y, v)
-
-        if self._plane & Plane.p2:
-            unset_p2 = self._set_pixel_buffer(self._screen_buffer[1], x, y, v)
+        unset = False
+        plane_buffers = self._get_plane_buffers()
+        for screen_buffer in plane_buffers:
+            u = self._set_pixel_buffer(screen_buffer, x, y, v)
+            if u:
+                unset = True
 
         self._update_screen = True
-        return unset_p1 or unset_p2
+        return unset
+
+    def scroll_down(self, num_pixels):
+        plane_buffers = self._get_plane_buffers()
+        for screen_buffer in plane_buffers:
+            screen_buffer[:] = bytearray(SCREEN_WIDTH * num_pixels) + screen_buffer[ : -1 * SCREEN_WIDTH * num_pixels ]
+        self._update_screen = True
+
+    def scroll_up(self, num_pixels):
+        plane_buffers = self._get_plane_buffers()
+        for screen_buffer in plane_buffers:
+            screen_buffer[:] = screen_buffer[ SCREEN_WIDTH * num_pixels : ] + bytearray(SCREEN_WIDTH * num_pixels)
+        self._update_screen = True
+
+    def scroll_left(self):
+        plane_buffers = self._get_plane_buffers()
+
+        for screen_buffer in plane_buffers:
+            buffer = bytearray()
+
+            for x in range(SCREEN_WIDTH):
+                row = bytearray(SCREEN_WIDTH)
+
+                for y in range(SCREEN_HEIGHT):
+                    row =  screen_buffer[SCREEN_WIDTH * y + 4: SCREEN_WIDTH * y + SCREEN_WIDTH ] + bytearray(4)
+
+                buffer.extend(row)
+
+            screen_buffer[:] = buffer
+
+        self._update_screen = True
+
+    def scroll_right(self):
+        plane_buffers = self._get_plane_buffers()
+
+        for screen_buffer in plane_buffers:
+            buffer = bytearray()
+
+            for x in range(SCREEN_WIDTH):
+                row = bytearray(SCREEN_WIDTH)
+
+                for y in range(SCREEN_HEIGHT):
+                    row = bytearray(4) + screen_buffer[SCREEN_WIDTH * y : SCREEN_WIDTH * y + SCREEN_WIDTH - 4 ]
+
+                buffer.extend(row)
+
+            screen_buffer[:] = buffer
+
+        self._update_screen = True
 
