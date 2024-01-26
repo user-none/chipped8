@@ -5,15 +5,21 @@ GUI decoupled from the core system allowing different GUI's to be used.
 
 ## Chip-8 Instruction Version
 
-There have been multiple [revisions / versions](https://chip-8.github.io) of
-Chip-8 that are incompatible with each other. The original 35 opcodes are
-supported using the Super Chip-8 behavior as described on [Wikipedia](https://en.wikipedia.org/wiki/CHIP-8). 
+The XO-Chip (Octo) instruction set is supported. Which is a superset of
+instructions and allows for Chip-8, Super Chip-8 1.0 to also be supported.
+
+That said, there have been multiple [revisions /
+versions](https://chip-8.github.io) of Chip-8 that are incompatible with each
+other. Flags to handle differences in behavior are not currently supported.
+Any Chip-8 and Super Chip-8 ROMs must be compatible with XO-Chip.
+
+Super Chip-8 1.1 ROMs will mot likely not work due to the FX55 and FX65 not
+incrementing I in that is unique to 1.1.
 
 ## GUI
 
-Currently the only GUI supported is a basic SDL interface which is used when
-running the application. It will open a window for display and allows for
-keyboard input. If the window loses focus emulation is paused.
+The GUI is a work in progress and uses Qt. It supports basic features such as
+emulation automatically pausing if focus is lost and few key controls.
 
 ### Keyboard Mapping
 
@@ -40,7 +46,7 @@ Left arrow | Shift    | Rewind 60 frames (1 second)
 
 ## Rewind
 
-Basic rewind is supported for a two minutes.
+Basic rewind is supported for 30 seconds.
 
 ## Install and Run
 
