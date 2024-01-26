@@ -225,7 +225,6 @@ class CPU():
         for i, v in enumerate(range(x, y+step, step)):
             self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(v))
         self._registers.advance_PC()
-        #print(self._registers.dump_V(), self._memory.get_range(self._registers.get_I(), y-x+1))
 
     # 5XY2: Load VX..VY inclusive from memory starting at I.
     #       order can be ascending or descending. Does not increment I
