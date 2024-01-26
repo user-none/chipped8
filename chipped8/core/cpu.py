@@ -366,7 +366,7 @@ class CPU():
         self._registers.set_PC((opcode & 0x0FFF) + self._registers.get_V(0))
 
     # CXNN: Sets VX to the result of a bitwise and operation on a random number
-    def _execute_CNNN(self, opcode):
+    def _execute_CXNN(self, opcode):
         x = (opcode & 0x0F00) >> 8
         mask = (opcode & 0xFF)
         self._registers.set_V(x, randint(0, 255) & mask)
@@ -597,7 +597,7 @@ class CPU():
         elif code == 0xB000:
             self._execute_BNNN(opcode)
         elif code == 0xC000:
-            self._execute_CNNN(opcode)
+            self._execute_CXNN(opcode)
         elif code == 0xD000:
             self._execute_DXYN(opcode)
         elif code == 0xE000:
