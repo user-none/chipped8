@@ -23,7 +23,6 @@
 from copy import deepcopy
 from random import randint
 
-from . import maths
 from .keys import KeyState
 from .display import Plane, ResolutionMode
 
@@ -299,8 +298,10 @@ class CPU():
     # 8XY4: Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not
     def _execute_8XY4(self, x, y):
         n = self._registers.get_V(x) + self._registers.get_V(y)
-        self._registers.set_V(0xF, 1 if n > 0xFF else 0)
+
         self._registers.set_V(x, n)
+        self._registers.set_V(0xF, 1 if n > 0xFF else 0)
+
         self._registers.advance_PC()
 
     # 8XY5: VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not
@@ -309,8 +310,8 @@ class CPU():
         vy = self._registers.get_V(y)
         n = vx - vy
 
-        self._registers.set_V(0xF, 1 if vx >= vy else 0)
         self._registers.set_V(x, n)
+        self._registers.set_V(0xF, 1 if vx >= vy else 0)
 
         self._registers.advance_PC()
 
@@ -319,8 +320,8 @@ class CPU():
     def _execute_8XY6(self, x, y):
         n = self._registers.get_V(y)
 
-        self._registers.set_V(0xF, n & 0x1)
         self._registers.set_V(x, n >> 1)
+        self._registers.set_V(0xF, n & 0x1)
 
         self._registers.advance_PC()
 
@@ -339,8 +340,10 @@ class CPU():
     #       Set register VF to the most significant bit prior to the shift
     def _execute_8XYE(self, x, y):
         n = self._registers.get_V(y)
-        self._registers.set_V(0xF, n >> 7)
+
         self._registers.set_V(x, n << 1)
+        self._registers.set_V(0xF, n >> 7)
+
         self._registers.advance_PC()
 
     # 9XY0: Skips the next instruction if VX does not equal VY
