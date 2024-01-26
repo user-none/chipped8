@@ -9,12 +9,12 @@ The XO-Chip (Octo) instruction set is supported. Which is a superset of
 instructions and allows for Chip-8, Super Chip-8 1.0 to also be supported.
 
 That said, there have been multiple [revisions /
-versions](https://chip-8.github.io) of Chip-8 that are incompatible with each
-other. Flags to handle differences in behavior are not currently supported.
-Any Chip-8 and Super Chip-8 ROMs must be compatible with XO-Chip.
+versions](https://chip-8.github.io) of Chip-8 that introduce incompatibilities
+with each other. Flags to handle differences in behavior are not currently
+supported. Chip-8 and Super Chip-8 1.0 ROMs must be compatible with XO-Chip.
 
 Super Chip-8 1.1 ROMs will mot likely not work due to the FX55 and FX65 not
-incrementing I in that is unique to 1.1.
+incrementing I in this specification.
 
 ## GUI
 
