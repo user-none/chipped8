@@ -108,7 +108,7 @@ class Emulator():
 
         self._timers.update_delay()
 
-        if self._timers.get_sound() == 1:
+        if self._timers.get_sound() != 0:
             self._sound_cb()
         self._timers.update_sound()
 
