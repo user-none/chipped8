@@ -147,10 +147,13 @@ class Displaly():
     def screen_updated(self):
         self._update_screen = False
 
-    def _set_pixel_lowres(self, plane_buffer, x, y, v):
+    def _set_pixel_lowres(self, plane_buffer, x, y, v, wrap):
         unset = False
         x = x * 2
         y = y * 2
+
+        if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
+            return
 
         for i in range(2):
             col = (x + i) % SCREEN_WIDTH
@@ -166,7 +169,10 @@ class Displaly():
 
         return unset
 
-    def _set_pixel_hires(self, plane_buffer, x, y, v):
+    def _set_pixel_hires(self, plane_buffer, x, y, v, wrap):
+        if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
+            return
+
         unset = False
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
@@ -179,7 +185,7 @@ class Displaly():
 
         return unset
 
-    def set_pixel(self, plane, x, y, v):
+    def set_pixel(self, plane, x, y, v, wrap=True):
         # XOR with 0 won't change the value
         if v == 0:
             return False
@@ -190,9 +196,9 @@ class Displaly():
         unset = False
         plane_buffer = self._screen_planes[0] if plane == Plane.p1 else self._screen_planes[1]
         if self._res_mode == ResolutionMode.lowres:
-            u = self._set_pixel_lowres(plane_buffer, x, y, v)
+            u = self._set_pixel_lowres(plane_buffer, x, y, v, wrap)
         else:
-            u = self._set_pixel_hires(plane_buffer, x, y, v)
+            u = self._set_pixel_hires(plane_buffer, x, y, v, wrap)
 
         if u:
             unset = True

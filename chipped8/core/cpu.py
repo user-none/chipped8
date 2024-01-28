@@ -31,13 +31,15 @@ class ExitInterpreterException(Exception):
 
 class CPU():
 
-    def __init__(self, registers, stack, memory, timers, keys, display):
+    def __init__(self, registers, stack, memory, timers, keys, display, quirks):
         self._registers = registers
         self._stack = stack
         self._memory = memory
         self._timers = timers
         self._keys = keys
         self._display = display
+        self._quirks = quirks
+        self._draw_occurred = False
 
     def _get_opcode(self):
         return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
@@ -47,6 +49,8 @@ class CPU():
             self._draw_s16(x, y)
         else:
             self._draw_s8(x, y, n)
+
+        self._draw_occurred = True
 
     def _draw_s8(self, x, y, n):
         self._registers.set_V(0xF, 0)
@@ -63,7 +67,7 @@ class CPU():
                     row = x + j
                     col = y + i
 
-                    unset = self._display.set_pixel(plane, row, col, 1)
+                    unset = self._display.set_pixel(plane, row, col, 1, self._quirks.get_wrap())
                     if unset:
                         self._registers.set_V(0xF, 1)
             I = I + n
@@ -283,16 +287,22 @@ class CPU():
     # 8XY1: Sets VX to VX or VY
     def _execute_8XY1(self, x, y):
         self._registers.set_V(x, self._registers.get_V(x) | self._registers.get_V(y))
+        if self._quirks.get_logic():
+            self._registers.set_V(0xF, 0)
         self._registers.advance_PC()
 
     # 8XY2: Sets VX to VX and VY
     def _execute_8XY2(self, x, y):
         self._registers.set_V(x, self._registers.get_V(x) & self._registers.get_V(y))
+        if self._quirks.get_logic():
+            self._registers.set_V(0xF, 0)
         self._registers.advance_PC()
 
     # 8XY3: Sets VX to VX xor VY
     def _execute_8XY3(self, x, y):
         self._registers.set_V(x, self._registers.get_V(x) ^ self._registers.get_V(y))
+        if self._quirks.get_logic():
+            self._registers.set_V(0xF, 0)
         self._registers.advance_PC()
 
     # 8XY4: Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not
@@ -318,7 +328,10 @@ class CPU():
     # 8XY6: Stores the least significant bit of VX in VF and then shifts VX to the right by 1
     #       Set register VF to the most significant bit prior to the shift
     def _execute_8XY6(self, x, y):
-        n = self._registers.get_V(y)
+        if self._quirks.get_shift():
+            n = self._registers.get_V(x)
+        else:
+            n = self._registers.get_V(y)
 
         self._registers.set_V(x, n >> 1)
         self._registers.set_V(0xF, n & 0x1)
@@ -339,7 +352,10 @@ class CPU():
     # 8XYE: Store the value of register VY shifted left one bit in register VX.
     #       Set register VF to the most significant bit prior to the shift
     def _execute_8XYE(self, x, y):
-        n = self._registers.get_V(y)
+        if self._quirks.get_shift():
+            n = self._registers.get_V(x)
+        else:
+            n = self._registers.get_V(y)
 
         self._registers.set_V(x, n << 1)
         self._registers.set_V(0xF, n >> 7)
@@ -364,9 +380,15 @@ class CPU():
         self._registers.set_I(opcode & 0x0FFF)
         self._registers.advance_PC()
 
-    # BNNN: Jumps to the address NNN plus V0
+    # BXNN / BNNN: Jumps to the address NNN plus V0
     def _execute_BNNN(self, opcode):
-        self._registers.set_PC((opcode & 0x0FFF) + self._registers.get_V(0))
+        if self._quirks.get_jump():
+            x = (opcode & 0x0F00) >> 8
+            n = (opcode & 0x00FF) + self._registers.get_V(x)
+        else:
+            n = (opcode & 0x0FFF) + self._registers.get_V(0)
+
+        self._registers.set_PC(n)
 
     # CXNN: Sets VX to the result of a bitwise and operation on a random number
     def _execute_CXNN(self, opcode):
@@ -544,7 +566,12 @@ class CPU():
     def _execute_FX55(self, x):
         for i in range(x + 1):
             self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(i))
-        self._registers.set_I(self._registers.get_I() + x + 1)
+
+        if not self._quirks.get_memoryLeaveIUnchanged:
+            self._registers.set_I(self._registers.get_I() + x)
+            if not self._quirks.get_memoryIncrementByX():
+                self._registers.set_I(self._registers.get_I() + 1)
+
         self._registers.advance_PC()
 
     # FX65: Fills from V0 to VX (including VX) with values from memory,
@@ -553,7 +580,12 @@ class CPU():
     def _execute_FX65(self, x):
         for i in range(x + 1):
             self._registers.set_V(i, self._memory.get_byte(self._registers.get_I() + i))
-        self._registers.set_I(self._registers.get_I() + x + 1)
+
+        if not self._quirks.get_memoryLeaveIUnchanged:
+            self._registers.set_I(self._registers.get_I() + x)
+            if not self._quirks.get_memoryIncrementByX():
+                self._registers.set_I(self._registers.get_I() + 1)
+
         self._registers.advance_PC()
 
     # FX75: Store V0..VX in RPL user flags
@@ -613,6 +645,10 @@ class CPU():
             raise Exception('Unknown opcode: {:04X}'.format(opcode))
 
     def execute_next_op(self):
+        self._draw_occurred = False
         opcode = self._get_opcode()
         self._execute_op(opcode)
+
+    def draw_occurred(self):
+        return self._draw_occurred
 

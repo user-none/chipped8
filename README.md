@@ -5,16 +5,24 @@ GUI decoupled from the core system allowing different GUI's to be used.
 
 ## Chip-8 Instruction Version
 
-The XO-Chip (Octo) instruction set is supported. Which is a superset of
-instructions and allows for Chip-8, Super Chip-8 1.0 to also be supported.
+There have been multiple [revisions / versions](https://chip-8.github.io) of
+Chip-8 that introduce incompatibilities with each other. Most Chip-8 versions
+are supported via specifying the target platform when starting the application.
 
-That said, there have been multiple [revisions /
-versions](https://chip-8.github.io) of Chip-8 that introduce incompatibilities
-with each other. Flags to handle differences in behavior are not currently
-supported. Chip-8 and Super Chip-8 1.0 ROMs must be compatible with XO-Chip.
+Choices are:
 
-Super Chip-8 1.1 ROMs will mot likely not work due to the FX55 and FX65 not
-incrementing I in this specification.
+- originalChip8
+- hybridVIP
+- modernChip8
+- chip8x
+- chip48
+- superchip1
+- superchip
+- megachip8
+- xochip
+
+The default is originalChip8. The platform specifies behavior flags as
+defined by the [Chip-8 Research Facility](https://github.com/chip-8/chip-8-database).
 
 ## GUI
 
@@ -63,14 +71,4 @@ to edit the source without running `pip` again.
 
 Also, if testing new entry point, the following can be used:
 `python -m chipped8.main_new_testing rom.ch8`
-
-## Roms
-
-Since Chip-8 wasn't a commercial game system everything running on it is
-pretty much homebrew. There are a number of resources with interesting ch8
-roms that you can play. This is a non-exhaustive list.
-
-* [Test Rom](https://github.com/corax89/chip8-test-rom)
-* [CHIP-8 Archive](https://johnearnest.github.io/chip8Archive/?sort=platform)
-* [loktar00 Rom Collection](https://github.com/loktar00/chip8/tree/master/roms)
 

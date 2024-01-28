@@ -35,11 +35,12 @@ class c8Handler(QObject):
     blitReady = Signal(list)
     clearScreenReady = Signal()
 
-    def __init__(self, hz=400):
+    def __init__(self, hz=400, platform=chipped8.Platform.originalChip8):
         QObject.__init__(self)
 
         self._emulator = None
         self._hz = hz
+        self._platform = platform
         self._process = False
         self._process_timer = QTimer(self)
         self._process_timer.setTimerType(Qt.PreciseTimer)
@@ -131,7 +132,7 @@ class c8Handler(QObject):
     @Slot(QUrl)
     @Slot(str)
     def load_rom(self, fname):
-        self._emulator = chipped8.Emulator(self._hz)
+        self._emulator = chipped8.Emulator(self._hz, chipped8.Quirks(self._platform))
 
         self._rewind_stack = []
 

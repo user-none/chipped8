@@ -34,12 +34,14 @@ from PySide6.QtQml import QQmlApplicationEngine
 from .sceneprovider import SceneProvider
 from .c8handler import c8Handler
 
+from chipped8 import Platform
+
 class QtApp(QObject):
     def __init__(self, args):
         QObject.__init__(self)
 
         self._args = args
-        self._c8handler = c8Handler(self._args.hz)
+        self._c8handler = c8Handler(self._args.hz, self._args.platform)
 
     def run(self):
         scene = SceneProvider()

@@ -31,23 +31,26 @@ from .stack import Stack
 from .memory import Memory
 from .keys import KeyInput
 from .display import Displaly
+from .quirks import Platform, Quirks
 
 class Emulator():
     
-    def __init__(self, hz=1200):
+    def __init__(self, hz=1200, quirks=Quirks(Platform.unknown)):
         self._registers = Registers()
         self._stack = Stack()
         self._memory = Memory()
         self._timers = Timers()
         self._keys = KeyInput()
         self._display = Displaly()
+        self._quirks = deepcopy(quirks)
         self._cpu = CPU(
             self._registers,
             self._stack,
             self._memory,
             self._timers,
             self._keys,
-            self._display
+            self._display,
+            self._quirks
         )
 
         self._blit_screen_cb = lambda *args: None
@@ -66,6 +69,7 @@ class Emulator():
         d._timers = deepcopy(self._timers)
         d._keys = deepcopy(self._keys)
         d._display = deepcopy(self._display)
+        d.quirks = deepcopy(self._quirks)
 
         d._cpu = CPU(
             d._registers,
@@ -73,7 +77,8 @@ class Emulator():
             d._memory,
             d._timers,
             d._keys,
-            d._display
+            d._display,
+            d.quirks
         )
 
         d._blit_screen_cb = self._blit_screen_cb
@@ -105,6 +110,12 @@ class Emulator():
     def process_frame(self):
         for i in range(self._cycles_per_frame):
             self._cpu.execute_next_op()
+
+            # This isn't quite right. We should be running cycles after the
+            # draw and only stop when the next op is a draw. But this works
+            # well enough, it's easier to check, and you don't notice a difference.
+            if self._quirks.get_vblank() and self._cpu.draw_occurred():
+                break
 
         self._timers.update_delay()
 
