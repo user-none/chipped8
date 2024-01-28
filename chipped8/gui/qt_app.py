@@ -41,10 +41,6 @@ class QtApp(QObject):
         self._args = args
         self._c8handler = c8Handler(self._args.hz)
 
-    def _beep(self):
-        #os.system("echo -ne '\007'")
-        pass
-
     def run(self):
         scene = SceneProvider()
         self._c8handler.blitReady.connect(scene.blitScreen)

@@ -429,7 +429,7 @@ class CPU():
         elif subcode == 0x01:
             self._execute_FX01(x)
         elif subcode == 0x02:
-            self._execute_FX02(x)
+            self._execute_F002()
         elif subcode == 0x07:
             self._execute_FX07(x)
         elif subcode == 0x0A:
@@ -478,8 +478,9 @@ class CPU():
         self._registers.advance_PC()
 
     # F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
-    def _execute_FX02(self, x):
+    def _execute_F002(self):
         # TODO
+        #print(self._memory.get_range(self._registers.get_I(), 16))
         self._registers.advance_PC()
 
     # FX07: Sets VX to the value of the delay timer
@@ -535,6 +536,7 @@ class CPU():
     # Set the pitch register to the value in VX.
     def _execute_FX3A(self, x):
         # TODO
+        #print(self._registers.get_V(x))
         self._registers.advance_PC()
 
     # FX55: Stores from V0 to VX (including VX) in memory, starting at address

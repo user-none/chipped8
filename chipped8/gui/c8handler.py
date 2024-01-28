@@ -52,7 +52,8 @@ class c8Handler(QObject):
         self.blitReady.emit(pixels)
 
     def _beep(self):
-        QApplication.beep()
+        #QApplication.beep()
+        pass
 
     @Slot(bool)
     def process_frames(self, run):
