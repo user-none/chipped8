@@ -31,7 +31,7 @@ class ExitInterpreterException(Exception):
 
 class CPU():
 
-    def __init__(self, registers, stack, memory, timers, keys, display, quirks):
+    def __init__(self, registers, stack, memory, timers, keys, display, quirks, audio):
         self._registers = registers
         self._stack = stack
         self._memory = memory
@@ -39,6 +39,8 @@ class CPU():
         self._keys = keys
         self._display = display
         self._quirks = quirks
+        self._audio = audio
+
         self._draw_occurred = False
 
     def _get_opcode(self):
@@ -501,8 +503,7 @@ class CPU():
 
     # F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
     def _execute_F002(self):
-        # TODO
-        #print(self._memory.get_range(self._registers.get_I(), 16))
+        self._audio.set_pattern(self._memory.get_range(self._registers.get_I(), 16))
         self._registers.advance_PC()
 
     # FX07: Sets VX to the value of the delay timer
@@ -557,8 +558,7 @@ class CPU():
 
     # Set the pitch register to the value in VX.
     def _execute_FX3A(self, x):
-        # TODO
-        #print(self._registers.get_V(x))
+        self._audio.set_pitch(self._registers.get_V(x))
         self._registers.advance_PC()
 
     # FX55: Stores from V0 to VX (including VX) in memory, starting at address

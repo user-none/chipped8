@@ -32,6 +32,7 @@ from .memory import Memory
 from .keys import KeyInput
 from .display import Displaly
 from .quirks import Platform, Quirks
+from .audio import Audio
 
 class Emulator():
     
@@ -43,6 +44,7 @@ class Emulator():
         self._keys = KeyInput()
         self._display = Displaly()
         self._quirks = deepcopy(quirks)
+        self._audio = Audio()
         self._cpu = CPU(
             self._registers,
             self._stack,
@@ -50,7 +52,8 @@ class Emulator():
             self._timers,
             self._keys,
             self._display,
-            self._quirks
+            self._quirks,
+            self._audio
         )
 
         self._blit_screen_cb = lambda *args: None
@@ -70,6 +73,7 @@ class Emulator():
         d._keys = deepcopy(self._keys)
         d._display = deepcopy(self._display)
         d.quirks = deepcopy(self._quirks)
+        d.audio = deepcopy(self._audio)
 
         d._cpu = CPU(
             d._registers,
@@ -78,7 +82,8 @@ class Emulator():
             d._timers,
             d._keys,
             d._display,
-            d.quirks
+            d.quirks,
+            d.audio
         )
 
         d._blit_screen_cb = self._blit_screen_cb
@@ -120,7 +125,7 @@ class Emulator():
         self._timers.update_delay()
 
         if self._timers.get_sound() != 0:
-            self._sound_cb()
+            self._sound_cb(self._audio.get_pattern(), self._audio.get_pitch())
         self._timers.update_sound()
 
         self._blit_screen()

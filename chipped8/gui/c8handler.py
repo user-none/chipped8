@@ -33,6 +33,7 @@ max_rewind_frames = 60*30 # 60 frame per sec, 30 seconds
 
 class c8Handler(QObject):
     blitReady = Signal(list)
+    audioReady = Signal(bytearray, int)
     clearScreenReady = Signal()
 
     def __init__(self, hz=400, platform=chipped8.Platform.originalChip8):
@@ -45,16 +46,17 @@ class c8Handler(QObject):
         self._process_timer = QTimer(self)
         self._process_timer.setTimerType(Qt.PreciseTimer)
         self._process_timer.timeout.connect(self._process_frame)
-        self._last_process_ns = 0
 
+        self._timer_start_ns = 0
+
+        self._frame_times = []
         self._rewind_stack = []
 
     def _fill_screen_buffer(self, pixels):
         self.blitReady.emit(pixels)
 
-    def _beep(self):
-        #QApplication.beep()
-        pass
+    def _audio(self, pattern, pitch):
+        self.audioReady.emit(pattern, pitch)
 
     @Slot(bool)
     def process_frames(self, run):
@@ -148,7 +150,7 @@ class c8Handler(QObject):
             return
 
         self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
-        self._emulator.set_sound_cb(self._beep)
+        self._emulator.set_sound_cb(self._audio)
         self._record_frame()
         self._process_timer.start(0)
 
@@ -160,8 +162,44 @@ class c8Handler(QObject):
             self._rewind_stack = self._rewind_stack[1:]
         self._rewind_stack.append(deepcopy(self._emulator))
 
+    def _update_frame_time(self, ns):
+        self._frame_times.append(ns)
+
+        if len(self._frame_times) < 60:
+            return
+
+        frame_time = self._frame_times[-1] - self._frame_times[0]
+        sec = frame_time / 1000000000
+        # TODO: Do something with this info
+        #print('seconds: ', sec)
+        #print('fps: ', 60 / sec)
+
+        self._frame_times = []
+
+    def _calculate_wait_ms(self, ns_start, ns_finish):
+        frame_time_ns = ns_finish - ns_start
+        if frame_time_ns < 0:
+            frame_time_ns = 0
+
+        frame_rate_ns = 1 / 60 * 1000000000
+
+        # How long between the trigger being set and it running
+        timer_trigger_ns = ns_start - self._timer_start_ns - frame_rate_ns
+        if timer_trigger_ns < 0:
+            timer_trigger_ns = 0
+
+        wait_ns = frame_rate_ns - frame_time_ns - timer_trigger_ns
+        wait_ms = wait_ns / 1000000
+        if wait_ms < 0:
+            wait_ms = 0
+
+        return wait_ms
+
     @Slot()
     def _process_frame(self):
+        ns_start = time.perf_counter_ns()
+        self._update_frame_time(ns_start)
+
         if not self._emulator:
             self._process_timer.stop()
             return
@@ -183,10 +221,9 @@ class c8Handler(QObject):
 
         self._record_frame()
 
-        ns = time.perf_counter_ns()
-        wait_ms = 16.666666 - ((ns - self._last_process_ns) / 1000000)
-        self._last_process_ns = ns
-        if wait_ms < 0:
-            wait_ms = 0
+        ns_finish = time.perf_counter_ns()
+        wait_ms = self._calculate_wait_ms(ns_start, ns_finish)
+        self._timer_start_ns = time.perf_counter_ns()
+
         self._process_timer.setInterval(wait_ms)
 

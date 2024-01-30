@@ -153,7 +153,7 @@ class Displaly():
         y = y * 2
 
         if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
-            return
+            return unset
 
         for i in range(2):
             col = (x + i) % SCREEN_WIDTH
@@ -170,10 +170,11 @@ class Displaly():
         return unset
 
     def _set_pixel_hires(self, plane_buffer, x, y, v, wrap):
-        if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
-            return
-
         unset = False
+
+        if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
+            return unset
+
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
         idx = x + (y * SCREEN_WIDTH)
@@ -245,4 +246,15 @@ class Displaly():
             plane_buffer[:] = buffer
 
         self._update_screen = True
+
+    def sprite_fully_off_screen(self, x, y):
+        if self._res_mode == ResolutionMode.lowres:
+            x = x * 2
+            y = y * 2
+
+        if x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT:
+            return True
+
+        return False
+        
 

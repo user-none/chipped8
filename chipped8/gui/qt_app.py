@@ -32,6 +32,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
 from .sceneprovider import SceneProvider
+from .audio import AudioPlayer
 from .c8handler import c8Handler
 
 from chipped8 import Platform
@@ -47,6 +48,9 @@ class QtApp(QObject):
         scene = SceneProvider()
         self._c8handler.blitReady.connect(scene.blitScreen)
         self._c8handler.clearScreenReady.connect(scene.clearScreen)
+
+        audio = AudioPlayer()
+        self._c8handler.audioReady.connect(audio.play)
 
         app = QApplication(sys.argv)
         engine = QQmlApplicationEngine()
