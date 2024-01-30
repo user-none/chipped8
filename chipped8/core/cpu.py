@@ -567,10 +567,11 @@ class CPU():
         for i in range(x + 1):
             self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(i))
 
-        if not self._quirks.get_memoryLeaveIUnchanged:
-            self._registers.set_I(self._registers.get_I() + x)
-            if not self._quirks.get_memoryIncrementByX():
-                self._registers.set_I(self._registers.get_I() + 1)
+        if not self._quirks.get_memoryLeaveIUnchanged():
+            if self._quirks.get_memoryIncrementByX():
+                self._registers.set_I(self._registers.get_I() + x)
+            else:
+                self._registers.set_I(self._registers.get_I() + x + 1)
 
         self._registers.advance_PC()
 
@@ -581,10 +582,11 @@ class CPU():
         for i in range(x + 1):
             self._registers.set_V(i, self._memory.get_byte(self._registers.get_I() + i))
 
-        if not self._quirks.get_memoryLeaveIUnchanged:
-            self._registers.set_I(self._registers.get_I() + x)
-            if not self._quirks.get_memoryIncrementByX():
-                self._registers.set_I(self._registers.get_I() + 1)
+        if not self._quirks.get_memoryLeaveIUnchanged():
+            if self._quirks.get_memoryIncrementByX():
+                self._registers.set_I(self._registers.get_I() + x)
+            else:
+                self._registers.set_I(self._registers.get_I() + x + 1)
 
         self._registers.advance_PC()
 
