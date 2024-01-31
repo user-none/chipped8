@@ -57,6 +57,10 @@ class AudioPlayer(QObject):
             samples.append(0x40 if binary_data[p] == '1' else 0)
             pos = pos + step
 
+        # IIR Bandpass filter to smooth square into sine wave
+        for i in range(1, num_samples):
+            samples[i] = int(samples[i-1] * 0.45 + samples[i]) % 0xFF
+
         return bytes(samples)
 
     @Slot(bytearray, int)
