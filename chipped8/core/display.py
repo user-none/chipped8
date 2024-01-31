@@ -45,17 +45,12 @@ class Displaly():
     '''
     Chip-8 uses a 64x32 pixel screen. Super Chip 1.0/1 and XO-Chip adds a high resolution
     mode which doubles the resolutions to 128x64 pixels. To allow more code reuse a 128x64
-    screen is always used. When in low resolution mode the pixels will be doubled to effectively
+    screen is always used. When in low resolution mode, the pixels will be doubled to effectively
     look 64x32.
 
     This allows us to only need to know which mode is being used when writing to the screen.
     In order to know if we need to write one or a 2x2 pixel square (for low res mode). Otherwise,
     all other display operations are the same.
-
-    Super Chip 1.0/1 and XO-Chip support screen scrolling. In low resolution mode half the pixels
-    are scrolled vs what is specified. By doubling the pixels in low resolution mode and always
-    using a 128x64 size, we effectively scroll half as many pixels because the image on screen
-    is doubled.
 
     A screen buffer is a one dimensional array of 0 or 1 denoting if the pixel is set or not.
     The pixels in the buffer are rows next to each other instead of on top of each other.
@@ -202,25 +197,37 @@ class Displaly():
         return unset
 
     def scroll_down(self, num_pixels):
+        if self._res_mode == ResolutionMode.lowres:
+            num_pixels = num_pixels * 2
+
         plane_buffers = self._get_plane_buffers()
+
         for plane_buffer in plane_buffers:
             plane_buffer[:] = bytearray(SCREEN_WIDTH * num_pixels) + plane_buffer[ : -1 * SCREEN_WIDTH * num_pixels ]
         self._update_screen = True
 
     def scroll_up(self, num_pixels):
+        if self._res_mode == ResolutionMode.lowres:
+            num_pixels = num_pixels * 2
+
         plane_buffers = self._get_plane_buffers()
+
         for plane_buffer in plane_buffers:
             plane_buffer[:] = plane_buffer[ SCREEN_WIDTH * num_pixels : ] + bytearray(SCREEN_WIDTH * num_pixels)
         self._update_screen = True
 
     def scroll_left(self):
+        num_pixels = 4
+        if self._res_mode == ResolutionMode.lowres:
+            num_pixels = 8
+
         plane_buffers = self._get_plane_buffers()
 
         for plane_buffer in plane_buffers:
             buffer = bytearray()
 
             for x in range(SCREEN_HEIGHT):
-                row =  plane_buffer[SCREEN_WIDTH * x + 4: SCREEN_WIDTH * x + SCREEN_WIDTH ] + bytearray(4)
+                row =  plane_buffer[SCREEN_WIDTH * x + num_pixels: SCREEN_WIDTH * x + SCREEN_WIDTH ] + bytearray(num_pixels)
                 buffer.extend(row)
 
             plane_buffer[:] = buffer
@@ -228,13 +235,17 @@ class Displaly():
         self._update_screen = True
 
     def scroll_right(self):
+        num_pixels = 4
+        if self._res_mode == ResolutionMode.lowres:
+            num_pixels = 8
+
         plane_buffers = self._get_plane_buffers()
 
         for plane_buffer in plane_buffers:
             buffer = bytearray()
 
             for x in range(SCREEN_HEIGHT):
-                row = bytearray(4) + plane_buffer[SCREEN_WIDTH * x : SCREEN_WIDTH * x + SCREEN_WIDTH - 4 ]
+                row = bytearray(num_pixels) + plane_buffer[SCREEN_WIDTH * x : SCREEN_WIDTH * x + SCREEN_WIDTH - num_pixels ]
                 buffer.extend(row)
 
             plane_buffer[:] = buffer
