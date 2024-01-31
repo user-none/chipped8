@@ -243,10 +243,15 @@ class Displaly():
 
     def sprite_will_wrap(self, x1, y1, x2, y2):
         if self._res_mode == ResolutionMode.lowres:
-            x1 = (x1 * 2) % SCREEN_WIDTH
-            y1 = (y1 * 2) % SCREEN_HEIGHT
-            x2 = (x2 * 2) % SCREEN_WIDTH
-            y2 = (y2 * 2) % SCREEN_HEIGHT
+            x1 = x1 * 2
+            y1 = y1 * 2
+            x2 = x2 * 2
+            y2 = y2 * 2
+
+        x1 = x1 % SCREEN_WIDTH
+        y1 = y1 % SCREEN_HEIGHT
+        x2 = x2 % SCREEN_WIDTH
+        y2 = y2 % SCREEN_HEIGHT
 
         if x1 > x2 or y1 > y2:
             return True
