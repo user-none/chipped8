@@ -69,7 +69,10 @@ class CPU():
                     row = x + j
                     col = y + i
 
-                    unset = self._display.set_pixel(plane, row, col, 1, self._quirks.get_wrap())
+                    if not self._quirks.get_wrap() and self._display.sprite_will_wrap(x, y, x+j, y+i):
+                        continue
+
+                    unset = self._display.set_pixel(plane, row, col, 1)
                     if unset:
                         self._registers.set_V(0xF, 1)
             I = I + n

@@ -147,13 +147,10 @@ class Displaly():
     def screen_updated(self):
         self._update_screen = False
 
-    def _set_pixel_lowres(self, plane_buffer, x, y, v, wrap):
+    def _set_pixel_lowres(self, plane_buffer, x, y, v):
         unset = False
         x = x * 2
         y = y * 2
-
-        if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
-            return unset
 
         for i in range(2):
             col = (x + i) % SCREEN_WIDTH
@@ -169,11 +166,8 @@ class Displaly():
 
         return unset
 
-    def _set_pixel_hires(self, plane_buffer, x, y, v, wrap):
+    def _set_pixel_hires(self, plane_buffer, x, y, v):
         unset = False
-
-        if not wrap and (x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT):
-            return unset
 
         x = x % SCREEN_WIDTH
         y = y % SCREEN_HEIGHT
@@ -186,7 +180,7 @@ class Displaly():
 
         return unset
 
-    def set_pixel(self, plane, x, y, v, wrap=True):
+    def set_pixel(self, plane, x, y, v):
         # XOR with 0 won't change the value
         if v == 0:
             return False
@@ -197,9 +191,9 @@ class Displaly():
         unset = False
         plane_buffer = self._screen_planes[0] if plane == Plane.p1 else self._screen_planes[1]
         if self._res_mode == ResolutionMode.lowres:
-            u = self._set_pixel_lowres(plane_buffer, x, y, v, wrap)
+            u = self._set_pixel_lowres(plane_buffer, x, y, v)
         else:
-            u = self._set_pixel_hires(plane_buffer, x, y, v, wrap)
+            u = self._set_pixel_hires(plane_buffer, x, y, v)
 
         if u:
             unset = True
@@ -247,14 +241,14 @@ class Displaly():
 
         self._update_screen = True
 
-    def sprite_fully_off_screen(self, x, y):
+    def sprite_will_wrap(self, x1, y1, x2, y2):
         if self._res_mode == ResolutionMode.lowres:
-            x = x * 2
-            y = y * 2
+            x1 = (x1 * 2) % SCREEN_WIDTH
+            y1 = (y1 * 2) % SCREEN_HEIGHT
+            x2 = (x2 * 2) % SCREEN_WIDTH
+            y2 = (y2 * 2) % SCREEN_HEIGHT
 
-        if x >= SCREEN_WIDTH or y >= SCREEN_HEIGHT:
+        if x1 > x2 or y1 > y2:
             return True
-
         return False
-        
 
