@@ -25,9 +25,8 @@ import sys
 import time
 
 from pathlib import Path
-from threading import Thread
 
-from PySide6.QtCore import Qt, QObject, Slot
+from PySide6.QtCore import Qt, QObject, Slot, QThread, QMetaObject, Q_ARG
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
@@ -42,15 +41,9 @@ class QtApp(QObject):
         QObject.__init__(self)
 
         self._args = args
-        self._c8handler = c8Handler(self._args.hz, self._args.platform)
 
     def run(self):
         scene = SceneProvider()
-        self._c8handler.blitReady.connect(scene.blitScreen)
-        self._c8handler.clearScreenReady.connect(scene.clearScreen)
-
-        audio = AudioPlayer()
-        self._c8handler.audioReady.connect(audio.play)
 
         app = QApplication(sys.argv)
         engine = QQmlApplicationEngine()
@@ -63,14 +56,30 @@ class QtApp(QObject):
         if not engine.rootObjects():
             return -1
 
+        c8_thread = QThread()
+        c8handler = c8Handler(self._args.hz, self._args.platform)
+        c8handler.moveToThread(c8_thread)
+        c8handler.blitReady.connect(scene.blitScreen)
+        c8handler.clearScreenReady.connect(scene.clearScreen)
+        c8_thread.start()
+
+        audio_thread = QThread()
+        audio = AudioPlayer()
+        audio.moveToThread(audio_thread)
+        c8handler.audioReady.connect(audio.play)
+        audio_thread.start()
+
         win = engine.rootObjects()[0]
-        win.windowFocusChanged.connect(self._c8handler.process_frames)
-        win.keyEvent.connect(self._c8handler.key_event)
-        win.loadRom.connect(self._c8handler.load_rom)
+        win.windowFocusChanged.connect(c8handler.process_frames)
+        win.keyEvent.connect(c8handler.key_event)
+        win.loadRom.connect(c8handler.load_rom)
 
         if self._args.in_file:
-            self._c8handler.load_rom(self._args.in_file)
+            QMetaObject.invokeMethod(c8handler, 'load_rom', Qt.QueuedConnection, Q_ARG(str, self._args.in_file))
 
         ret = app.exec()
+        audio_thread.quit()
+        QMetaObject.invokeMethod(c8handler, 'process_frames', Qt.BlockingQueuedConnection, Q_ARG(bool, False))
+        c8_thread.quit()
         sys.exit(ret)
 

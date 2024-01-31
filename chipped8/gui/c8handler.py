@@ -42,12 +42,11 @@ class c8Handler(QObject):
         self._emulator = None
         self._hz = hz
         self._platform = platform
-        self._process = False
+
         self._process_timer = QTimer(self)
         self._process_timer.setTimerType(Qt.PreciseTimer)
+        self._process_timer.setInterval(1 / 60 * 1000) # Note: timer interval is only ms accuracy so this comes out to 16 ms timeout not 16.666666.
         self._process_timer.timeout.connect(self._process_frame)
-
-        self._timer_start_ns = 0
 
         self._frame_times = []
         self._rewind_stack = []
@@ -64,9 +63,10 @@ class c8Handler(QObject):
             return
 
         if run:
-            self._process_timer.start(0)
+            self._process_timer.start()
         else:
             self._process_timer.stop()
+            self._frame_times = []
 
     @Slot(int, bool, int)
     def key_event(self, key, pressed, modifiers):
@@ -109,10 +109,12 @@ class c8Handler(QObject):
         elif key == Qt.Key_P and pressed:
             if self._process_timer.isActive():
                 self._process_timer.stop()
+                self._frame_times = []
             else:
-                self._process_timer.start(0)
+                self._process_timer.start()
         elif key == Qt.Key_Left and pressed:
             self._process_timer.stop()
+            self._frame_times = []
 
             if len(self._rewind_stack) == 0:
                 return
@@ -152,7 +154,7 @@ class c8Handler(QObject):
         self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
         self._emulator.set_sound_cb(self._audio)
         self._record_frame()
-        self._process_timer.start(0)
+        self._process_timer.start()
 
     def _record_frame(self):
         if self._emulator == None:
@@ -171,29 +173,9 @@ class c8Handler(QObject):
         frame_time = self._frame_times[-1] - self._frame_times[0]
         sec = frame_time / 1000000000
         # TODO: Do something with this info
-        #print('seconds: ', sec)
-        #print('fps: ', 60 / sec)
+        #print('seconds: ', sec, 'fps: ', 60 / sec)
 
         self._frame_times = []
-
-    def _calculate_wait_ms(self, ns_start, ns_finish):
-        frame_time_ns = ns_finish - ns_start
-        if frame_time_ns < 0:
-            frame_time_ns = 0
-
-        frame_rate_ns = 1 / 60 * 1000000000
-
-        # How long between the trigger being set and it running
-        timer_trigger_ns = ns_start - self._timer_start_ns - frame_rate_ns
-        if timer_trigger_ns < 0:
-            timer_trigger_ns = 0
-
-        wait_ns = frame_rate_ns - frame_time_ns - timer_trigger_ns
-        wait_ms = wait_ns / 1000000
-        if wait_ms < 0:
-            wait_ms = 0
-
-        return wait_ms
 
     @Slot()
     def _process_frame(self):
@@ -202,6 +184,7 @@ class c8Handler(QObject):
 
         if not self._emulator:
             self._process_timer.stop()
+            self._frame_times = []
             return
 
         try:
@@ -210,6 +193,7 @@ class c8Handler(QObject):
             self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()
+            self._frame_times = []
             self.clearScreenReady.emit()
             return
         except Exception as e:
@@ -217,13 +201,8 @@ class c8Handler(QObject):
             self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()
+            self._frame_times = []
             return
 
         self._record_frame()
-
-        ns_finish = time.perf_counter_ns()
-        wait_ms = self._calculate_wait_ms(ns_start, ns_finish)
-        self._timer_start_ns = time.perf_counter_ns()
-
-        self._process_timer.setInterval(wait_ms)
 

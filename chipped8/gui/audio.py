@@ -28,6 +28,8 @@ from PySide6.QtMultimedia import QAudioSink, QAudioFormat, QMediaDevices
 class AudioPlayer(QObject):
 
     def __init__(self):
+        QObject.__init__(self)
+
         self._sound_buffer = QBuffer()
         self._sample_rate = 48000
         self._sound_length = 1 / 60
