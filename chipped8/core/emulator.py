@@ -23,6 +23,7 @@
 import time
 
 from copy import deepcopy
+from threading import Event as ThreadingEvent
 
 from .cpu import CPU
 from .registers import Registers
@@ -68,6 +69,9 @@ class Emulator():
 
         self._blit_screen_cb = lambda *args: None
         self._sound_cb = lambda *args: None
+
+        self._halt = ThreadingEvent()
+        self._frame_times = []
 
     def __deepcopy__(self, memo):
         d = Emulator()
@@ -137,20 +141,35 @@ class Emulator():
 
         self._blit_screen()
 
+    def _update_frame_time(self, ns):
+        self._frame_times.append(ns)
+
+        if len(self._frame_times) < 60:
+            return
+
+        frame_time = self._frame_times[-1] - self._frame_times[0]
+        sec = frame_time / 1000000000
+        #print('seconds: ', sec, 'fps: ', 60 / sec)
+
+        self._frame_times = []
+
     def run(self):
-        self._process = True
+        self._halt.clear()
 
         while True:
-            if not self._process:
+            ns = time.perf_counter_ns()
+            self._update_frame_time(ns)
+
+            if self._halt.is_set():
                 break
 
-            ns = time.perf_counter_ns()
             self.process_frame()
 
-            wait_sec = (16666666 - (time.perf_counter_ns() - ns)) / 1000000000
-            if wait_sec > 0:
-                time.sleep(wait_sec)
+            while time.perf_counter_ns() - ns < 1 / 60 * 1000000000:
+                pass
+
+        self._frame_times = []
 
     def stop(self):
-        self._process = False
+        self._halt.set()
 
