@@ -32,8 +32,7 @@ def parse_args():
             prog = os.path.basename(sys.argv[0]),
             description = 'Chip8 Emulator')
     parser.add_argument('in_file', help='Input ROM file', nargs='?')
-    parser.add_argument('-z', '--hz', type=int, default=800, help='hz the emulator should run')
-    parser.add_argument('-p', '--platform', type=chipped8.Platform, choices=chipped8.Platform, default=chipped8.Platform.originalChip8, help='Set the Chip-8 instruction set to use')
+    parser.add_argument('-p', '--platform', type=chipped8.PlatformTypes, choices=chipped8.PlatformTypes, default=chipped8.PlatformTypes.originalChip8, help='Set the Chip-8 instruction set to use')
     parser.add_argument('--version', action='version', version='%(prog)s {v}'.format(v=chipped8.__version__))
     return parser.parse_args()
 

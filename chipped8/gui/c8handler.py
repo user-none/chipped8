@@ -25,7 +25,6 @@ import time
 from copy import deepcopy
 
 from PySide6.QtCore import Qt, QObject, Slot, Signal, QTimer, QUrl
-from PySide6.QtWidgets import QApplication, QMessageBox
 
 import chipped8
 
@@ -35,12 +34,12 @@ class c8Handler(QObject):
     blitReady = Signal(list)
     audioReady = Signal(bytearray, int)
     clearScreenReady = Signal()
+    errorOccurred = Signal(str)
 
-    def __init__(self, hz=400, platform=chipped8.Platform.originalChip8):
+    def __init__(self, platform=chipped8.PlatformTypes.originalChip8):
         QObject.__init__(self)
 
         self._emulator = None
-        self._hz = hz
         self._platform = platform
 
         self._process_timer = QTimer(self)
@@ -136,7 +135,7 @@ class c8Handler(QObject):
     @Slot(QUrl)
     @Slot(str)
     def load_rom(self, fname):
-        self._emulator = chipped8.Emulator(self._hz, chipped8.Quirks(self._platform))
+        self._emulator = chipped8.Emulator(self._platform)
 
         self._rewind_stack = []
 
@@ -147,7 +146,7 @@ class c8Handler(QObject):
             with open(fname, 'rb') as f:
                 self._emulator.load_rom(f.read())
         except Exception as e:
-            QMessageBox.critical(None, 'Load Error', str(e))
+            self.errorOccurred.emit(str(e))
             self._emulator = None
             return
 
@@ -197,7 +196,7 @@ class c8Handler(QObject):
             self.clearScreenReady.emit()
             return
         except Exception as e:
-            QMessageBox.critical(None, 'Run Error', str(e))
+            self.errorOccurred.emit(str(e))
             self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()

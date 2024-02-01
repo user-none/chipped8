@@ -20,27 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import Enum, auto
-
-class Platform(Enum):
-    originalChip8 = 'originalChip8'
-    hybridVIP = 'hybridVIP'
-    modernChip8 = 'modernChip8'
-    chip8x = 'chip8x'
-    chip48 = 'chip48'
-    superchip1 = 'superchip1'
-    superchip = 'superchip'
-    megachip8 = 'megachip8'
-    xochip = 'xochip'
-    unknown = 'unknown'
-
-    def __str__(self):
-        return self.value
-
 class Quirks():
 
-    def __init__(self, platform=Platform.unknown):
-        self.set_platform_quirks(platform)
+    def __init__(self):
+        self._shift = False
+        self._memoryIncrementByX = False
+        self._memoryLeaveIUnchanged = False
+        self._wrap = False
+        self._jump = False
+        self._vblank = False
+        self._logic = False
 
     def __deepcopy__(self, memo):
         q = Quirks()
@@ -52,31 +41,6 @@ class Quirks():
         q._vblank = self._vblank
         q._logic = self._logic
         return q
-
-    def set_platform_quirks(self, platform: Platform):
-        # Default to everything off which is also
-        # platforms Unknown and modernChip8
-        self._shift = False
-        self._memoryIncrementByX = False
-        self._memoryLeaveIUnchanged = False
-        self._wrap = False
-        self._jump = False
-        self._vblank = False
-        self._logic = False
-
-        if platform == Platform.originalChip8 or platform == Platform.hybridVIP or platform == Platform.chip8x:
-            self._vblank = True
-            self._logic = True
-        elif platform == Platform.chip48:
-            self._shift = True
-            self._memoryIncrementByX = True
-            self._jump = True
-        elif platform == Platform.superchip1 or platform == Platform.superchip or platform == Platform.megachip8:
-            self._shift = True
-            self._memoryLeaveIUnchanged = True
-            self._jump = True
-        elif platform == Platform.xochip:
-            self._wrap = True
 
     def set_shift(self, val: bool):
         self._shift = val

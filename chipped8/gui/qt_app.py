@@ -27,14 +27,12 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QObject, Slot, QThread, QMetaObject, Q_ARG
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtQml import QQmlApplicationEngine
 
 from .sceneprovider import SceneProvider
 from .audio import AudioPlayer
 from .c8handler import c8Handler
-
-from chipped8 import Platform
 
 class QtApp(QObject):
     def __init__(self, args):
@@ -57,29 +55,36 @@ class QtApp(QObject):
             return -1
 
         c8_thread = QThread()
-        c8handler = c8Handler(self._args.hz, self._args.platform)
+        c8handler = c8Handler(self._args.platform)
         c8handler.moveToThread(c8_thread)
         c8handler.blitReady.connect(scene.blitScreen)
         c8handler.clearScreenReady.connect(scene.clearScreen)
-        c8_thread.start()
 
         audio_thread = QThread()
         audio = AudioPlayer()
         audio.moveToThread(audio_thread)
         c8handler.audioReady.connect(audio.play)
-        audio_thread.start()
 
         win = engine.rootObjects()[0]
         win.windowFocusChanged.connect(c8handler.process_frames)
         win.keyEvent.connect(c8handler.key_event)
         win.loadRom.connect(c8handler.load_rom)
 
+        c8handler.errorOccurred.connect(self.show_error)
+
+        audio_thread.start()
+        c8_thread.start()
+
         if self._args.in_file:
             QMetaObject.invokeMethod(c8handler, 'load_rom', Qt.QueuedConnection, Q_ARG(str, self._args.in_file))
 
         ret = app.exec()
-        audio_thread.quit()
         QMetaObject.invokeMethod(c8handler, 'process_frames', Qt.BlockingQueuedConnection, Q_ARG(bool, False))
         c8_thread.quit()
+        audio_thread.quit()
         sys.exit(ret)
+
+    @Slot(str)
+    def show_error(self, message):
+        QMessageBox.critical(None, 'Error', message)
 

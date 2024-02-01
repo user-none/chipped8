@@ -31,19 +31,29 @@ from .stack import Stack
 from .memory import Memory
 from .keys import KeyInput
 from .display import Displaly
-from .quirks import Platform, Quirks
+from .platform import PlatformTypes, Platform
 from .audio import Audio
 
 class Emulator():
     
-    def __init__(self, hz=1200, quirks=Quirks(Platform.unknown)):
+    def __init__(self, platform=PlatformTypes.originalChip8, tickrate=-1, quirks=None):
+        platform = Platform(platform)
+        if not quirks:
+            self._quirks = platform.quirks()
+        else:
+            self._quirks = quirks
+
+        if tickrate <= 0:
+            self._tickrate = platform.tickrate()
+        else:
+            self._tickrate = tickrate
+
         self._registers = Registers()
         self._stack = Stack()
         self._memory = Memory()
         self._timers = Timers()
         self._keys = KeyInput()
         self._display = Displaly()
-        self._quirks = deepcopy(quirks)
         self._audio = Audio()
         self._cpu = CPU(
             self._registers,
@@ -59,13 +69,8 @@ class Emulator():
         self._blit_screen_cb = lambda *args: None
         self._sound_cb = lambda *args: None
 
-        self._hz = hz
-        self._cycles_per_frame = self._hz // 60
-        if self._cycles_per_frame <= 0:
-            self._cycles_per_frame = 1
-
     def __deepcopy__(self, memo):
-        d = Emulator(self._hz)
+        d = Emulator()
         d._registers = deepcopy(self._registers)
         d._stack = deepcopy(self._stack)
         d._memory = deepcopy(self._memory)
@@ -88,6 +93,8 @@ class Emulator():
 
         d._blit_screen_cb = self._blit_screen_cb
         d._sound_cb = self._sound_cb
+
+        d._tickrate = self._tickrate
 
         return d
 
@@ -113,7 +120,7 @@ class Emulator():
         return self._display.get_pixels()
 
     def process_frame(self):
-        for i in range(self._cycles_per_frame):
+        for i in range(self._tickrate):
             self._cpu.execute_next_op()
 
             # This isn't quite right. We should be running cycles after the
