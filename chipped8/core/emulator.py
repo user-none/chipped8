@@ -144,14 +144,17 @@ class Emulator():
     def _update_frame_time(self, ns):
         self._frame_times.append(ns)
 
-        if len(self._frame_times) < 60:
+        if len(self._frame_times) < 61:
             return
+
+        time_61 = self._frame_times[-1]
 
         frame_time = self._frame_times[-1] - self._frame_times[0]
         sec = frame_time / 1000000000
         #print('seconds: ', sec, 'fps: ', 60 / sec)
 
         self._frame_times = []
+        self._frame_times.append(time_61)
 
     def run(self):
         self._halt.clear()
