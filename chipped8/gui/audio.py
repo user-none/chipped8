@@ -57,7 +57,7 @@ class AudioPlayer(QObject):
         samples = []
         for i in range(num_samples):
             p = int(pos) % len(binary_data)
-            samples.append(0x40 if binary_data[p] == '1' else 0)
+            samples.append(0x15 if binary_data[p] == '1' else 0)
             pos = pos + step
 
         # IIR filter to smooth square into sine wave
