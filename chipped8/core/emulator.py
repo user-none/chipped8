@@ -159,12 +159,9 @@ class Emulator():
     def run(self):
         self._halt.clear()
 
-        while True:
+        while not self._halt.is_set():
             ns = time.perf_counter_ns()
             self._update_frame_time(ns)
-
-            if self._halt.is_set():
-                break
 
             self.process_frame()
 
@@ -175,4 +172,7 @@ class Emulator():
 
     def stop(self):
         self._halt.set()
+
+    def running(self):
+        return not self._halt.is_set()
 
