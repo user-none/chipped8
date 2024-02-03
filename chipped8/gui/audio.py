@@ -33,6 +33,7 @@ class AudioPlayer(QObject):
         self._sound_buffer = QBuffer()
         self._sample_rate = 48000
         self._sound_length = 1 / 60
+        self._iir_weight = 0.45
 
         self._default_pattern = bytes.fromhex('00 00 FF FF 00 00 FF FF 00 00 FF FF 00 00 FF FF')
         self._default_pitch = 127
@@ -61,7 +62,7 @@ class AudioPlayer(QObject):
 
         # IIR filter to smooth square into sine wave
         for i in range(1, num_samples):
-            samples[i] = int(samples[i-1] * 0.45 + samples[i]) % 0xFF
+            samples[i] = int(samples[i-1] * self._iir_weight + samples[i]) % 0xFF
 
         return bytes(samples)
 
