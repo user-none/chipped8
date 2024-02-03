@@ -174,7 +174,7 @@ class c8Handler(QObject):
         frame_time = self._frame_times[-1] - self._frame_times[0]
         sec = frame_time / 1000000000
         # TODO: Do something with this info
-        print('seconds: ', sec, 'fps: ', 60 / sec)
+        #print('seconds: ', sec, 'fps: ', 60 / sec)
 
         self._frame_times = []
         self._frame_times.append(time_61)
