@@ -33,7 +33,7 @@ class AudioPlayer(QObject):
         self._sound_buffer = QBuffer()
         self._sample_rate = 48000
         self._sound_length = 1 / 60
-        self._iir_weight = 0.45
+        self._iir_weight = 0.40
 
         self._default_pattern = bytes.fromhex('00 00 FF FF 00 00 FF FF 00 00 FF FF 00 00 FF FF')
         self._default_pitch = 127
