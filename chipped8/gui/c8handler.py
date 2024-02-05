@@ -44,7 +44,6 @@ class c8Handler(QObject):
 
         self._process_timer = QTimer(self)
         self._process_timer.setTimerType(Qt.PreciseTimer)
-        self._process_timer.setInterval(1 / 60 * 1000) # Note: timer interval is only ms accuracy so this comes out to 16 ms timeout not 16.666666.
         self._process_timer.timeout.connect(self._process_frame)
 
         self._frame_times = []
@@ -62,7 +61,7 @@ class c8Handler(QObject):
             return
 
         if run:
-            self._process_timer.start()
+            self._process_timer.start(0)
         else:
             self._process_timer.stop()
             self._frame_times = []
@@ -110,7 +109,7 @@ class c8Handler(QObject):
                 self._process_timer.stop()
                 self._frame_times = []
             else:
-                self._process_timer.start()
+                self._process_timer.start(0)
         elif key == Qt.Key_Left and pressed:
             self._process_timer.stop()
             self._frame_times = []
@@ -153,7 +152,7 @@ class c8Handler(QObject):
         self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
         self._emulator.set_sound_cb(self._audio)
         self._record_frame()
-        self._process_timer.start()
+        self._process_timer.start(0)
 
     def _record_frame(self):
         if self._emulator == None:
@@ -174,10 +173,44 @@ class c8Handler(QObject):
         frame_time = self._frame_times[-1] - self._frame_times[0]
         sec = frame_time / 1000000000
         # TODO: Do something with this info
-        #print('seconds: ', sec, 'fps: ', 60 / sec)
+        #print('seconds: ', sec, 'fps: ', 60 / sec, round(60 / sec))
 
         self._frame_times = []
         self._frame_times.append(time_61)
+
+    def _adjust_frame_interval(self, ns_start, ns_previous_frame):
+        '''
+        Adjust frame time because we only have ms timing with the timer but
+        need sub-ms frame times. We're going to vary the frame times by 1 ms in
+        order to average out to 60 fps. A 40/20 split of 17 and 16 ms frames
+        will give us 60 fps.
+
+        We're using `start(<number>)` but even if we used `setInterval()`, the
+        timer will reset. Either way it will start timing for the full interval
+        so we need to account for:
+
+        - The time it took to process this frame
+        - Any time longer than expected to start this frame.
+
+        The interval we need to set could be 0-17 ms. If we get a negative from
+        our calculation we are behind. But we can't set a negative timer so 0
+        is used to fire immediately.
+
+        Formula:
+
+        - Frame time we're targeting: (interval)
+        - Time already spent processing this frame: ((time.perf_counter_ns() - ns_start) / 1000000)
+        - Any time longer than we expected to wait. E.g. we waited for 18 ms between frames. This is a catch up.
+          - Processing time of last frame: ((ns_start - ns_previous_frame) / 1000000)
+          - The minimum amount of time we should spend processing a frame: (16)
+        '''
+
+        interval = 17
+        if len(self._frame_times) % 3 == 0:
+            interval = 16
+
+        interval = max(interval - ((time.perf_counter_ns() - ns_start) / 1000000) - max(((ns_start - ns_previous_frame) / 1000000) - 16, 0), 0)
+        self._process_timer.start(interval)
 
     @Slot()
     def _process_frame(self):
@@ -207,4 +240,8 @@ class c8Handler(QObject):
             return
 
         self._record_frame()
+
+        # len == 1 means we only have this frame but we want the previous frame
+        ns_previous_frame = ns_start if len(self._frame_times) <= 1 else self._frame_times[-2]
+        self._adjust_frame_interval(ns_start, ns_previous_frame)
 
