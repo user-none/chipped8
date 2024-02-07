@@ -21,6 +21,14 @@ dependencies = [
     "PySide6 >= 6.6.1"
 ]
 
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Games/Entertainment",
+    "Topic :: System :: Emulators"
+]
+
 [project.urls]
 Homepage = "https://github.com/user-none/chipped8"
 Repository = "https://github.com/user-none/chipped8"
@@ -28,3 +36,6 @@ Issues = "https://github.com/user-none/chipped8/issues"
 
 [project.scripts]
 chipped8 = "chipped8.main:main"
+
+[tool.setuptools.package-data]
+"chipped8.gui" = [ "*.qml" ]
