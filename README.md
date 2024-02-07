@@ -14,11 +14,9 @@ Choices are:
 - originalChip8
 - hybridVIP
 - modernChip8
-- chip8x
 - chip48
 - superchip1
 - superchip
-- megachip8
 - xochip
 
 The default is originalChip8. The platform specifies behavior flags as
@@ -59,7 +57,7 @@ Basic rewind is supported for 30 seconds.
 ## Install and Run
 
 ```
-$ python -m venv c8env
+$ python -m venv c8venv
 $ source c8venv/bin/activate
 $ cd chipped8
 $ pip install .
