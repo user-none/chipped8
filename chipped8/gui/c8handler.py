@@ -134,8 +134,10 @@ class c8Handler(QObject):
     @Slot(QUrl)
     @Slot(str)
     def load_rom(self, fname):
-        self._emulator = chipped8.Emulator(self._platform)
+        if not fname:
+            return
 
+        self._emulator = chipped8.Emulator(self._platform)
         self._rewind_stack = []
 
         if isinstance(fname, QUrl):
@@ -147,12 +149,25 @@ class c8Handler(QObject):
         except Exception as e:
             self.errorOccurred.emit(str(e))
             self._emulator = None
+            self._rom_fname = None
             return
+
+        self._rom_fname = fname
 
         self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
         self._emulator.set_sound_cb(self._audio)
         self._record_frame()
         self._process_timer.start(0)
+
+    @Slot(str)
+    def reload_rom(self, platform=None):
+        if not platform:
+            platform = self._platform
+        if isinstance(platform, str):
+            platform = chipped8.PlatformTypes(platform)
+        self._platform = platform
+
+        self.load_rom(self._rom_fname)
 
     def _record_frame(self):
         if self._emulator == None:

@@ -12,6 +12,7 @@ ApplicationWindow {
     visible: true
 
     signal windowFocusChanged(bool active)
+    signal platformChanged(string platfrom)
     signal keyEvent(int key, bool pressed, int modifiers)
     signal loadRom(url filename)
 
@@ -31,6 +32,28 @@ ApplicationWindow {
                     fileDialog.open()
                 }
             }
+        }
+
+        Menu {
+            id: menuPlatform
+            title: "Platform"
+
+            MenuItemGroup {
+                id: platformsGroup
+                items: menuPlatform.items
+
+                onTriggered: (item) => {
+                    platformChanged(item.text)
+                }
+            }
+
+            MenuItem { id: platOriginalChip8; text: "originalChip8"; checkable: true; checked: true }
+            MenuItem { id: platHybridVIP; text: "hybridVIP"; checkable: true }
+            MenuItem { id: platModernChip8; text: "modernChip8"; checkable: true }
+            MenuItem { id: platChip48; text: "chip48"; checkable: true }
+            MenuItem { id: platSuperchip1; text: "superchip1"; checkable: true }
+            MenuItem { id: platSuperchip; text: "superchip"; checkable: true }
+            MenuItem { id: platXochip; text: "xochip"; checkable: true }
         }
     }
 
