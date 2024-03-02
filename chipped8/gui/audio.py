@@ -20,23 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import math
-
 from PySide6.QtCore import Qt, QObject, QBuffer, Signal, Slot
 from PySide6.QtMultimedia import QAudioSink, QAudioFormat, QMediaDevices
+
+from chipped8 import generate_audio_frame
 
 class AudioPlayer(QObject):
 
     def __init__(self):
         QObject.__init__(self)
-
-        self._sound_buffer = QBuffer()
         self._sample_rate = 48000
-        self._sound_length = 1 / 60
-        self._iir_weight = 0.40
-
-        self._default_pattern = bytes.fromhex('00 00 FF FF 00 00 FF FF 00 00 FF FF 00 00 FF FF')
-        self._default_pitch = 127
 
         aformat = QAudioFormat()
         aformat.setSampleRate(self._sample_rate)
@@ -47,31 +40,8 @@ class AudioPlayer(QObject):
         self._sink = QAudioSink(QMediaDevices.defaultAudioOutput(), aformat)
         self._sink_io = self._sink.start()
 
-    def _generate_frame(self, pattern, pitch):
-        freq = 4000 * 2 ** ((pitch - 64) / 48)
-        num_samples = math.ceil(self._sample_rate * self._sound_length)
-        step = freq / self._sample_rate 
-        binary_data = ''.join(format(byte, '08b') for byte in pattern)
-
-        pos = 0.0
-        samples = []
-        for i in range(num_samples):
-            p = int(pos) % len(binary_data)
-            samples.append(0x15 if binary_data[p] == '1' else 0)
-            pos = pos + step
-
-        # IIR filter to smooth square into sine wave
-        for i in range(1, num_samples):
-            samples[i] = int(samples[i-1] * self._iir_weight + samples[i]) % 0xFF
-
-        return bytes(samples)
-
     @Slot(bytearray, int)
     def play(self, pattern, pitch):
-        if not pattern:
-            pattern = self._default_pattern
-            pitch = self._default_pitch
-
-        frame = self._generate_frame(pattern, pitch)
+        frame = generate_audio_frame(pattern, pitch, self._sample_rate)
         self._sink_io.write(frame)
 

@@ -24,6 +24,7 @@ from .core.keys import Keys, KeyState
 from .core.display import Colors
 from .core.platform import PlatformTypes, Platform
 from .core.cpu import ExitInterpreterException
+from .core.audio import generate_audio_frame
 
 from importlib import metadata
 try:

@@ -53,7 +53,7 @@ class c8Handler(QObject):
         self.blitReady.emit(pixels)
 
     def _audio(self, pattern, pitch):
-        self.audioReady.emit(pattern, pitch)
+        self.audioReady.emit(bytes(pattern), pitch)
 
     @Slot(bool)
     def process_frames(self, run):
