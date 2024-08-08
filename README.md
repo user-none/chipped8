@@ -57,9 +57,8 @@ Basic rewind is supported for 30 seconds.
 ## Install and Run
 
 ```
-$ python -m venv c8venv
-$ source c8venv/bin/activate
-$ cd chipped8
+$ python -m venv .venv
+$ source .venv/bin/activate
 $ pip install .
 $ chipped8 rom.ch8
 ```
@@ -67,6 +66,9 @@ $ chipped8 rom.ch8
 Use `-e` with the `pip` step if installing for development where you will be able
 to edit the source without running `pip` again.
 
-Also, if testing new entry point, the following can be used:
-`python -m chipped8.main_new_testing rom.ch8`
+Alternativly, you can run without installing using the following.
+
+```
+$ python -m chipped8.main rom.ch8
+```
 
