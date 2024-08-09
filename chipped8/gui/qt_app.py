@@ -48,7 +48,7 @@ class QtApp(QObject):
         engine.rootContext().setContextProperty('SceneProvider', scene)
         engine.addImageProvider('SceneProvider', scene)
 
-        qml_file = Path(__file__).parent / 'view.qml'
+        qml_file = os.path.join(Path(__file__).parent, 'qml', 'view.qml')
         engine.load(qml_file)
 
         if not engine.rootObjects():

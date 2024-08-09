@@ -38,4 +38,4 @@ Issues = "https://github.com/user-none/chipped8/issues"
 chipped8 = "chipped8.main:main"
 
 [tool.setuptools.package-data]
-"chipped8.gui" = [ "*.qml" ]
+"chipped8.gui.qml" = [ "*.qml" ]
