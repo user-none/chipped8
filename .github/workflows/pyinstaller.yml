@@ -50,17 +50,17 @@ jobs:
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ PROD_NAME }}-${{ runner.os }}
+        name: ${{ env.PROD_NAME }}-${{ runner.os }}
         path: dist/*.dmg
     - name: Upload artifacts
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ PROD_NAME }}-${{ runner.os }}
+        name: ${{ env.PROD_NAME }}-${{ runner.os }}
         path: dist/*.tar.gz
     - name: Upload artifacts
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ PROD_NAME }}-${{ runner.os }}
+        name: ${{ env.PROD_NAME }}-${{ runner.os }}
         path: dist/*
