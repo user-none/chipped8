@@ -1,0 +1,66 @@
+name: Pyinstaller packaging
+
+on: [push]
+
+env:
+  PRODUCT_NAME: chipped8
+
+jobs:
+  os_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        pip install .
+        pip install pyinstaller
+
+    - name: Setup entry point
+      run: |
+        cp pyinstaller/runner.py .
+
+    - name: Package macOS
+      if: runner.os == 'macOS'
+      run: |
+          pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n ${{ env.PRODUCT_NAME }} --windowed --icon pyinstaller/logo.icns runner.py
+          hdiutil create -format UDZO -srcfolder dist/${{ env.PRODUCT_NAME }}.app dist/${{ env.PRODUCT_NAME }}.dmg
+    - name: Package Linux
+      if: runner.os == 'Linux'
+      run: |
+          pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n ${{ env.PRODUCT_NAME }} --windowed runner.py
+          cd dist
+          tar -czf ${{ env.PRODUCT_NAME }}.tar.gz *
+    - name: Package Windows
+      if: runner.os == 'Windows'
+      run: |
+            pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n ${{ env.PRODUCT_NAME }} --windowed --icon pyinstaller/logo.ico runner.py
+
+    - name: Upload artifacts macOS
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PRODUCT_NAME }}-${{ runner.os }}
+        path: dist/*.dmg
+    - name: Upload artifacts Linux
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PRODUCT_NAME }}-${{ runner.os }}
+        path: dist/*.tar.gz
+    - name: Upload artifacts Windows
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PRODUCT_NAME }}-${{ runner.os }}
+        path: dist/*
