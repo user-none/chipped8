@@ -3,11 +3,13 @@ name: Pyinstaller packaging
 on: [push]
 
 jobs:
-  runs-on: ${{ matrix.os }}
+  os_matrix:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'ubuntu-latest, 'macos-latest']
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
