@@ -3,7 +3,7 @@ name: Pyinstaller packaging
 on: [push]
 
 env:
-  PROD_NAME: chipped8
+  PRODUCT_NAME: chipped8
 
 jobs:
   os_matrix:
@@ -33,34 +33,34 @@ jobs:
     - name: Package macOS
       if: runner.os == 'macOS'
       run: |
-          pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n $PROD_NAME --windowed --icon pyinstaller/logo.icns runner.py
-          hdiutil create -format UDZO -srcfolder dist/$PROD_NAME.app dist/$PROD_NAME.dmg
+          pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n ${{ env.PRODUCT_NAME }} --windowed --icon pyinstaller/logo.icns runner.py
+          hdiutil create -format UDZO -srcfolder dist/${{ env.PRODUCT_NAME }}.app dist/${{ env.PRODUCT_NAME }}.dmg
     - name: Package Linux
       if: runner.os == 'Linux'
       run: |
-          pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n $PROD_NAME --windowed runner.py
+          pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n ${{ env.PRODUCT_NAME }} --windowed runner.py
           cd dist
-          tar -czf $PROD_NAME.tar.gz *
+          tar -czf ${{ env.PRODUCT_NAME }}.tar.gz *
     - name: Package Windows
       if: runner.os == 'Windows'
       run: |
-            pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n $PROD_NAME --windowed --icon pyinstaller/logo.ico runner.py
+            pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n ${{ env.PRODUCT_NAME }} --windowed --icon pyinstaller/logo.ico runner.py
 
     - name: Upload artifacts macOS
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.PROD_NAME }}-${{ runner.os }}
+        name: ${{ env.PRODUCT_NAME }}-${{ runner.os }}
         path: dist/*.dmg
-    - name: Upload artifacts
+    - name: Upload artifacts Linux
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.PROD_NAME }}-${{ runner.os }}
+        name: ${{ env.PRODUCT_NAME }}-${{ runner.os }}
         path: dist/*.tar.gz
-    - name: Upload artifacts
+    - name: Upload artifacts Windows
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.PROD_NAME }}-${{ runner.os }}
+        name: ${{ env.PRODUCT_NAME }}-${{ runner.os }}
         path: dist/*
