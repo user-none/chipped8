@@ -49,6 +49,17 @@ class c8Handler(QObject):
         self._frame_times = []
         self._rewind_stack = []
 
+        self._rom_fname = None
+
+    def _clear_screen(self):
+        pixels = []
+        for i in range(chipped8.SCREEN_WIDTH):
+            row = []
+            for j in range(chipped8.SCREEN_HEIGHT):
+                row.append(chipped8.Colors.color_1)
+            pixels.append(row)
+        self.blitReady.emit(pixels)
+
     def _fill_screen_buffer(self, pixels):
         self.blitReady.emit(pixels)
 
@@ -152,6 +163,7 @@ class c8Handler(QObject):
             self._rom_fname = None
             return
 
+        self._clear_screen()
         self._rom_fname = fname
 
         self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
@@ -166,6 +178,9 @@ class c8Handler(QObject):
         if isinstance(platform, str):
             platform = chipped8.PlatformTypes(platform)
         self._platform = platform
+
+        if not self._rom_fname:
+            return
 
         self.load_rom(self._rom_fname)
 
