@@ -30,21 +30,21 @@ jobs:
       run: |
         cp pyinstaller/runner.py .
 
-    - name: Package
+    - name: Package macOS
+      if: runner.os == 'macOS'
       run: |
-        if [ "$RUNNER_OS" == "macOS" ]; then
           pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n $PROD_NAME --windowed --icon pyinstaller/logo.icns runner.py
           hdiutil create -format UDZO -srcfolder dist/$PROD_NAME.app dist/$PROD_NAME.dmg
-        elif [ "$RUNNER_OS" == "Linux" ]; then
+    - name: Package Linux
+      if: runner.os == 'Linux'
+      run: |
           pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n $PROD_NAME --windowed runner.py
           cd dist
           tar -czf $PROD_NAME.tar.gz *
-        elif [ "$RUNNER_OS" == "Windows" ]; then
+    - name: Package Windows
+      if: runner.os == 'Windows'
+      run: |
             pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n $PROD_NAME --windowed --icon pyinstaller/logo.ico runner.py
-        else
-          echo "$RUNNER_OS not supported"
-          exit 1
-        fi
 
     - name: Upload artifacts macOS
       if: runner.os == 'macOS'
