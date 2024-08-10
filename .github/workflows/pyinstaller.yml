@@ -40,11 +40,11 @@ jobs:
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v4
       with:
-        name: chipped8-${{ runner.os }}.zip
+        name: chipped8-${{ runner.os }}
         path: dist/*.app
     - name: Upload artifacts
       if: runner.os != 'macOS'
       uses: actions/upload-artifact@v4
       with:
-        name: chipped8-${{ runner.os }}.zip
+        name: chipped8-${{ runner.os }}
         path: dist/*
