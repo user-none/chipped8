@@ -1,0 +1,46 @@
+name: Pyinstaller packaging
+
+on: [push]
+
+jobs:
+  runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-latest', 'ubuntu-latest, 'macos-latest']
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+    - name: Install dependencies
+      run: |
+        pip install .
+        pip install pyinstaller
+    - name: Setup entry point
+      run: |
+        cp pyinstaller/runner.py .
+    - name: Package Windows
+      if: runner.os == 'Windows'
+      run: |
+        pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n chipped8 --windowed --icon packaging/logo.ico runner.py
+    - name: Package macoS
+      if: runner.os == 'macOS'
+      run: |
+        pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n chipped8 --windowed --icon packaging/logo.icns runner.py
+    - name: Package Linux
+      if: runner.os == 'Linux'
+      run: |
+        pyinstaller --add-data "chipped8/gui/qml:chipped8/gui/qml" -n chipped8 --windowed runner.py
+    - name: Upload artifacts macOS
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        path: dist/*.app
+    - name: Upload artifacts
+      if: runner.os != 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        path: dist/*
