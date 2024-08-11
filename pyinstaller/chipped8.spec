@@ -31,8 +31,8 @@ if sys.platform == 'win32':
 
     version_tuple = ()
     for v in project_version.split('.', 3):
-        version_tuple.append(int(v))
-    version_tuple.append(0)
+        version_tuple += (int(v),)
+    version_tuple += (0,)
 
     version_info = VSVersionInfo(
         ffi = FixedFileInfo(
