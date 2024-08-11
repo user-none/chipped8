@@ -18,12 +18,11 @@ project_authors = []
 for author in authors:
     project_authors.append(author.get('name'))
 
+icon_file = ''
 if sys.platform == "darwin":
     icon_file = 'logo.icns'
 elif sys.platform == "win32":
     icon_file = 'logo.ico'
-else:
-    icon_file = ''
 
 a = Analysis(
     ['runner.py'],
@@ -55,7 +54,7 @@ exe = EXE(
     argv_emulation=True,
     target_arch=None,
     codesign_identity=None,
-    entitlements_file=None,
+    entitlements_file='pyinstaller/entitlements.plist',
     icon=[icon_file],
 )
 coll = COLLECT(
