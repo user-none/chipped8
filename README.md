@@ -66,9 +66,34 @@ $ chipped8 rom.ch8
 Use `-e` with the `pip` step if installing for development where you will be able
 to edit the source without running `pip` again.
 
-Alternativly, you can run without installing using the following.
+Alternatively, you can run without installing using the following.
 
 ```
 $ python -m chipped8.main rom.ch8
 ```
 
+### Standalone package
+
+A standalone package can be built using PyInstaller. The package created will
+include Python and all dependencies. Allowing distribution to other systems
+without first needing to first install Python or application dependencies. It
+is a fully standalone package.
+
+A venv with all dependencies installed is required for PyInstaller
+to create a standalone package. Create the environment and build the
+package using the following.
+
+```
+$ python -m venv .venv
+$ source .venv/bin/activate
+$ pip install .
+$ pip install pyinstaller
+$ pyinstaller pyinstaller/chipped8.spec
+```
+
+The package will be located in the `dist` directory.
+
+Cross compiling is not supported by PyInstaller. The package created will
+be for the OS you are building the package with. A GitHub workflow for creating
+and uploading standalone packages as artifacts for macOS, Linux, and Windows
+can be found in the `.github` directory.
