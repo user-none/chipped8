@@ -17,12 +17,49 @@ authors = tomldata.get('project').get('authors')
 project_authors = []
 for author in authors:
     project_authors.append(author.get('name'))
+project_copyright = 'Copyright © 2024 {0} and Contributors'.format(', '.join(project_authors))
 
 icon_file = ''
 if sys.platform == "darwin":
     icon_file = 'logo.icns'
 elif sys.platform == "win32":
     icon_file = 'logo.ico'
+
+version_info = None
+if sys.platform == 'win32':
+    from PyInstaller.utils.win32.versioninfo import VSVersionInfo, FixedFileInfo, StringFileInfo, StringTable, StringStruct, VarFileInfo, VarStruct
+
+    version_tuple = ()
+    for v in project_version.split('.', 3):
+        version_tuple.append(int(v))
+    version_tuple.append(0)
+
+    version_info = VSVersionInfo(
+        ffi = FixedFileInfo(
+            filevers = version_tuple,
+            prodvers = version_tuple,
+        ),
+        kids = [
+            StringFileInfo(
+                [
+                    StringTable(
+                        '040904B0',
+                        [
+                            #StringStruct('CompanyName', ''),
+                            StringStruct('FileDescription', 'CHIP-8 Emulator'),
+                            StringStruct('FileVersion', project_version),
+                            StringStruct('InternalName', project_name),
+                            StringStruct('LegalCopyright', project_copyright),
+                            StringStruct('OriginalFilename', f'{project_name}.exe'),
+                            StringStruct('ProductName', project_name),
+                            StringStruct('ProductVersion', project_version)
+                        ]
+                    )
+                ]
+            ), 
+            VarFileInfo([VarStruct('Translation', [0x409, 1200])])
+        ]
+    )
 
 a = Analysis(
     ['runner.py'],
@@ -56,6 +93,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file='pyinstaller/entitlements.plist',
     icon=[icon_file],
+    version=version_info
 )
 coll = COLLECT(
     exe,
@@ -97,7 +135,7 @@ if sys.platform == "darwin":
             'CFBundleSignature': '????',
             'NSHighResolutionCapable': True,
             'CSResourcesFileMapped': True,
-            'NSHumanReadableCopyright': 'Copyright © 2024 {0} and Contributors'.format(', '.join(project_authors)),
+            'NSHumanReadableCopyright': project_copyright,
             'LSApplicationCategoryType': 'public.app-category.games',
             'LSMinimumSystemVersion': '14.0'
         }
