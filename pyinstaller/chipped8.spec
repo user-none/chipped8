@@ -18,6 +18,13 @@ project_authors = []
 for author in authors:
     project_authors.append(author.get('name'))
 
+if sys.platform == "darwin":
+    icon_file = 'logo.icns'
+elif sys.platform == "win32":
+    icon_file = 'logo.ico'
+else:
+    icon_file = ''
+
 a = Analysis(
     ['runner.py'],
     pathex=['../chipped8'],
@@ -49,7 +56,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['logo.icns'],
+    icon=[icon_file],
 )
 coll = COLLECT(
     exe,
