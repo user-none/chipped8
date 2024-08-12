@@ -76,10 +76,21 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
+if sys.platform == 'win32':
+    splash = Splash('pyinstaller/splash.png',
+        binaries=a.binaries,
+        datas=a.datas
+    )
+
+args = (
     pyz,
     a.scripts,
-    [],
+    []
+)
+if sys.platform == 'win32':
+    args += (splash,)
+exe = EXE(
+    *args,
     exclude_binaries=True,
     name=project_name,
     debug=False,
@@ -95,10 +106,16 @@ exe = EXE(
     icon=[icon_file],
     version=version_info
 )
-coll = COLLECT(
+
+args = (
     exe,
     a.binaries,
-    a.datas,
+    a.datas
+)
+if sys.platform == 'win32':
+    args += (splash.binaries,)
+coll = COLLECT(
+    *args,
     strip=False,
     upx=True,
     upx_exclude=[],
