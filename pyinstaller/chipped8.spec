@@ -77,7 +77,7 @@ a = Analysis(
 pyz = PYZ(a.pure)
 
 if sys.platform == 'win32':
-    splash = Splash('pyinstaller/splash.png',
+    splash = Splash('splash.png',
         binaries=a.binaries,
         datas=a.datas
     )
