@@ -24,6 +24,7 @@ import os
 import sys
 import time
 
+from contextlib import suppress
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QObject, Slot, QThread, QMetaObject, Q_ARG
@@ -78,6 +79,12 @@ class QtApp(QObject):
 
         if self._args.in_file:
             QMetaObject.invokeMethod(c8handler, 'load_rom', Qt.QueuedConnection, Q_ARG(str, self._args.in_file))
+
+        # Turn off the splash screen If running a standalone build from PyInstaller
+        # Splash screen isn't avaliable on all platforms
+        with suppress(Exception):
+            import pyi_splash
+            pyi_splash.close()
 
         ret = app.exec()
         QMetaObject.invokeMethod(c8handler, 'process_frames', Qt.BlockingQueuedConnection, Q_ARG(bool, False))

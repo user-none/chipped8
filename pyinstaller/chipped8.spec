@@ -9,7 +9,7 @@ datas += copy_metadata('chipped8')
 
 # Load toml with project information
 tomldata = None
-with open("pyproject.toml", "rb") as f:
+with open('pyproject.toml', 'rb') as f:
     tomldata = tomllib.load(f)
 project_name = tomldata.get('project').get('name')
 project_version = tomldata.get('project').get('version')
@@ -20,9 +20,9 @@ for author in authors:
 project_copyright = 'Copyright © 2024 {0} and Contributors'.format(', '.join(project_authors))
 
 icon_file = ''
-if sys.platform == "darwin":
+if sys.platform == 'darwin':
     icon_file = 'logo.icns'
-elif sys.platform == "win32":
+elif sys.platform == 'win32':
     icon_file = 'logo.ico'
 
 version_info = None
@@ -105,7 +105,7 @@ coll = COLLECT(
     name=project_name,
 )
 
-if sys.platform == "darwin":
+if sys.platform == 'darwin':
     app = BUNDLE(
         coll,
         name=f'{project_name}.app',

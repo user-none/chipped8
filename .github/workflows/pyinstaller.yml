@@ -26,7 +26,13 @@ jobs:
         pip install .
         pip install pyinstaller
 
-    - name: Build package
+    - name: Build package Windows
+      if: runner.os == 'Windows'
+      run: |
+          pyinstaller --splash pyinstaller/splash.png pyinstaller/chipped8.spec
+
+    - name: Build package macOS / Linux
+      if: runner.os != 'Windows'
       run: |
           pyinstaller pyinstaller/chipped8.spec
 
