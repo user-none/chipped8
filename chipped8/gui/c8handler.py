@@ -51,15 +51,6 @@ class c8Handler(QObject):
 
         self._rom_fname = None
 
-    def _clear_screen(self):
-        pixels = []
-        for i in range(chipped8.SCREEN_WIDTH):
-            row = []
-            for j in range(chipped8.SCREEN_HEIGHT):
-                row.append(chipped8.Colors.color_1)
-            pixels.append(row)
-        self.blitReady.emit(pixels)
-
     def _fill_screen_buffer(self, pixels):
         self.blitReady.emit(pixels)
 
@@ -163,7 +154,7 @@ class c8Handler(QObject):
             self._rom_fname = None
             return
 
-        self._clear_screen()
+        self.clearScreenReady.emit()
         self._rom_fname = fname
 
         self._emulator.set_blit_screen_cb(self._fill_screen_buffer)
