@@ -12,7 +12,7 @@ are supported via specifying the target platform when starting the application.
 Choices are:
 
 - originalChip8
-- hybridVIP
+- hybridVIP (0NNN machine instructions are not supported)
 - modernChip8
 - chip48
 - superchip1
