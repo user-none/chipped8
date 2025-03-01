@@ -12,7 +12,7 @@ are supported via specifying the target platform when starting the application.
 Choices are:
 
 - originalChip8
-- hybridVIP (0NNN machine instructions are not supported)
+- hybridVIP [^1]
 - modernChip8
 - chip48
 - superchip1
@@ -97,3 +97,7 @@ Cross compiling is not supported by PyInstaller. The package created will
 be for the OS you are building the package with. A GitHub workflow for creating
 and uploading standalone packages as artifacts for macOS, Linux, and Windows
 can be found in the `.github` directory.
+
+---
+
+[^1]: 0NNN machine instructions are not supported
