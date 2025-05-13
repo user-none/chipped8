@@ -25,7 +25,8 @@ import time
 from copy import deepcopy
 from threading import Event as ThreadingEvent
 
-from .cpu import CPU
+from .pure_cpu.cpu import PureCPU
+from .cached_cpu.cpu import CachedCPU
 from .registers import Registers
 from .timers import Timers
 from .stack import Stack
@@ -36,7 +37,7 @@ from .platform import PlatformTypes, Platform
 from .audio import Audio
 
 class Emulator():
-    
+
     def __init__(self, platform=PlatformTypes.originalChip8, tickrate=-1, quirks=None):
         platform = Platform(platform)
         if not quirks:
@@ -56,7 +57,7 @@ class Emulator():
         self._keys = KeyInput()
         self._display = Displaly()
         self._audio = Audio()
-        self._cpu = CPU(
+        self._cpu = PureCPU(
             self._registers,
             self._stack,
             self._memory,
@@ -84,7 +85,7 @@ class Emulator():
         d.quirks = deepcopy(self._quirks)
         d.audio = deepcopy(self._audio)
 
-        d._cpu = CPU(
+        d._cpu = PureCPU(
             d._registers,
             d._stack,
             d._memory,

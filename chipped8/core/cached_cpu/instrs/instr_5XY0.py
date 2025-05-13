@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,17 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from .instr import Instr, InstrKind
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class Instr5XY0(Instr):
+    '''
+    5XY0: Skips the next instruction if VX equals VY
+          XO-Chip uses 0xF000 with a following 2 byte
+          address that also needs to be skipped.
+    '''
+
+    def __init__(self, pc, next_opcode, x, y):
+        self._pc = pc
+        self._next_opcode = next_opcode
+        self._x = x
+        self._y = y
+
+    def kind(self):
+        return InstrKind.COND_ADVANCE
+
+    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+        registers.set_PC(self._pc)
+
+        if registers.get_V(self._x) == registers.get_V(self._y):
+            registers.advance_PC()
+            if self._next_opcode == 0xF000:
+                registers.advance_PC()
+
+        registers.advance_PC()

@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,17 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from ...display import Plane
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+from .instr import Instr
+
+class InstrFN01(Instr):
+    '''
+    FN01: Select drawing planes by bitmask (0 planes, plane 1, plane 2 or both planes (3))
+    '''
+
+    def __init__(self, n):
+        self._n = n
+
+    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+        plane = Plane(0)
+        if self._n & 1:
+            plane = plane | Plane.p1
+        if self._n & 2:
+            plane = plane | Plane.p2
+        display.set_plane(plane)

@@ -23,13 +23,13 @@
 from copy import deepcopy
 from random import randint
 
-from .keys import KeyState
-from .display import Plane, ResolutionMode
+from ..icpu import iCPU
 
-class ExitInterpreterException(Exception):
-    pass
+from ..keys import KeyState
+from ..display import Plane, ResolutionMode
+from ..exceptions import ExitInterpreterException
 
-class CPU():
+class PureCPU(iCPU):
 
     def __init__(self, registers, stack, memory, timers, keys, display, quirks, audio):
         self._registers = registers

@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,17 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from .instr import Instr
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class InstrFX33(Instr):
+    '''
+    FX33: Stores the binary-coded decimal representation of VX, with the
+          hundreds digit in memory at location in I, the tens digit at location
+          I+1, and the ones digit at location I+2
+    '''
+
+    def __init__(self, x):
+        self._x = x
+
+    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+        n = registers.get_V(self._x)
+        memory.set_byte(registers.get_I(), n // 100)
+        memory.set_byte(registers.get_I() + 1, (n // 10) % 10)
+        memory.set_byte(registers.get_I() + 2, (n % 100) % 10)
