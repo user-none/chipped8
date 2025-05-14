@@ -177,7 +177,7 @@ class InstrFactory:
         elif code == 0x8000:
             return self._get_instruction_8(opcode)
         elif code == 0x9000:
-            return Instr9XY0(opcode)
+            return Instr9XY0(self._registers.get_PC(), opcode, self._get_next_opcode())
         elif code == 0xA000:
            return InstrANNN(opcode)
         elif code == 0xB000:

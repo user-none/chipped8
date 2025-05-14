@@ -33,7 +33,7 @@ class Instr9XY0(Instr):
         self._pc = pc
         self._next_opcode = next_opcode
         self._x = (opcode & 0x0F00) >> 8
-        self._n = opcode & 0x00FF
+        self._y = (opcode & 0x00F0) >> 4
 
     def kind(self):
         return InstrKind.COND_ADVANCE

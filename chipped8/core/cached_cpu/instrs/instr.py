@@ -41,3 +41,6 @@ class Instr:
 
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
         raise Exception('Not Implemented')
+
+    def __str__(self):
+        return self.__class__.__name__

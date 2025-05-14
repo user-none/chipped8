@@ -58,12 +58,6 @@ class CachedCPU(iCPU):
             instr = self._instruction_factory.create()
             instructions.append(instr)
 
-            # Stop processing on the block when we get to a jump of some kind.
-            # We won't want to advance the PC because these will set it appropriately if
-            # needed when they execute
-            if instr.kind() in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
-                break;
-
             # Advance our position to the next instruction.
             self._registers.advance_PC()
 
@@ -71,6 +65,12 @@ class CachedCPU(iCPU):
             # which was really data.
             if instr.kind() == InstrKind.DOUBLE_WIDE:
                 self._registers.advance_PC()
+
+            # Stop processing on the block when we get to a jump of some kind.
+            # The previous advances don't matter because these will change the PC when
+            # they exectute
+            if instr.kind() in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
+                break;
 
         return instructions
 

@@ -31,4 +31,4 @@ class Instr00DN(Instr):
         self._n = n
 
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
-        display.scroll_up(n)
+        display.scroll_up(self._n)
