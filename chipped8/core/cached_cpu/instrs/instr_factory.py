@@ -33,7 +33,7 @@ class InstrFactory:
         self._instruction_cache = {}
 
     def _can_cache_instruction(self, opcode):
-        if (opcode & 0xF000) in (0x2000, 0x3000, 0x4000, 0x9000, 0xE000) or ((opcode & 0xF00F) == 0x5000):
+        if (opcode & 0xF000) in (0x2000, 0x3000, 0x4000, 0x9000, 0xE000) or ((opcode & 0xF00F) == 0x5000 or opcode == 0xF000):
             return False
         return True
 
