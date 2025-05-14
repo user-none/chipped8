@@ -258,6 +258,7 @@ class c8Handler(QObject):
             self._rewind_stack = []
             self._process_timer.stop()
             self._frame_times = []
+            raise e
             return
 
         self._record_frame()

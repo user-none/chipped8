@@ -23,12 +23,31 @@
 from ...exceptions import UnknownOpCodeException
 
 from . import *
+from .instr import InstrKind
 
 class InstrFactory:
 
     def __init__(self, registers, memory):
         self._registers = registers
         self._memory = memory
+        self._instruction_cache = {}
+
+    def _can_cache_instruction(self, opcode):
+        if (opcode & 0xF000) in (0x2000, 0x3000, 0x4000, 0x9000, 0xE000) or ((opcode & 0xF00F) == 0x5000):
+            return False
+        return True
+
+    def _load_instruction(self, opcode):
+        if not self._can_cache_instruction(opcode):
+            return None
+
+        instr = self._instruction_cache.get(opcode)
+        return instr
+
+    def _cache_instruction(self, opcode, instr):
+        if not self._can_cache_instruction(opcode):
+            return
+        self._instruction_cache[opcode] = instr
 
     def _get_opcode(self):
         return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
@@ -157,38 +176,45 @@ class InstrFactory:
     def create(self):
         opcode = self._get_opcode()
         code = opcode & 0xF000
+
+        instr = self._load_instruction(opcode)
+        if instr:
+            return instr
   
         if code == 0x0000:
-            return self._get_instruction_0(opcode)
+            instr = self._get_instruction_0(opcode)
         elif code == 0x1000:
-            return Instr1NNN(opcode)
+            instr = Instr1NNN(opcode)
         elif code == 0x2000:
-            return Instr2NNN(self._registers.get_PC(), opcode)
+            instr = Instr2NNN(self._registers.get_PC(), opcode)
         elif code == 0x3000:
-            return Instr3XNN(self._registers.get_PC(), opcode, self._get_next_opcode())
+            instr = Instr3XNN(self._registers.get_PC(), opcode, self._get_next_opcode())
         elif code == 0x4000:
-           return Instr4XNN(self._registers.get_PC(), opcode, self._get_next_opcode())
+           instr = Instr4XNN(self._registers.get_PC(), opcode, self._get_next_opcode())
         elif code == 0x5000:
-            return self._get_instruction_5(opcode)
+            instr = self._get_instruction_5(opcode)
         elif code == 0x6000:
-            return Instr6XNN(opcode)
+            instr = Instr6XNN(opcode)
         elif code == 0x7000:
-            return Instr7XNN(opcode)
+            instr = Instr7XNN(opcode)
         elif code == 0x8000:
-            return self._get_instruction_8(opcode)
+            instr = self._get_instruction_8(opcode)
         elif code == 0x9000:
-            return Instr9XY0(self._registers.get_PC(), opcode, self._get_next_opcode())
+            instr = Instr9XY0(self._registers.get_PC(), opcode, self._get_next_opcode())
         elif code == 0xA000:
-           return InstrANNN(opcode)
+           instr = InstrANNN(opcode)
         elif code == 0xB000:
-            return InstrBNNN(opcode)
+            instr = InstrBNNN(opcode)
         elif code == 0xC000:
-            return InstrCXNN(opcode)
+            instr = InstrCXNN(opcode)
         elif code == 0xD000:
-            return InstrDXYN(opcode)
+            instr = InstrDXYN(opcode)
         elif code == 0xE000:
-            return self._get_instruction_E(opcode)
+            instr = self._get_instruction_E(opcode)
         elif code == 0xF000:
-            return self._get_instruction_F(opcode)
+            instr = self._get_instruction_F(opcode)
         else:
             raise UnknownOpCodeException('Unknown opcode: {:04X}'.format(opcode))
+
+        self._cache_instruction(opcode, instr)
+        return instr
