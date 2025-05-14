@@ -30,8 +30,15 @@ class InstrFX55(Instr):
 
     def __init__(self, x):
         self._x = x
+        self._self_modified = False
+
+    def self_modified(self):
+        return self._self_modified
 
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+        if registers.get_I() < memory.ram_start():
+            self._self_modified = True
+
         for i in range(self._x + 1):
             memory.set_byte(registers.get_I() + i, registers.get_V(i))
 

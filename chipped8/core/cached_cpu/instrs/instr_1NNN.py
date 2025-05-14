@@ -29,9 +29,16 @@ class Instr1NNN(Instr):
 
     def __init__(self, opcode):
         self._addr = opcode & 0x0FFF
+        self._self_modified = False
+
+    def self_modified(self):
+        return self._self_modified
 
     def kind(self):
         return InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+        if self._addr >= memory.ram_start():
+            self._self_modified = True
+
         registers.set_PC(self._addr)

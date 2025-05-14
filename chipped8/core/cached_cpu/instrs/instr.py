@@ -36,6 +36,9 @@ class Instr:
     def advance(self):
         return True
 
+    def self_modified(self):
+        return False
+
     def kind(self):
         return InstrKind.OPERATION
 

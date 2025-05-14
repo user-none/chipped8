@@ -31,6 +31,10 @@ class InstrBNNN(Instr):
         self._x = (opcode & 0x0F00) >> 8
         self._nn  = (opcode & 0x00FF)
         self._nnn  = (opcode & 0x0FFF)
+        self._self_modified = False
+
+    def self_modified(self):
+        return self._self_modified
 
     def kind(self):
         return InstrKind.JUMP
@@ -40,5 +44,8 @@ class InstrBNNN(Instr):
             n = self._nn + registers.get_V(self._x)
         else:
             n = self._nnn + registers.get_V(0)
+
+        if n >= memory.ram_start():
+            self._self_modified = True
 
         registers.set_PC(n)

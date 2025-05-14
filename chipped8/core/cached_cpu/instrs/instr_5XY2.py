@@ -31,8 +31,15 @@ class Instr5XY2(Instr):
     def __init__(self, x, y):
         self._x = x
         self._y = y
+        self._self_modified = False
+
+    def self_modified(self):
+        return self._self_modified
 
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+        if registers.get_I() < memory.ram_start():
+            self._self_modified = True
+
         step = 1 if self._x <= self._y else -1
         for i, v in enumerate(range(self._x, self._y+step, step)):
             memory.set_byte(registers.get_I() + i, registers.get_V(v))

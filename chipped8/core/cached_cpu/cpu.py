@@ -48,23 +48,30 @@ class CachedCPU(iCPU):
         self._draw_occurred = False
 
         self._instruction_factory = InstrFactory(self._registers, self._memory)
-        self._instruction_cache = {}
+        self._block_cache = {}
         self._instruction_queue = []
+        self._block_cache_enable = True
+
+    def _get_next_instruction(self):
+        instr = self._instruction_factory.create()
+        pc = self._registers.get_PC()
+
+        # Advance our position to the next instruction.
+        self._registers.advance_PC()
+
+        # Dobule wide needs an additional advance becase we already read the instrcution
+        # which was really data.
+        if instr.kind() == InstrKind.DOUBLE_WIDE:
+            self._registers.advance_PC()
+
+        return (pc, instr)
 
     def _build_basic_block(self):
         instructions = []
 
         while 1:
-            instr = self._instruction_factory.create()
-            instructions.append(instr)
-
-            # Advance our position to the next instruction.
-            self._registers.advance_PC()
-
-            # Dobule wide needs an additional advance becase we already read the instrcution
-            # which was really data.
-            if instr.kind() == InstrKind.DOUBLE_WIDE:
-                self._registers.advance_PC()
+            (pc, instr) = self._get_next_instruction()
+            instructions.append((pc, instr))
 
             # Stop processing on the block when we get to a jump of some kind.
             # The previous advances don't matter because these will change the PC when
@@ -76,11 +83,17 @@ class CachedCPU(iCPU):
 
     def _load_next_basic_block(self):
         pc = self._registers.get_PC()
-        block = self._instruction_cache.get(pc)
-        if not block:
-            block = self._build_basic_block()
-            self._instruction_cache[pc] = block
-        self._instruction_queue = copy(block)
+
+        if self._block_cache_enable:
+            block = self._block_cache.get(pc)
+
+            if not block:
+                block = self._build_basic_block()
+                self._block_cache[pc] = block
+
+            self._instruction_queue = copy(block)
+        else:
+            self._instruction_queue = [self._get_next_instruction()]
 
     def execute_next_op(self):
         self._draw_occurred = False
@@ -91,14 +104,21 @@ class CachedCPU(iCPU):
         if len(self._instruction_queue) == 0:
             raise NoInstructionsException('No instructions')
 
-        instr = self._instruction_queue.pop(0)
+        (pc, instr) = self._instruction_queue.pop(0)
         instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._quirks, self._audio)
 
         kind = instr.kind()
         if kind == InstrKind.BLOCKING and not instr.advance():
-            self._instruction_queue.insert(0, instr)
+            self._instruction_queue.insert(0, (pc, instr))
         if kind == InstrKind.DRAW:
             self._draw_occurred = True
+
+        if self._block_cache_enable and instr.self_modified():
+            self._block_cache_enable = False
+            self._instruction_factory.disable_pc_instruction_cache()
+            self._registers.set_PC(pc)
+            self._registers.advance_PC()
+            self._instruction_queue = []
 
     def draw_occurred(self):
         return self._draw_occurred
