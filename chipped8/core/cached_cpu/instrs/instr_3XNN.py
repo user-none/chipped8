@@ -38,6 +38,9 @@ class Instr3XNN(Instr):
     def kind(self):
         return InstrKind.COND_ADVANCE
 
+    def is_pic(self):
+        return False
+
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
         registers.set_PC(self._pc)
 

@@ -39,6 +39,9 @@ class Instr:
     def self_modified(self):
         return False
 
+    def is_pic(self):
+        return True
+
     def kind(self):
         return InstrKind.OPERATION
 

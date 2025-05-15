@@ -32,23 +32,17 @@ class InstrFactory:
         self._pc_instruction_cache = {}
         self._can_cache_pc_instructions = True
 
-    def _pc_instruction(self, opcode):
-        if (opcode & 0xF000) in (0x2000, 0x3000, 0x4000, 0x9000, 0xE000) or ((opcode & 0xF00F) == 0x5000 or opcode == 0xF000):
-            return True
-        return False
-
     def _load_instruction(self, pc, opcode):
-        if self._pc_instruction(opcode):
-            return self._pc_instruction_cache.get(pc)
-        return self._instruction_cache.get(opcode)
+        instr = self._pc_instruction_cache.get(pc)
+        if not instr:
+            instr = self._instruction_cache.get(opcode)
+        return instr
 
     def _cache_instruction(self, pc, opcode, instr):
-        if self._pc_instruction(opcode):
-            if self._can_cache_pc_instructions:
-                self._pc_instruction_cache[pc] = instr
-            else:
-                return
-        self._instruction_cache[opcode] = instr
+        if instr.is_pic():
+            self._instruction_cache[opcode] = instr
+        elif self._can_cache_pc_instructions:
+            self._pc_instruction_cache[pc] = instr
 
     def _get_instruction_0(self, opcode):
         subcode = opcode & 0x00FF
@@ -173,9 +167,9 @@ class InstrFactory:
     def create(self, pc, opcode, next_opcode):
         code = opcode & 0xF000
 
-        #instr = self._load_instruction(pc, opcode)
-        #if instr:
-        #    return instr
+        instr = self._load_instruction(pc, opcode)
+        if instr:
+            return instr
   
         if code == 0x0000:
             instr = self._get_instruction_0(opcode)
@@ -212,5 +206,5 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: {:04X}'.format(opcode))
 
-        #self._cache_instruction(pc, opcode, instr)
+        self._cache_instruction(pc, opcode, instr)
         return instr

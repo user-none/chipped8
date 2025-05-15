@@ -33,5 +33,8 @@ class InstrF000(Instr):
     def kind(self):
         return InstrKind.DOUBLE_WIDE
 
+    def is_pic(self):
+        return False
+
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
         registers.set_I(self._addr)

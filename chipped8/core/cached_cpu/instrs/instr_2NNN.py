@@ -38,6 +38,9 @@ class Instr2NNN(Instr):
     def kind(self):
         return InstrKind.JUMP
 
+    def is_pic(self):
+        return False
+
     def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
         stack.push(self._pc)
 
