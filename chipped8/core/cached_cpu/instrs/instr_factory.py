@@ -27,9 +27,7 @@ from .instr import InstrKind
 
 class InstrFactory:
 
-    def __init__(self, registers, memory):
-        self._registers = registers
-        self._memory = memory
+    def __init__(self):
         self._instruction_cache = {}
         self._pc_instruction_cache = {}
         self._can_cache_pc_instructions = True
@@ -51,12 +49,6 @@ class InstrFactory:
             else:
                 return
         self._instruction_cache[opcode] = instr
-
-    def _get_opcode(self):
-        return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
-
-    def _get_next_opcode(self):
-        return (self._memory.get_byte(self._registers.get_PC() + 2) << 8) | self._memory.get_byte(self._registers.get_PC() + 3)
 
     def _get_instruction_0(self, opcode):
         subcode = opcode & 0x00FF
@@ -84,13 +76,13 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: 00{:02X}'.format(subcode))
 
-    def _get_instruction_5(self, opcode):
+    def _get_instruction_5(self, pc, opcode, next_opcode):
         subcode = opcode & 0x000F
         x = (opcode & 0x0F00) >> 8
         y = (opcode & 0x00F0) >> 4
 
         if subcode == 0x0:
-            return Instr5XY0(self._registers.get_PC(), self._get_next_opcode(), x, y)
+            return Instr5XY0(pc, next_opcode, x, y)
         elif subcode == 0x2:
             return Instr5XY2(x, y)
         elif subcode == 0x3:
@@ -124,11 +116,9 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: 8XY{:01X}'.format(subcode))
 
-    def _get_instruction_E(self, opcode):
+    def _get_instruction_E(self, pc, opcode, next_opcode):
         subcode = opcode & 0x00FF
         x = (opcode & 0x0F00) >> 8
-        pc = self._registers.get_PC()
-        next_opcode = self._get_next_opcode()
 
         if subcode == 0x9E:
             return InstrEX9E(pc, x, next_opcode)
@@ -137,12 +127,12 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: EX{:02X}'.format(subcode))
 
-    def _get_instruction_F(self, opcode):
+    def _get_instruction_F(self, opcode, next_opcode):
         subcode = opcode & 0x00FF
         x = (opcode & 0x0F00) >> 8
 
         if subcode == 0x00:
-            return InstrF000(self._get_next_opcode())
+            return InstrF000(next_opcode)
         elif subcode == 0x01:
             return InstrFN01(x)
         elif subcode == 0x02:
@@ -180,27 +170,25 @@ class InstrFactory:
         self._pc_instruction_cache = {}
         self._can_cache_pc_instructions = False
 
-    def create(self):
-        pc = self._registers.get_PC()
-        opcode = self._get_opcode()
+    def create(self, pc, opcode, next_opcode):
         code = opcode & 0xF000
 
-        instr = self._load_instruction(pc, opcode)
-        if instr:
-            return instr
+        #instr = self._load_instruction(pc, opcode)
+        #if instr:
+        #    return instr
   
         if code == 0x0000:
             instr = self._get_instruction_0(opcode)
         elif code == 0x1000:
             instr = Instr1NNN(opcode)
         elif code == 0x2000:
-            instr = Instr2NNN(self._registers.get_PC(), opcode)
+            instr = Instr2NNN(pc, opcode)
         elif code == 0x3000:
-            instr = Instr3XNN(self._registers.get_PC(), opcode, self._get_next_opcode())
+            instr = Instr3XNN(pc, opcode, next_opcode)
         elif code == 0x4000:
-           instr = Instr4XNN(self._registers.get_PC(), opcode, self._get_next_opcode())
+           instr = Instr4XNN(pc, opcode, next_opcode)
         elif code == 0x5000:
-            instr = self._get_instruction_5(opcode)
+            instr = self._get_instruction_5(pc, opcode, next_opcode)
         elif code == 0x6000:
             instr = Instr6XNN(opcode)
         elif code == 0x7000:
@@ -208,7 +196,7 @@ class InstrFactory:
         elif code == 0x8000:
             instr = self._get_instruction_8(opcode)
         elif code == 0x9000:
-            instr = Instr9XY0(self._registers.get_PC(), opcode, self._get_next_opcode())
+            instr = Instr9XY0(pc, opcode, next_opcode)
         elif code == 0xA000:
            instr = InstrANNN(opcode)
         elif code == 0xB000:
@@ -218,11 +206,11 @@ class InstrFactory:
         elif code == 0xD000:
             instr = InstrDXYN(opcode)
         elif code == 0xE000:
-            instr = self._get_instruction_E(opcode)
+            instr = self._get_instruction_E(pc, opcode, next_opcode)
         elif code == 0xF000:
-            instr = self._get_instruction_F(opcode)
+            instr = self._get_instruction_F(opcode, next_opcode)
         else:
             raise UnknownOpCodeException('Unknown opcode: {:04X}'.format(opcode))
 
-        self._cache_instruction(pc, opcode, instr)
+        #self._cache_instruction(pc, opcode, instr)
         return instr

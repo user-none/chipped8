@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from copy import copy, deepcopy
+from copy import copy
 from random import randint
 
 from ..icpu import iCPU
@@ -47,14 +47,20 @@ class CachedCPU(iCPU):
 
         self._draw_occurred = False
 
-        self._instruction_factory = InstrFactory(self._registers, self._memory)
+        self._instruction_factory = InstrFactory()
         self._block_cache = {}
         self._instruction_queue = []
         self._block_cache_enable = True
 
+    def _get_opcode(self, pc):
+        return (self._memory.get_byte(pc) << 8) | self._memory.get_byte(pc + 1)
+
+    def _get_next_opcode(self, pc):
+        return (self._memory.get_byte(pc + 2) << 8) | self._memory.get_byte(pc + 3)
+
     def _get_next_instruction(self):
-        instr = self._instruction_factory.create()
         pc = self._registers.get_PC()
+        instr = self._instruction_factory.create(pc, self._get_opcode(pc), self._get_next_opcode(pc))
 
         # Advance our position to the next instruction.
         self._registers.advance_PC()
@@ -86,11 +92,9 @@ class CachedCPU(iCPU):
 
         if self._block_cache_enable:
             block = self._block_cache.get(pc)
-
             if not block:
                 block = self._build_basic_block()
                 self._block_cache[pc] = block
-
             self._instruction_queue = copy(block)
         else:
             self._instruction_queue = [self._get_next_instruction()]
@@ -113,12 +117,22 @@ class CachedCPU(iCPU):
         if kind == InstrKind.DRAW:
             self._draw_occurred = True
 
+        # Check if the instruction self modified. This is either memory within the
+        # ROMs address space was modified or we have a jump outside of the ROMs
+        # address space indicating instructions were written into RAM.
         if self._block_cache_enable and instr.self_modified():
+            print('Self modified')
+            # Disable caching of basic blocks because they may no longer be correct
             self._block_cache_enable = False
+            # Disable PC location caching of instructions
             self._instruction_factory.disable_pc_instruction_cache()
+            # Clear the instruction queue because we can't guarentee the
+            # Current basic block is still valid
+            self._instruction_queue = []
+            # Set the PC to the next instruction because we need to pick up
+            # processing from here on the next execution
             self._registers.set_PC(pc)
             self._registers.advance_PC()
-            self._instruction_queue = []
 
     def draw_occurred(self):
         return self._draw_occurred
