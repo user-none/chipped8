@@ -121,7 +121,6 @@ class CachedCPU(iCPU):
         # ROMs address space was modified or we have a jump outside of the ROMs
         # address space indicating instructions were written into RAM.
         if self._block_cache_enable and instr.self_modified():
-            print('Self modified')
             # Disable caching of basic blocks because they may no longer be correct
             self._block_cache_enable = False
             # Disable PC location caching of instructions
