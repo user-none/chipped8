@@ -88,12 +88,22 @@ class CachedCPU(iCPU):
         return instructions
 
     def _load_next_basic_block(self):
-        pc = self._registers.get_PC()
-
         if self._block_cache_enable:
+            pc = self._registers.get_PC()
             block = self._block_cache.get(pc)
             if not block:
-                block = self._build_basic_block()
+                # Try to build the block of instructions. If we get an
+                # unknown code exception it's possible there are earlier
+                # instructions in the block that are modifying later ones
+                # We'll disable everyting and try again without caching.
+                try:
+                    block = self._build_basic_block()
+                except UnknownOpCodeException:
+                    self._block_cache_enable = False
+                    self._instruction_factory.disable_pc_instruction_cache()
+                    self._registers.set_PC(pc)
+                    self._load_next_basic_block()
+                    return
                 self._block_cache[pc] = block
             self._instruction_queue = copy(block)
         else:
@@ -123,15 +133,21 @@ class CachedCPU(iCPU):
         if self._block_cache_enable and instr.self_modified():
             # Disable caching of basic blocks because they may no longer be correct
             self._block_cache_enable = False
+
             # Disable PC location caching of instructions
             self._instruction_factory.disable_pc_instruction_cache()
+
             # Clear the instruction queue because we can't guarentee the
             # Current basic block is still valid
             self._instruction_queue = []
-            # Set the PC to the next instruction because we need to pick up
-            # processing from here on the next execution
-            self._registers.set_PC(pc)
-            self._registers.advance_PC()
+
+            # Jump will set the PC address for us so we only need to update it
+            # for other operations
+            if kind is not InstrKind.JUMP:
+                # Set the PC to the next instruction because we need to pick up
+                # processing from here on the next execution
+                self._registers.set_PC(pc)
+                self._registers.advance_PC()
 
     def draw_occurred(self):
         return self._draw_occurred
