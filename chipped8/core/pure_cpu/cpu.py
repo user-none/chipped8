@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from copy import deepcopy
 from random import randint
 
 from ..icpu import iCPU
@@ -44,7 +43,8 @@ class PureCPU(iCPU):
         self._draw_occurred = False
 
     def _get_opcode(self):
-        return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
+        pc = self._registers.get_PC()
+        return (self._memory.get_byte(pc) << 8) | self._memory.get_byte(pc + 1)
 
     def _draw(self, x, y, n):
         if n == 0:
