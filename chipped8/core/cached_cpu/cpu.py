@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from copy import copy
+from collections import deque
 from random import randint
 
 from ..icpu import iCPU
@@ -49,7 +49,7 @@ class CachedCPU(iCPU):
 
         self._instruction_factory = InstrFactory()
         self._block_cache = {}
-        self._instruction_queue = []
+        self._instruction_queue = deque()
         self._block_cache_enable = True
 
     def _get_opcode(self, pc):
@@ -105,9 +105,9 @@ class CachedCPU(iCPU):
                     self._load_next_basic_block()
                     return
                 self._block_cache[pc] = block
-            self._instruction_queue = copy(block)
+            self._instruction_queue.extend(block)
         else:
-            self._instruction_queue = [self._get_next_instruction()]
+            self._instruction_queue.append(self._get_next_instruction())
 
     def execute_next_op(self):
         self._draw_occurred = False
@@ -118,12 +118,12 @@ class CachedCPU(iCPU):
         if len(self._instruction_queue) == 0:
             raise NoInstructionsException('No instructions')
 
-        (pc, instr) = self._instruction_queue.pop(0)
+        (pc, instr) = self._instruction_queue.popleft()
         instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._quirks, self._audio)
 
         kind = instr.kind()
         if kind == InstrKind.BLOCKING and not instr.advance():
-            self._instruction_queue.insert(0, (pc, instr))
+            self._instruction_queue.appendleft((pc, instr))
         if kind == InstrKind.DRAW:
             self._draw_occurred = True
 
@@ -139,7 +139,7 @@ class CachedCPU(iCPU):
 
             # Clear the instruction queue because we can't guarentee the
             # Current basic block is still valid
-            self._instruction_queue = []
+            self._instruction_queue.clear()
 
             # Jump will set the PC address for us so we only need to update it
             # for other operations
