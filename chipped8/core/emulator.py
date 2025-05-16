@@ -81,8 +81,8 @@ class Emulator():
         d._timers = deepcopy(self._timers)
         d._keys = deepcopy(self._keys)
         d._display = deepcopy(self._display)
-        d.quirks = deepcopy(self._quirks)
-        d.audio = deepcopy(self._audio)
+        d._quirks = deepcopy(self._quirks)
+        d._audio = deepcopy(self._audio)
 
         d._cpu = CPU(
             d._registers,
@@ -91,8 +91,8 @@ class Emulator():
             d._timers,
             d._keys,
             d._display,
-            d.quirks,
-            d.audio
+            d._quirks,
+            d._audio
         )
 
         d._blit_screen_cb = self._blit_screen_cb
