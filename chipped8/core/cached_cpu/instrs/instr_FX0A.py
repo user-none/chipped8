@@ -32,19 +32,17 @@ class InstrFX0A(Instr):
 
     def __init__(self, x):
         self._x = x
-        self._advance = True
-
-    def advance(self):
-        return self._advance
+        super().__init__()
 
     def kind(self):
         return InstrKind.BLOCKING
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        self._advance = False
+        self._result.advance = False
 
         for i, ks in enumerate(keys.get_keys()):
             if ks == KeyState.down:
                 registers.set_V(self._x, i)
-                self._advance = True
+                self._result.advance = True
                 break
+        return self._result

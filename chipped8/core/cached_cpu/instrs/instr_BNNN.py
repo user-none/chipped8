@@ -31,11 +31,8 @@ class InstrBNNN(Instr):
         self._x = (opcode & 0x0F00) >> 8
         self._nn  = (opcode & 0x00FF)
         self._nnn  = (opcode & 0x0FFF)
-        self._self_modified = False
         self._quirk_jump = quirks.get_jump()
-
-    def self_modified(self):
-        return self._self_modified
+        super().__init__()
 
     def kind(self):
         return InstrKind.JUMP
@@ -47,6 +44,7 @@ class InstrBNNN(Instr):
             n = self._nnn + registers.get_V(0)
 
         if n >= memory.ram_start():
-            self._self_modified = True
+            self._result.self_modified = True
 
         registers.set_PC(n)
+        return self._result

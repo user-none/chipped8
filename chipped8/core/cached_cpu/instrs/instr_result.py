@@ -20,35 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .instr import Instr, InstrKind
+class InstrResult():
 
-class Instr5XY0(Instr):
-    '''
-    5XY0: Skips the next instruction if VX equals VY
-          XO-Chip uses 0xF000 with a following 2 byte
-          address that also needs to be skipped.
-    '''
-
-    def __init__(self, pc, next_opcode, x, y):
-        self._pc = pc
-        self._next_opcode = next_opcode
-        self._x = x
-        self._y = y
-        super().__init__()
-
-    def kind(self):
-        return InstrKind.COND_ADVANCE
-
-    def is_pic(self):
-        return False
-
-    def execute(self, registers, stack, memory, timers, keys, display, audio):
-        registers.set_PC(self._pc)
-
-        if registers.get_V(self._x) == registers.get_V(self._y):
-            registers.advance_PC()
-            if self._next_opcode == 0xF000:
-                registers.advance_PC()
-
-        registers.advance_PC()
-        return self._result
+    def __init__(self, advance = True, draw_occurred = False, self_modified = False):
+        self.advance = advance
+        self.draw_occurred = draw_occurred 
+        self.self_modified = self_modified

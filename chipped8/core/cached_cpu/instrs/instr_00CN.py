@@ -29,6 +29,8 @@ class Instr00CN(Instr):
 
     def __init__(self, n):
         self._n = n
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.scroll_down(self._n)
+        return self._result

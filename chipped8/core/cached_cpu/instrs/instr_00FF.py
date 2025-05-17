@@ -31,3 +31,4 @@ class Instr00FF(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.set_resmode(ResolutionMode.hires)
+        return self._result

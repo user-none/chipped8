@@ -30,10 +30,7 @@ class Instr2NNN(Instr):
     def __init__(self, pc, opcode):
         self._call_pc = opcode & 0x0FFF
         self._pc = pc
-        self._self_modified = False
-
-    def self_modified(self):
-        return self._self_modified
+        super().__init__()
 
     def kind(self):
         return InstrKind.JUMP
@@ -45,6 +42,7 @@ class Instr2NNN(Instr):
         stack.push(self._pc)
 
         if self._call_pc >= memory.ram_start():
-            self._self_modified = True
+            self._result.self_modified = True
 
         registers.set_PC(self._call_pc)
+        return self._result

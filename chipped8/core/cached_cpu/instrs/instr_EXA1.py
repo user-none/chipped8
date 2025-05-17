@@ -35,6 +35,7 @@ class InstrEXA1(Instr):
         self._pc = pc
         self._x = x
         self._next_opcode = next_opcode
+        super().__init__()
 
     def kind(self):
         return InstrKind.COND_ADVANCE
@@ -51,3 +52,4 @@ class InstrEXA1(Instr):
                 registers.advance_PC()
 
         registers.advance_PC()
+        return self._result

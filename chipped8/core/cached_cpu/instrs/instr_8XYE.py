@@ -32,6 +32,7 @@ class Instr8XYE(Instr):
         self._x = x
         self._y = y
         self._quirk_shift = quirks.get_shift()
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         if self._quirk_shift:
@@ -41,3 +42,4 @@ class Instr8XYE(Instr):
 
         registers.set_V(self._x, n << 1)
         registers.set_V(0xF, n >> 7)
+        return self._result

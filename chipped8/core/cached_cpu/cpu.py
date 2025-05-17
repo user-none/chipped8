@@ -49,6 +49,9 @@ class CachedCPU(iCPU):
         self._block_emitter = InstrBlockEmitter()
         self._self_modified = False
 
+        #self._self_modified = True
+        #self._block_emitter.set_cache_pc(False)
+
     def execute_next_op(self):
         self._draw_occurred = False
 
@@ -59,19 +62,18 @@ class CachedCPU(iCPU):
             raise NoInstructionsException('No instructions')
 
         (pc, instr) = self._instruction_queue.popleft()
-        instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._audio)
+        result = instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._audio)
 
-        kind = instr.kind()
-        if kind == InstrKind.BLOCKING and not instr.advance():
+        if not result.advance:
             self._instruction_queue.appendleft((pc, instr))
-        if kind == InstrKind.DRAW:
+        if result.draw_occurred:
             self._draw_occurred = True
 
         # Check if the instruction self modified. This is either memory within the
         # ROMs address space was modified or we have a jump outside of the ROMs
         # address space indicating instructions were written into RAM.
         #if not self._self_modified and instr.self_modified():
-        if not self._self_modified and instr.self_modified():
+        if not self._self_modified and result.self_modified:
             print('Self modified')
             self._self_modified = True
             # Disable caching of basic blocks because they may no longer be correct
@@ -83,7 +85,7 @@ class CachedCPU(iCPU):
 
             # Jump will set the PC address for us so we only need to update it
             # for other operations
-            if kind is not InstrKind.JUMP:
+            if instr.kind() is not InstrKind.JUMP:
                 # Set the PC to the next instruction because we need to pick up
                 # processing from here on the next execution
                 self._registers.set_PC(pc)

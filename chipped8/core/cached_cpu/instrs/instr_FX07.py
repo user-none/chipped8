@@ -29,6 +29,8 @@ class InstrFX07(Instr):
 
     def __init__(self, x):
         self._x = x
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, timers.get_delay())
+        return self._result

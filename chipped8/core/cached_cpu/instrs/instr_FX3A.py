@@ -29,6 +29,8 @@ class InstrFX3A(Instr):
 
     def __init__(self, x):
         self._x = x
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         audio.set_pitch(registers.get_V(self._x))
+        return self._result

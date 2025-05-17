@@ -29,7 +29,9 @@ class InstrFX29(Instr):
 
     def __init__(self, x):
         self._x = x
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         n = registers.get_V(self._x)
         registers.set_I(n * 5)
+        return self._result

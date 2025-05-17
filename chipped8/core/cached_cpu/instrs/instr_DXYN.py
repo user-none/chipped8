@@ -38,6 +38,9 @@ class InstrDXYN(Instr):
         self._n = opcode & 0x000F
         self._quirk_wrap = quirks.get_wrap()
 
+        super().__init__()
+        self._result.draw_occurred = True
+
     def _draw_s8(self, vx, vy, n, registers, memory, display):
         registers.set_V(0xF, 0)
         I = registers.get_I()
@@ -92,3 +95,4 @@ class InstrDXYN(Instr):
             self._draw_s16(vx, vy, registers, memory, display)
         else:
             self._draw_s8(vx, vy, self._n, registers, memory, display)
+        return self._result

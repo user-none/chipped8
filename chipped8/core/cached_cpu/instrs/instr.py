@@ -22,6 +22,8 @@
 
 from enum import Enum, auto
 
+from .instr_result import InstrResult
+
 class InstrKind(Enum):
     OPERATION = auto()
     JUMP = auto()
@@ -33,11 +35,8 @@ class InstrKind(Enum):
 
 class Instr:
 
-    def advance(self):
-        return True
-
-    def self_modified(self):
-        return False
+    def __init__(self):
+        self._result = InstrResult()
 
     def is_pic(self):
         return True

@@ -30,16 +30,13 @@ class InstrFX55(Instr):
 
     def __init__(self, x, quirks):
         self._x = x
-        self._self_modified = False
         self._quirk_memoryLeaveIUnchanged = quirks.get_memoryLeaveIUnchanged()
         self._quirk_memoryIncrementByX = quirks.get_memoryIncrementByX()
-
-    def self_modified(self):
-        return self._self_modified
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         if registers.get_I() < memory.ram_start():
-            self._self_modified = True
+            self._result.self_modified = True
 
         for i in range(self._x + 1):
             memory.set_byte(registers.get_I() + i, registers.get_V(i))
@@ -49,3 +46,4 @@ class InstrFX55(Instr):
                 registers.set_I(registers.get_I() + self._x)
             else:
                 registers.set_I(registers.get_I() + self._x + 1)
+        return self._result

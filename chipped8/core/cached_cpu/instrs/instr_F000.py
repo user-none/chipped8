@@ -29,6 +29,7 @@ class InstrF000(Instr):
 
     def __init__(self, addr):
         self._addr = addr
+        super().__init__()
 
     def kind(self):
         return InstrKind.DOUBLE_WIDE
@@ -38,3 +39,4 @@ class InstrF000(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(self._addr)
+        return self._result

@@ -31,8 +31,10 @@ class Instr5XY3(Instr):
     def __init__(self, x, y):
         self._x = x
         self._y = y
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         step = 1 if self._x <= self._y else -1
         for i, v in enumerate(range(self._x, self._y+step, step)):
             registers.set_V(v, memory.get_byte(registers.get_I() + i))
+        return self._result

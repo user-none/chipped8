@@ -29,6 +29,8 @@ class InstrANNN(Instr):
 
     def __init__(self, opcode):
         self._n = opcode & 0x0FFF
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(self._n)
+        return self._result

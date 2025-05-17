@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from .instr import Instr
+from .instr_result import InstrResult
 
 class Instr8XY1(Instr):
     '''
@@ -31,8 +32,10 @@ class Instr8XY1(Instr):
         self._x = x
         self._y = y
         self._quirk_logic = quirks.get_logic()
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, registers.get_V(self._x) | registers.get_V(self._y))
         if self._quirk_logic:
             registers.set_V(0xF, 0)
+        return self._result

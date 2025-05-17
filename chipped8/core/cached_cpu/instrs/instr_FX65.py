@@ -33,6 +33,7 @@ class InstrFX65(Instr):
         self._x = x
         self._quirk_memoryLeaveIUnchanged = quirks.get_memoryLeaveIUnchanged()
         self._quirk_memoryIncrementByX = quirks.get_memoryIncrementByX()
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         for i in range(self._x + 1):
@@ -43,3 +44,4 @@ class InstrFX65(Instr):
                 registers.set_I(registers.get_I() + self._x)
             else:
                 registers.set_I(registers.get_I() + self._x + 1)
+        return self._result

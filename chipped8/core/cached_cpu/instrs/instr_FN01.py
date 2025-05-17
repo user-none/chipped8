@@ -31,6 +31,7 @@ class InstrFN01(Instr):
 
     def __init__(self, n):
         self._n = n
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         plane = Plane(0)
@@ -39,3 +40,4 @@ class InstrFN01(Instr):
         if self._n & 2:
             plane = plane | Plane.p2
         display.set_plane(plane)
+        return self._result

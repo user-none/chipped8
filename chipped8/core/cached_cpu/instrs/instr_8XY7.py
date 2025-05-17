@@ -30,6 +30,7 @@ class Instr8XY7(Instr):
     def __init__(self, x, y):
         self._x = x
         self._y = y
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         vx = registers.get_V(self._x)
@@ -38,3 +39,4 @@ class Instr8XY7(Instr):
 
         registers.set_V(self._x, n)
         registers.set_V(0xF, 1 if vy >= vx else 0)
+        return self._result

@@ -34,6 +34,7 @@ class Instr9XY0(Instr):
         self._next_opcode = next_opcode
         self._x = (opcode & 0x0F00) >> 8
         self._y = (opcode & 0x00F0) >> 4
+        super().__init__()
 
     def kind(self):
         return InstrKind.COND_ADVANCE
@@ -50,3 +51,4 @@ class Instr9XY0(Instr):
                 registers.advance_PC()
 
         registers.advance_PC()
+        return self._result

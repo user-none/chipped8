@@ -27,12 +27,6 @@ class Instr00EE(Instr):
     00EE: Return from subroutine
     '''
 
-    def __init__(self):
-        self._self_modified = False
-
-    def self_modified(self):
-        return self._self_modified
-
     def kind(self):
         return InstrKind.JUMP
 
@@ -40,7 +34,8 @@ class Instr00EE(Instr):
         pc = stack.pop()
 
         if pc >= memory.ram_start()-2:
-            self._self_modified = True
+            self._result.self_modified = True
 
         registers.set_PC(pc)
         registers.advance_PC()
+        return self._result

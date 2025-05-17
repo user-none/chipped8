@@ -29,3 +29,4 @@ class Instr00FC(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.scroll_left()
+        return self._result

@@ -29,9 +29,11 @@ class InstrFX75(Instr):
 
     def __init__(self, x):
         self._x = x
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         n = registers.get_V(self._x)
 
         for i in range(n+1):
             registers.set_RPL(i, registers.get_V(i))
+        return self._result

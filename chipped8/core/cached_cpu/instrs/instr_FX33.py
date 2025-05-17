@@ -31,16 +31,14 @@ class InstrFX33(Instr):
 
     def __init__(self, x):
         self._x = x
-        self._self_modified = False
-
-    def self_modified(self):
-        return self._self_modified
+        super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         if registers.get_I() < memory.ram_start():
-            self._self_modified = True
+            self._result.self_modified = True
 
         n = registers.get_V(self._x)
         memory.set_byte(registers.get_I(), n // 100)
         memory.set_byte(registers.get_I() + 1, (n // 10) % 10)
         memory.set_byte(registers.get_I() + 2, (n % 100) % 10)
+        return self._result
