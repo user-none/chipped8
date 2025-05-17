@@ -29,15 +29,17 @@ class InstrFX65(Instr):
           read
     '''
 
-    def __init__(self, x):
+    def __init__(self, x, quirks):
         self._x = x
+        self._quirk_memoryLeaveIUnchanged = quirks.get_memoryLeaveIUnchanged()
+        self._quirk_memoryIncrementByX = quirks.get_memoryIncrementByX()
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         for i in range(self._x + 1):
             registers.set_V(i, memory.get_byte(registers.get_I() + i))
 
-        if not quirks.get_memoryLeaveIUnchanged():
-            if quirks.get_memoryIncrementByX():
+        if not self._quirk_memoryLeaveIUnchanged:
+            if self._quirk_memoryIncrementByX:
                 registers.set_I(registers.get_I() + self._x)
             else:
                 registers.set_I(registers.get_I() + self._x + 1)

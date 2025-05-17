@@ -33,5 +33,5 @@ class InstrCXNN(Instr):
         self._x = (opcode & 0x0F00) >> 8
         self._mask = (opcode & 0x00FF)
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, randint(0, 255) & self._mask)

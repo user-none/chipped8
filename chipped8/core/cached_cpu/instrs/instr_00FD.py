@@ -32,5 +32,5 @@ class Instr00FD(Instr):
     def kind(self):
         return InstrKind.EXIT
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         raise ExitInterpreterException()

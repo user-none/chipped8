@@ -29,5 +29,5 @@ class Instr00FE(Instr):
     00FE: Switch to low resolution mode
     '''
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.set_resmode(ResolutionMode.lowres)

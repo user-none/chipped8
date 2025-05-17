@@ -28,22 +28,24 @@ class InstrFX55(Instr):
           I. The offset from I is increased by 1 for each value written
     '''
 
-    def __init__(self, x):
+    def __init__(self, x, quirks):
         self._x = x
         self._self_modified = False
+        self._quirk_memoryLeaveIUnchanged = quirks.get_memoryLeaveIUnchanged()
+        self._quirk_memoryIncrementByX = quirks.get_memoryIncrementByX()
 
     def self_modified(self):
         return self._self_modified
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         if registers.get_I() < memory.ram_start():
             self._self_modified = True
 
         for i in range(self._x + 1):
             memory.set_byte(registers.get_I() + i, registers.get_V(i))
 
-        if not quirks.get_memoryLeaveIUnchanged():
-            if quirks.get_memoryIncrementByX():
+        if not self._quirk_memoryLeaveIUnchanged:
+            if self._quirk_memoryIncrementByX:
                 registers.set_I(registers.get_I() + self._x)
             else:
                 registers.set_I(registers.get_I() + self._x + 1)

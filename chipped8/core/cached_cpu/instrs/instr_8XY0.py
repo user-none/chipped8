@@ -31,5 +31,5 @@ class Instr8XY0(Instr):
         self._x = x
         self._y = y
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, registers.get_V(self._y))

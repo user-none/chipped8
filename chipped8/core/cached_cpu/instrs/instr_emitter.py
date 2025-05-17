@@ -48,7 +48,7 @@ class InstrBlockEmitter:
     def _get_next_opcode(self, pc, memory):
         return (memory.get_byte(pc + 2) << 8) | memory.get_byte(pc + 3)
 
-    def _get_instruction(self, pc, opcode, next_opcode):
+    def _get_instruction(self, pc, opcode, next_opcode, quirks):
         instr = None
 
         if self._cache_pc:
@@ -58,7 +58,7 @@ class InstrBlockEmitter:
             instr = self._instr_cache.get(opcode)
 
         if not instr:
-            instr = self._instr_factory.create(pc, opcode, next_opcode)
+            instr = self._instr_factory.create(pc, opcode, next_opcode, quirks)
             self._save_instruction(pc, opcode, instr)
 
         return instr
@@ -69,12 +69,12 @@ class InstrBlockEmitter:
         elif self._cache_pc:
             self._pc_instr_cache[pc] = instr
 
-    def _get_next_instruction(self, registers, memory):
+    def _get_next_instruction(self, registers, memory, quirks):
         pc = registers.get_PC()
         opcode = self._get_opcode(pc, memory)
         next_opcode = self._get_next_opcode(pc, memory)
 
-        instr = self._get_instruction(pc, opcode, next_opcode)
+        instr = self._get_instruction(pc, opcode, next_opcode, quirks)
 
         # Advance our position to the next instruction.
         registers.advance_PC()
@@ -86,11 +86,11 @@ class InstrBlockEmitter:
 
         return (pc, instr)
 
-    def _build_block(self, registers, memory):
+    def _build_block(self, registers, memory, quirks):
         block = []
 
         while 1:
-            (pc, instr) = self._get_next_instruction(registers, memory)
+            (pc, instr) = self._get_next_instruction(registers, memory, quirks)
             block.append((pc, instr))
 
             # Stop processing on the block when we get to a jump of some kind.
@@ -104,7 +104,7 @@ class InstrBlockEmitter:
 
         return block
 
-    def get_block(self, registers, memory):
+    def get_block(self, registers, memory, quirks):
         pc = registers.get_PC()
 
         block = None
@@ -113,7 +113,7 @@ class InstrBlockEmitter:
 
         if not block:
             try:
-                block = self._build_block(registers, memory)
+                block = self._build_block(registers, memory, quirks)
                 self._save_block(pc, block)
             except UnknownOpCodeException:
                 self._cache_pc = False

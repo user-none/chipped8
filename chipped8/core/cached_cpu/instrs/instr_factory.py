@@ -67,7 +67,7 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: 5XY{:01X}'.format(subcode))
 
-    def _get_instruction_8(self, opcode):
+    def _get_instruction_8(self, opcode, quirks):
         subcode = opcode & 0x000F
         x = (opcode & 0x0F00) >> 8
         y = (opcode & 0x00F0) >> 4
@@ -75,21 +75,21 @@ class InstrFactory:
         if subcode == 0x0000:
             return Instr8XY0(x, y)
         elif subcode == 0x0001:
-            return Instr8XY1(x, y)
+            return Instr8XY1(x, y, quirks)
         elif subcode == 0x0002:
-            return Instr8XY2(x, y)
+            return Instr8XY2(x, y, quirks)
         elif subcode == 0x0003:
-            return Instr8XY3(x, y)
+            return Instr8XY3(x, y, quirks)
         elif subcode == 0x0004:
             return Instr8XY4(x, y)
         elif subcode == 0x0005:
             return Instr8XY5(x, y)
         elif subcode == 0x0006:
-            return Instr8XY6(x, y)
+            return Instr8XY6(x, y, quirks)
         elif subcode == 0x0007:
             return Instr8XY7(x, y)
         elif subcode == 0x000E:
-            return Instr8XYE(x, y)
+            return Instr8XYE(x, y, quirks)
         else:
             raise UnknownOpCodeException('Unknown opcode: 8XY{:01X}'.format(subcode))
 
@@ -104,7 +104,7 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: EX{:02X}'.format(subcode))
 
-    def _get_instruction_F(self, opcode, next_opcode):
+    def _get_instruction_F(self, opcode, next_opcode, quirks):
         subcode = opcode & 0x00FF
         x = (opcode & 0x0F00) >> 8
 
@@ -133,9 +133,9 @@ class InstrFactory:
         elif subcode == 0x3A:
             return InstrFX3A(x)
         elif subcode == 0x55:
-            return InstrFX55(x)
+            return InstrFX55(x, quirks)
         elif subcode == 0x65:
-            return InstrFX65(x)
+            return InstrFX65(x, quirks)
         elif subcode == 0x75:
             return InstrFX75(x)
         elif subcode == 0x85:
@@ -147,7 +147,7 @@ class InstrFactory:
         self._pc_instruction_cache = {}
         self._can_cache_pc_instructions = False
 
-    def create(self, pc, opcode, next_opcode):
+    def create(self, pc, opcode, next_opcode, quirks):
         code = opcode & 0xF000
   
         if code == 0x0000:
@@ -167,21 +167,21 @@ class InstrFactory:
         elif code == 0x7000:
             instr = Instr7XNN(opcode)
         elif code == 0x8000:
-            instr = self._get_instruction_8(opcode)
+            instr = self._get_instruction_8(opcode, quirks)
         elif code == 0x9000:
             instr = Instr9XY0(pc, opcode, next_opcode)
         elif code == 0xA000:
            instr = InstrANNN(opcode)
         elif code == 0xB000:
-            instr = InstrBNNN(opcode)
+            instr = InstrBNNN(opcode, quirks)
         elif code == 0xC000:
             instr = InstrCXNN(opcode)
         elif code == 0xD000:
-            instr = InstrDXYN(opcode)
+            instr = InstrDXYN(opcode, quirks)
         elif code == 0xE000:
             instr = self._get_instruction_E(pc, opcode, next_opcode)
         elif code == 0xF000:
-            instr = self._get_instruction_F(opcode, next_opcode)
+            instr = self._get_instruction_F(opcode, next_opcode, quirks)
         else:
             raise UnknownOpCodeException('Unknown opcode: {:04X}'.format(opcode))
 

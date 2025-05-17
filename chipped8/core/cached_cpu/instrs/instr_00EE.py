@@ -36,7 +36,7 @@ class Instr00EE(Instr):
     def kind(self):
         return InstrKind.JUMP
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         pc = stack.pop()
 
         if pc >= memory.ram_start()-2:

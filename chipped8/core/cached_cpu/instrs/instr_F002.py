@@ -27,5 +27,5 @@ class InstrF002(Instr):
     F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
     '''
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         audio.set_pattern(memory.get_range(registers.get_I(), 16))

@@ -53,13 +53,13 @@ class CachedCPU(iCPU):
         self._draw_occurred = False
 
         if len(self._instruction_queue) == 0:
-            self._instruction_queue.extend(self._block_emitter.get_block(self._registers, self._memory))
+            self._instruction_queue.extend(self._block_emitter.get_block(self._registers, self._memory, self._quirks))
 
         if len(self._instruction_queue) == 0:
             raise NoInstructionsException('No instructions')
 
         (pc, instr) = self._instruction_queue.popleft()
-        instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._quirks, self._audio)
+        instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._audio)
 
         kind = instr.kind()
         if kind == InstrKind.BLOCKING and not instr.advance():
@@ -72,6 +72,7 @@ class CachedCPU(iCPU):
         # address space indicating instructions were written into RAM.
         #if not self._self_modified and instr.self_modified():
         if not self._self_modified and instr.self_modified():
+            print('Self modified')
             self._self_modified = True
             # Disable caching of basic blocks because they may no longer be correct
             self._block_emitter.set_cache_pc(False)

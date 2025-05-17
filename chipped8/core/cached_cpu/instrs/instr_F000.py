@@ -36,5 +36,5 @@ class InstrF000(Instr):
     def is_pic(self):
         return False
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(self._addr)

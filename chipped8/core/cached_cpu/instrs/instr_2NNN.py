@@ -41,7 +41,7 @@ class Instr2NNN(Instr):
     def is_pic(self):
         return False
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         stack.push(self._pc)
 
         if self._call_pc >= memory.ram_start():

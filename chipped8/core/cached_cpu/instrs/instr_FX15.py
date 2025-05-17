@@ -30,5 +30,5 @@ class InstrFX15(Instr):
     def __init__(self, x):
         self._x = x
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         timers.set_delay(registers.get_V(self._x))

@@ -27,11 +27,12 @@ class InstrBNNN(Instr):
     BXNN / BNNN: Jumps to the address NNN plus V0
     '''
 
-    def __init__(self, opcode):
+    def __init__(self, opcode, quirks):
         self._x = (opcode & 0x0F00) >> 8
         self._nn  = (opcode & 0x00FF)
         self._nnn  = (opcode & 0x0FFF)
         self._self_modified = False
+        self._quirk_jump = quirks.get_jump()
 
     def self_modified(self):
         return self._self_modified
@@ -39,8 +40,8 @@ class InstrBNNN(Instr):
     def kind(self):
         return InstrKind.JUMP
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
-        if quirks.get_jump():
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        if self._quirk_jump:
             n = self._nn + registers.get_V(self._x)
         else:
             n = self._nnn + registers.get_V(0)

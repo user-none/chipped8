@@ -32,12 +32,13 @@ class InstrDXYN(Instr):
           to 0 if that does not happen
     '''
 
-    def __init__(self, opcode):
+    def __init__(self, opcode, quirks):
         self._x = (opcode & 0x0F00) >> 8
         self._y = (opcode & 0x00F0) >> 4
         self._n = opcode & 0x000F
+        self._quirk_wrap = quirks.get_wrap()
 
-    def _draw_s8(self, vx, vy, n, registers, memory, display, quirks):
+    def _draw_s8(self, vx, vy, n, registers, memory, display):
         registers.set_V(0xF, 0)
         I = registers.get_I()
         for plane in display.get_planes():
@@ -52,7 +53,7 @@ class InstrDXYN(Instr):
                     row = vx + j
                     col = vy + i
 
-                    if not quirks.get_wrap() and display.sprite_will_wrap(vx, vy, vx+j, vy+i):
+                    if not self._quirk_wrap and display.sprite_will_wrap(vx, vy, vx+j, vy+i):
                         continue
 
                     unset = display.set_pixel(plane, row, col, 1)
@@ -60,7 +61,7 @@ class InstrDXYN(Instr):
                         registers.set_V(0xF, 1)
             I = I + n
 
-    def _draw_s16(self, vx, vy, registers, memory, display, quirks):
+    def _draw_s16(self, vx, vy, registers, memory, display):
         registers.set_V(0xF, 0)
         I = registers.get_I()
         for plane in display.get_planes():
@@ -83,11 +84,11 @@ class InstrDXYN(Instr):
     def kind(self):
         return InstrKind.DRAW
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         vx = registers.get_V(self._x)
         vy = registers.get_V(self._y)
 
         if self._n == 0:
-            self._draw_s16(vx, vy, registers, memory, display, quirks)
+            self._draw_s16(vx, vy, registers, memory, display)
         else:
-            self._draw_s8(vx, vy, self._n, registers, memory, display, quirks)
+            self._draw_s8(vx, vy, self._n, registers, memory, display)

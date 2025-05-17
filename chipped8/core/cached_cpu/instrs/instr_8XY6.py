@@ -31,9 +31,10 @@ class Instr8XY6(Instr):
     def __init__(self, x, y):
         self._x = x
         self._y = y
+        self._quirk_shift = quirks.get_shift()
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
-        if quirks.get_shift():
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        if self._quirk_shift:
             n = registers.get_V(self._x)
         else:
             n = registers.get_V(self._y)

@@ -27,5 +27,5 @@ class Instr00FB(Instr):
     00FB: Scroll right by 4 pixels; in low resolution mode, 2 pixels
     '''
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.scroll_right()

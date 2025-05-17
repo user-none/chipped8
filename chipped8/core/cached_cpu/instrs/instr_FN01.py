@@ -32,7 +32,7 @@ class InstrFN01(Instr):
     def __init__(self, n):
         self._n = n
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         plane = Plane(0)
         if self._n & 1:
             plane = plane | Plane.p1

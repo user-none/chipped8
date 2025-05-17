@@ -41,7 +41,7 @@ class Instr9XY0(Instr):
     def is_pic(self):
         return False
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_PC(self._pc)
 
         if registers.get_V(self._x) != registers.get_V(self._y):

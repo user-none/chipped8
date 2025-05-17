@@ -27,11 +27,12 @@ class Instr8XY3(Instr):
     8XY3: Sets VX to VX xor VY
     '''
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, quirks):
         self._x = x
         self._y = y
+        self._quirk_logic = quirks.get_logic()
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, registers.get_V(self._x) ^ registers.get_V(self._y))
-        if quirks.get_logic():
+        if self._quirk_logic:
             registers.set_V(0xF, 0)

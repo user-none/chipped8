@@ -40,7 +40,7 @@ class InstrFX0A(Instr):
     def kind(self):
         return InstrKind.BLOCKING
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         self._advance = False
 
         for i, ks in enumerate(keys.get_keys()):

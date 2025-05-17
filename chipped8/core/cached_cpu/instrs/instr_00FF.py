@@ -29,5 +29,5 @@ class Instr00FF(Instr):
     00FF: Switch to high resolution mode
     '''
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.set_resmode(ResolutionMode.hires)

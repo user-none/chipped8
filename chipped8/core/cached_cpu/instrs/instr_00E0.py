@@ -27,5 +27,5 @@ class Instr00E0(Instr):
     00E0: Clears the screen
     '''
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.clear_screen()

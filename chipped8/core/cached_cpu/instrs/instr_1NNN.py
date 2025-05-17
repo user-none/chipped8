@@ -37,7 +37,7 @@ class Instr1NNN(Instr):
     def kind(self):
         return InstrKind.JUMP
 
-    def execute(self, registers, stack, memory, timers, keys, display, quirks, audio):
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
         if self._addr >= memory.ram_start():
             self._self_modified = True
 
