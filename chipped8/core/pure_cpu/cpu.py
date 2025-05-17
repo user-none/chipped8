@@ -649,6 +649,9 @@ class PureCPU(iCPU):
         else:
             raise Exception('Unknown opcode: {:04X}'.format(opcode))
 
+    def copy_state(self, d):
+        pass
+
     def execute_next_op(self):
         self._draw_occurred = False
         opcode = self._get_opcode()
