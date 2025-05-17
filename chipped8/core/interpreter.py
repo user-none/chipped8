@@ -20,9 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-class InstrResult():
+from enum import Enum
 
-    def __init__(self, advance = True, draw_occurred = False, self_modified = False):
-        self.advance = advance
-        self.draw_occurred = draw_occurred 
-        self.self_modified = self_modified
+class InterpreterTypes(Enum):
+    cached = 'cached'
+    pure = 'pure'
+
+    def __str__(self):
+        return self.value
+

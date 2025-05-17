@@ -12,7 +12,8 @@ ApplicationWindow {
     visible: true
 
     signal windowFocusChanged(bool active)
-    signal platformChanged(string platfrom)
+    signal platformChanged(string platfrom, string interpreter)
+    signal interpreterChanged(string platfrom, string interpreter)
     signal keyEvent(int key, bool pressed, int modifiers)
     signal loadRom(url filename)
 
@@ -43,7 +44,7 @@ ApplicationWindow {
                 items: menuPlatform.items
 
                 onTriggered: (item) => {
-                    platformChanged(item.text)
+                    platformChanged(item.text, "")
                 }
             }
 
@@ -54,6 +55,23 @@ ApplicationWindow {
             MenuItem { id: platSuperchip1; text: "superchip1"; checkable: true }
             MenuItem { id: platSuperchip; text: "superchip"; checkable: true }
             MenuItem { id: platXochip; text: "xochip"; checkable: true }
+        }
+
+        Menu {
+            id: menuInterpreter
+            title: "Interpreter"
+
+            MenuItemGroup {
+                id: interpreterGroup
+                items: menuInterpreter.items
+
+                onTriggered: (item) => {
+                    interpreterChanged("", item.text)
+                }
+            }
+
+            MenuItem { id: interpreterCached; text: "cached"; checkable: true; checked: true }
+            MenuItem { id: interpreterPure; text: "pure"; checkable: true }
         }
     }
 

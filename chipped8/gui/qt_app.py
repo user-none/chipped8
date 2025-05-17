@@ -56,7 +56,7 @@ class QtApp(QObject):
             return -1
 
         c8_thread = QThread()
-        c8handler = c8Handler(self._args.platform)
+        c8handler = c8Handler(self._args.platform, self._args.interpreter)
         c8handler.moveToThread(c8_thread)
         c8handler.blitReady.connect(scene.blitScreen)
         c8handler.clearScreenReady.connect(scene.clearScreen)
@@ -69,6 +69,7 @@ class QtApp(QObject):
         win = engine.rootObjects()[0]
         win.windowFocusChanged.connect(c8handler.process_frames)
         win.platformChanged.connect(c8handler.reload_rom)
+        win.interpreterChanged.connect(c8handler.reload_rom)
         win.keyEvent.connect(c8handler.key_event)
         win.loadRom.connect(c8handler.load_rom)
 

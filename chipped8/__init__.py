@@ -23,6 +23,7 @@ from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
 from .core.keys import Keys, KeyState
 from .core.display import Colors
 from .core.platform import PlatformTypes, Platform
+from .core.interpreter import InterpreterTypes
 from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
 from .core.audio import generate_audio_frame
 

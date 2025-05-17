@@ -33,6 +33,7 @@ def parse_args():
             description = 'Chip8 Emulator')
     parser.add_argument('in_file', help='Input ROM file', nargs='?')
     parser.add_argument('-p', '--platform', type=chipped8.PlatformTypes, choices=chipped8.PlatformTypes, default=chipped8.PlatformTypes.originalChip8, help='Set the Chip-8 instruction set to use')
+    parser.add_argument('-i', '--interpreter', type=chipped8.InterpreterTypes, choices=chipped8.InterpreterTypes, default=chipped8.InterpreterTypes.cached, help='Set the type of interpreter to use')
     parser.add_argument('--version', action='version', version='%(prog)s {v}'.format(v=chipped8.__version__))
     return parser.parse_args()
 
