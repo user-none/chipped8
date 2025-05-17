@@ -69,6 +69,7 @@ class Memory:
     def __deepcopy__(self, memo):
         m = Memory()
         m._memory = deepcopy(self._memory)
+        m._ram_start = self._ram_start
         return m
 
     def _load_fonts(self):
