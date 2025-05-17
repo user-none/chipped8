@@ -54,6 +54,27 @@ Left arrow | Shift    | Rewind 60 frames (1 second)
 
 Basic rewind is supported for 30 seconds.
 
+
+## Interpreters
+
+Two different interpreters are supported.
+
+1. Cached
+2. Pure
+
+The cached interpreter is the default but the pure interpreter
+can be chosen as a command line option or chosen via the Interpreter menu
+in the GUI.
+
+The cached interpreter is slightly faster in most cases but is much slower if a
+ROM is self modifying. It's assumed a ROM is self modifying if a write within
+the ROM's address space or a jump out side of the ROM's address space takes
+place. When this happens most caching that takes place with the cached
+interpreter is be disabled. The performance of the cached interpreter without
+caching is quite poor. That said, Chip-8 is a very simple system and the
+performance degradation is not noticeable.
+
+
 ## Install and Run
 
 ```

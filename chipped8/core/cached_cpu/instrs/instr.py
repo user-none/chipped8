@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,18 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.interpreter import InterpreterTypes
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from enum import Enum, auto
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class InstrKind(Enum):
+    OPERATION = auto()
+    JUMP = auto()
+    COND_ADVANCE = auto()
+    DOUBLE_WIDE = auto()
+    BLOCKING = auto()
+    DRAW = auto()
+    EXIT = auto()
+
+class Instr:
+
+    def __init__(self):
+        self.pic = True
+        self.kind = InstrKind.OPERATION
+        self.advance = True
+        self.draw_occurred = False
+        self.self_modified = False
+
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        raise Exception('Not Implemented')
+
+    def __str__(self):
+        return self.__class__.__name__

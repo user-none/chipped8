@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,18 +20,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.interpreter import InterpreterTypes
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from .instr import Instr, InstrKind
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class InstrBNNN(Instr):
+    '''
+    BXNN / BNNN: Jumps to the address NNN plus V0
+    '''
+
+    def __init__(self, opcode, quirks):
+        self._x = (opcode & 0x0F00) >> 8
+        self._nn  = (opcode & 0x00FF)
+        self._nnn  = (opcode & 0x0FFF)
+        self._quirk_jump = quirks.get_jump()
+
+        super().__init__()
+        self.kind = InstrKind.JUMP
+
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        self.self_modified = False
+
+        if self._quirk_jump:
+            n = self._nn + registers.get_V(self._x)
+        else:
+            n = self._nnn + registers.get_V(0)
+
+        if n >= memory.ram_start():
+            self.self_modified = True
+
+        registers.set_PC(n)

@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,18 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.interpreter import InterpreterTypes
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from .instr import Instr
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class Instr5XY3(Instr):
+    '''
+    5XY3: Loads VX–VY from memory location in I
+          order can be ascending or descending. Does not increment I
+    '''
+
+    def __init__(self, x, y):
+        self._x = x
+        self._y = y
+        super().__init__()
+
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        step = 1 if self._x <= self._y else -1
+        for i, v in enumerate(range(self._x, self._y+step, step)):
+            registers.set_V(v, memory.get_byte(registers.get_I() + i))

@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,18 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.interpreter import InterpreterTypes
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from random import randint
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+from .instr import Instr
+
+class InstrCXNN(Instr):
+    '''
+    CXNN: Sets VX to the result of a bitwise and operation on a random number
+    '''
+
+    def __init__(self, opcode):
+        self._x = (opcode & 0x0F00) >> 8
+        self._mask = (opcode & 0x00FF)
+        super().__init__()
+
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        registers.set_V(self._x, randint(0, 255) & self._mask)

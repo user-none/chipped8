@@ -1,4 +1,6 @@
-# Copyright 2024 John Schember <john@nachtimwald.com>
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,18 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .core.emulator import Emulator
-from .core.display import SCREEN_WIDTH, SCREEN_HEIGHT
-from .core.keys import Keys, KeyState
-from .core.display import Colors
-from .core.platform import PlatformTypes, Platform
-from .core.interpreter import InterpreterTypes
-from .core.exceptions import ExitInterpreterException, UnknownOpCodeException
-from .core.audio import generate_audio_frame
+from .instr import Instr
 
-from importlib import metadata
-try:
-    __version__ = metadata.version(__package__)
-except:
-    __version__ = 'Unknown'
-del metadata
+class InstrFX65(Instr):
+    '''
+    FX65: Fills from V0 to VX (including VX) with values from memory,
+          starting at address I. The offset from I is increased by 1 for each value
+          read
+    '''
+
+    def __init__(self, x, quirks):
+        self._x = x
+        self._quirk_memoryLeaveIUnchanged = quirks.get_memoryLeaveIUnchanged()
+        self._quirk_memoryIncrementByX = quirks.get_memoryIncrementByX()
+        super().__init__()
+
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        for i in range(self._x + 1):
+            registers.set_V(i, memory.get_byte(registers.get_I() + i))
+
+        if not self._quirk_memoryLeaveIUnchanged:
+            if self._quirk_memoryIncrementByX:
+                registers.set_I(registers.get_I() + self._x)
+            else:
+                registers.set_I(registers.get_I() + self._x + 1)

@@ -64,10 +64,12 @@ class Memory:
             0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  # F
         ]
         self._load_fonts()
+        self._ram_start = 513
 
     def __deepcopy__(self, memo):
         m = Memory()
         m._memory = deepcopy(self._memory)
+        m._ram_start = self._ram_start
         return m
 
     def _load_fonts(self):
@@ -80,6 +82,8 @@ class Memory:
 
         for i, b in enumerate(data):
             self._memory[i+512] = b
+
+        self._ram_start = len(data)+512+1
 
     def get_byte(self, idx):
         return self._memory[idx]
@@ -98,3 +102,5 @@ class Memory:
     def font_large_offset(self):
         return len(self._font_small)
 
+    def ram_start(self):
+        return self._ram_start

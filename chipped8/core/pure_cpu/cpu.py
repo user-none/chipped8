@@ -20,16 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from copy import deepcopy
 from random import randint
 
-from .keys import KeyState
-from .display import Plane, ResolutionMode
+from ..icpu import iCPU
 
-class ExitInterpreterException(Exception):
-    pass
+from ..keys import KeyState
+from ..display import Plane, ResolutionMode
+from ..exceptions import ExitInterpreterException
 
-class CPU():
+class PureCPU(iCPU):
 
     def __init__(self, registers, stack, memory, timers, keys, display, quirks, audio):
         self._registers = registers
@@ -44,7 +43,8 @@ class CPU():
         self._draw_occurred = False
 
     def _get_opcode(self):
-        return (self._memory.get_byte(self._registers.get_PC()) << 8) | self._memory.get_byte(self._registers.get_PC() + 1)
+        pc = self._registers.get_PC()
+        return (self._memory.get_byte(pc) << 8) | self._memory.get_byte(pc + 1)
 
     def _draw(self, x, y, n):
         if n == 0:
@@ -648,6 +648,9 @@ class CPU():
             self._execute_F(opcode)
         else:
             raise Exception('Unknown opcode: {:04X}'.format(opcode))
+
+    def copy_state(self, d):
+        pass
 
     def execute_next_op(self):
         self._draw_occurred = False

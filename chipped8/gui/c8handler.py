@@ -36,11 +36,12 @@ class c8Handler(QObject):
     clearScreenReady = Signal()
     errorOccurred = Signal(str)
 
-    def __init__(self, platform=chipped8.PlatformTypes.originalChip8):
+    def __init__(self, platform=chipped8.PlatformTypes.originalChip8, interpreter=chipped8.InterpreterTypes.cached):
         QObject.__init__(self)
 
         self._emulator = None
         self._platform = platform
+        self._interpreter = interpreter
 
         self._process_timer = QTimer(self)
         self._process_timer.setTimerType(Qt.PreciseTimer)
@@ -139,7 +140,7 @@ class c8Handler(QObject):
         if not fname:
             return
 
-        self._emulator = chipped8.Emulator(self._platform)
+        self._emulator = chipped8.Emulator(self._platform, self._interpreter)
         self._rewind_stack = []
 
         if isinstance(fname, QUrl):
@@ -162,13 +163,20 @@ class c8Handler(QObject):
         self._record_frame()
         self._process_timer.start(0)
 
-    @Slot(str)
-    def reload_rom(self, platform=None):
+    @Slot(str, str)
+    def reload_rom(self, platform=None, interpreter=None):
         if not platform:
             platform = self._platform
         if isinstance(platform, str):
             platform = chipped8.PlatformTypes(platform)
+
+        if not interpreter:
+            interpreter = self._interpreter
+        if isinstance(interpreter, str):
+            interpreter = chipped8.InterpreterTypes(interpreter)
+
         self._platform = platform
+        self._interpreter = interpreter
 
         if not self._rom_fname:
             return
