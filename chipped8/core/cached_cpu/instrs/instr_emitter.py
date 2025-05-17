@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+
+# Copyright 2025 John Schember <john@nachtimwald.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+from ...exceptions import UnknownOpCodeException
+
+from .instr import InstrKind
+from .instr_factory import InstrFactory
+
+class InstrBlockEmitter:
+
+    def __init__(self):
+        self._instr_cache = {}
+        self._pc_instr_cache = {}
+
+        self._block_cache = {}
+
+        self._cache_pc = True
+
+        self._instr_factory = InstrFactory()
+
+    def set_cache_pc(self, can):
+        self._cache_pc = can
+        self._pc_instr_cache = None
+        self._block_cache = None
+
+    def _get_opcode(self, pc, memory):
+        return (memory.get_byte(pc) << 8) | memory.get_byte(pc + 1)
+
+    def _get_next_opcode(self, pc, memory):
+        return (memory.get_byte(pc + 2) << 8) | memory.get_byte(pc + 3)
+
+    def _get_instruction(self, pc, opcode, next_opcode):
+        instr = None
+
+        if self._cache_pc:
+            instr = self._pc_instr_cache.get(pc)
+
+        if not instr:
+            instr = self._instr_cache.get(opcode)
+
+        if not instr:
+            instr = self._instr_factory.create(pc, opcode, next_opcode)
+            self._save_instruction(pc, opcode, instr)
+
+        return instr
+
+    def _save_instruction(self, pc, opcode, instr):
+        if instr.is_pic():
+            self._instr_cache[opcode] = instr
+        elif self._cache_pc:
+            self._pc_instr_cache[pc] = instr
+
+    def _get_next_instruction(self, registers, memory):
+        pc = registers.get_PC()
+        opcode = self._get_opcode(pc, memory)
+        next_opcode = self._get_next_opcode(pc, memory)
+
+        instr = self._get_instruction(pc, opcode, next_opcode)
+
+        # Advance our position to the next instruction.
+        registers.advance_PC()
+
+        # Double wide needs an additional advance because we already read the instruction
+        # which was really data.
+        if instr.kind() == InstrKind.DOUBLE_WIDE:
+            registers.advance_PC()
+
+        return (pc, instr)
+
+    def _build_block(self, registers, memory):
+        block = []
+
+        while 1:
+            (pc, instr) = self._get_next_instruction(registers, memory)
+            block.append((pc, instr))
+
+            # Stop processing on the block when we get to a jump of some kind.
+            # The previous advances don't matter because these will change the PC when
+            # they execute
+            if instr.kind() in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
+                break;
+
+            if not self._cache_pc:
+                break
+
+        return block
+
+    def get_block(self, registers, memory):
+        pc = registers.get_PC()
+
+        block = None
+        if self._cache_pc:
+            block = self._block_cache.get(pc)
+
+        if not block:
+            try:
+                block = self._build_block(registers, memory)
+                self._save_block(pc, block)
+            except UnknownOpCodeException:
+                self._cache_pc = False
+                registers.set_PC(pc)
+                block = [self._get_next_instruction(registers, memory)]
+
+        return block
+
+    def _save_block(self, pc, block):
+        if not self._cache_pc:
+            return
+        self._block_cache[pc] = block

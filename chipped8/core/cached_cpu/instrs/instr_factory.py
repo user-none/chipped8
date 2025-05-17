@@ -27,23 +27,6 @@ from .instr import InstrKind
 
 class InstrFactory:
 
-    def __init__(self):
-        self._instruction_cache = {}
-        self._pc_instruction_cache = {}
-        self._can_cache_pc_instructions = True
-
-    def _load_instruction(self, pc, opcode):
-        instr = self._pc_instruction_cache.get(pc)
-        if not instr:
-            instr = self._instruction_cache.get(opcode)
-        return instr
-
-    def _cache_instruction(self, pc, opcode, instr):
-        if instr.is_pic():
-            self._instruction_cache[opcode] = instr
-        elif self._can_cache_pc_instructions:
-            self._pc_instruction_cache[pc] = instr
-
     def _get_instruction_0(self, opcode):
         subcode = opcode & 0x00FF
         microcode = opcode & 0x00F0
@@ -166,10 +149,6 @@ class InstrFactory:
 
     def create(self, pc, opcode, next_opcode):
         code = opcode & 0xF000
-
-        instr = self._load_instruction(pc, opcode)
-        if instr:
-            return instr
   
         if code == 0x0000:
             instr = self._get_instruction_0(opcode)
@@ -206,5 +185,4 @@ class InstrFactory:
         else:
             raise UnknownOpCodeException('Unknown opcode: {:04X}'.format(opcode))
 
-        self._cache_instruction(pc, opcode, instr)
         return instr

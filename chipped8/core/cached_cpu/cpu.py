@@ -28,9 +28,7 @@ from ..icpu import iCPU
 from ..keys import KeyState
 from ..display import Plane, ResolutionMode
 
-from ..exceptions import ExitInterpreterException, NoInstructionsException
-
-from .instrs.instr_factory import InstrFactory
+from .instrs.instr_emitter import InstrBlockEmitter
 from .instrs.instr import InstrKind
 
 class CachedCPU(iCPU):
@@ -47,73 +45,15 @@ class CachedCPU(iCPU):
 
         self._draw_occurred = False
 
-        self._instruction_factory = InstrFactory()
-        self._block_cache = {}
         self._instruction_queue = deque()
-        self._block_cache_enable = True
-
-    def _get_opcode(self, pc):
-        return (self._memory.get_byte(pc) << 8) | self._memory.get_byte(pc + 1)
-
-    def _get_next_opcode(self, pc):
-        return (self._memory.get_byte(pc + 2) << 8) | self._memory.get_byte(pc + 3)
-
-    def _get_next_instruction(self):
-        pc = self._registers.get_PC()
-        instr = self._instruction_factory.create(pc, self._get_opcode(pc), self._get_next_opcode(pc))
-
-        # Advance our position to the next instruction.
-        self._registers.advance_PC()
-
-        # Dobule wide needs an additional advance becase we already read the instrcution
-        # which was really data.
-        if instr.kind() == InstrKind.DOUBLE_WIDE:
-            self._registers.advance_PC()
-
-        return (pc, instr)
-
-    def _build_basic_block(self):
-        instructions = []
-
-        while 1:
-            (pc, instr) = self._get_next_instruction()
-            instructions.append((pc, instr))
-
-            # Stop processing on the block when we get to a jump of some kind.
-            # The previous advances don't matter because these will change the PC when
-            # they exectute
-            if instr.kind() in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
-                break;
-
-        return instructions
-
-    def _load_next_basic_block(self):
-        if self._block_cache_enable:
-            pc = self._registers.get_PC()
-            block = self._block_cache.get(pc)
-            if not block:
-                # Try to build the block of instructions. If we get an
-                # unknown code exception it's possible there are earlier
-                # instructions in the block that are modifying later ones
-                # We'll disable everyting and try again without caching.
-                try:
-                    block = self._build_basic_block()
-                except UnknownOpCodeException:
-                    self._block_cache_enable = False
-                    self._instruction_factory.disable_pc_instruction_cache()
-                    self._registers.set_PC(pc)
-                    self._load_next_basic_block()
-                    return
-                self._block_cache[pc] = block
-            self._instruction_queue.extend(block)
-        else:
-            self._instruction_queue.append(self._get_next_instruction())
+        self._block_emitter = InstrBlockEmitter()
+        self._self_modified = False
 
     def execute_next_op(self):
         self._draw_occurred = False
 
         if len(self._instruction_queue) == 0:
-            self._load_next_basic_block()
+            self._instruction_queue.extend(self._block_emitter.get_block(self._registers, self._memory))
 
         if len(self._instruction_queue) == 0:
             raise NoInstructionsException('No instructions')
@@ -130,14 +70,13 @@ class CachedCPU(iCPU):
         # Check if the instruction self modified. This is either memory within the
         # ROMs address space was modified or we have a jump outside of the ROMs
         # address space indicating instructions were written into RAM.
-        if self._block_cache_enable and instr.self_modified():
+        #if not self._self_modified and instr.self_modified():
+        if not self._self_modified and instr.self_modified():
+            self._self_modified = True
             # Disable caching of basic blocks because they may no longer be correct
-            self._block_cache_enable = False
+            self._block_emitter.set_cache_pc(False)
 
-            # Disable PC location caching of instructions
-            self._instruction_factory.disable_pc_instruction_cache()
-
-            # Clear the instruction queue because we can't guarentee the
+            # Clear the instruction queue because we can't guarantee the
             # Current basic block is still valid
             self._instruction_queue.clear()
 
