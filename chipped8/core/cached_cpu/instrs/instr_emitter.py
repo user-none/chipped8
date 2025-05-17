@@ -64,7 +64,7 @@ class InstrBlockEmitter:
         return instr
 
     def _save_instruction(self, pc, opcode, instr):
-        if instr.is_pic():
+        if instr.pic:
             self._instr_cache[opcode] = instr
         elif self._cache_pc:
             self._pc_instr_cache[pc] = instr
@@ -81,7 +81,7 @@ class InstrBlockEmitter:
 
         # Double wide needs an additional advance because we already read the instruction
         # which was really data.
-        if instr.kind() == InstrKind.DOUBLE_WIDE:
+        if instr.kind == InstrKind.DOUBLE_WIDE:
             registers.advance_PC()
 
         return (pc, instr)
@@ -96,7 +96,7 @@ class InstrBlockEmitter:
             # Stop processing on the block when we get to a jump of some kind.
             # The previous advances don't matter because these will change the PC when
             # they execute
-            if instr.kind() in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
+            if instr.kind in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
                 break;
 
             if not self._cache_pc:

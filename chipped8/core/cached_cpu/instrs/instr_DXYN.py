@@ -39,6 +39,7 @@ class InstrDXYN(Instr):
         self._quirk_wrap = quirks.get_wrap()
 
         super().__init__()
+        self.kind = InstrKind.DRAW
         self._result.draw_occurred = True
 
     def _draw_s8(self, vx, vy, n, registers, memory, display):
@@ -83,9 +84,6 @@ class InstrDXYN(Instr):
                     if unset:
                         registers.set_V(0xF, 1)
             I = I + 32
-
-    def kind(self):
-        return InstrKind.DRAW
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         vx = registers.get_V(self._x)

@@ -32,10 +32,9 @@ class InstrFX0A(Instr):
 
     def __init__(self, x):
         self._x = x
-        super().__init__()
 
-    def kind(self):
-        return InstrKind.BLOCKING
+        super().__init__()
+        self.kind = InstrKind.BLOCKING
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         self._result.advance = False

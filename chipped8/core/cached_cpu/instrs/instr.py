@@ -36,13 +36,10 @@ class InstrKind(Enum):
 class Instr:
 
     def __init__(self):
+        self.pic = True
+        self.kind = InstrKind.OPERATION
+
         self._result = InstrResult()
-
-    def is_pic(self):
-        return True
-
-    def kind(self):
-        return InstrKind.OPERATION
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         raise Exception('Not Implemented')

@@ -34,13 +34,10 @@ class Instr5XY0(Instr):
         self._next_opcode = next_opcode
         self._x = x
         self._y = y
+
         super().__init__()
-
-    def kind(self):
-        return InstrKind.COND_ADVANCE
-
-    def is_pic(self):
-        return False
+        self.pic = False
+        self.kind = InstrKind.COND_ADVANCE
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_PC(self._pc)

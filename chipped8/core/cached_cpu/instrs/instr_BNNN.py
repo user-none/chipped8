@@ -32,10 +32,9 @@ class InstrBNNN(Instr):
         self._nn  = (opcode & 0x00FF)
         self._nnn  = (opcode & 0x0FFF)
         self._quirk_jump = quirks.get_jump()
-        super().__init__()
 
-    def kind(self):
-        return InstrKind.JUMP
+        super().__init__()
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         if self._quirk_jump:

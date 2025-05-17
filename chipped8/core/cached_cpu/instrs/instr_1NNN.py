@@ -30,10 +30,9 @@ class Instr1NNN(Instr):
 
     def __init__(self, opcode):
         self._addr = opcode & 0x0FFF
-        super().__init__()
 
-    def kind(self):
-        return InstrKind.JUMP
+        super().__init__()
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         if self._addr >= memory.ram_start():

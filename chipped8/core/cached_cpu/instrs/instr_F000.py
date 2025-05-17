@@ -29,13 +29,10 @@ class InstrF000(Instr):
 
     def __init__(self, addr):
         self._addr = addr
+
         super().__init__()
-
-    def kind(self):
-        return InstrKind.DOUBLE_WIDE
-
-    def is_pic(self):
-        return False
+        self.pic = False
+        self.kind = InstrKind.DOUBLE_WIDE
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(self._addr)

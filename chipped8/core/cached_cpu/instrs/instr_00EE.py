@@ -27,8 +27,9 @@ class Instr00EE(Instr):
     00EE: Return from subroutine
     '''
 
-    def kind(self):
-        return InstrKind.JUMP
+    def __init__(self):
+        super().__init__()
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         pc = stack.pop()

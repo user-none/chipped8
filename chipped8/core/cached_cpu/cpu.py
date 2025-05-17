@@ -49,8 +49,6 @@ class CachedCPU(iCPU):
         self._block_emitter = InstrBlockEmitter()
         self._self_modified = False
 
-        #self._self_modified = True
-        #self._block_emitter.set_cache_pc(False)
 
     def execute_next_op(self):
         self._draw_occurred = False
@@ -74,7 +72,6 @@ class CachedCPU(iCPU):
         # address space indicating instructions were written into RAM.
         #if not self._self_modified and instr.self_modified():
         if not self._self_modified and result.self_modified:
-            print('Self modified')
             self._self_modified = True
             # Disable caching of basic blocks because they may no longer be correct
             self._block_emitter.set_cache_pc(False)
@@ -85,7 +82,7 @@ class CachedCPU(iCPU):
 
             # Jump will set the PC address for us so we only need to update it
             # for other operations
-            if instr.kind() is not InstrKind.JUMP:
+            if instr.kind is not InstrKind.JUMP:
                 # Set the PC to the next instruction because we need to pick up
                 # processing from here on the next execution
                 self._registers.set_PC(pc)

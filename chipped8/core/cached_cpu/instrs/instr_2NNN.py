@@ -30,13 +30,10 @@ class Instr2NNN(Instr):
     def __init__(self, pc, opcode):
         self._call_pc = opcode & 0x0FFF
         self._pc = pc
+
         super().__init__()
-
-    def kind(self):
-        return InstrKind.JUMP
-
-    def is_pic(self):
-        return False
+        self.pic = False
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         stack.push(self._pc)

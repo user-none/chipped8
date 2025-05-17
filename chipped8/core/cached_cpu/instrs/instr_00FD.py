@@ -29,8 +29,9 @@ class Instr00FD(Instr):
     00FD: Exit interpreter
     '''
 
-    def kind(self):
-        return InstrKind.EXIT
+    def __init__(self, quirks):
+        super().__init__()
+        self.kind = InstrKind.EXIT
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         raise ExitInterpreterException()
