@@ -37,11 +37,10 @@ class InstrFX0A(Instr):
         self.kind = InstrKind.BLOCKING
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        self._result.advance = False
+        self.advance = False
 
         for i, ks in enumerate(keys.get_keys()):
             if ks == KeyState.down:
                 registers.set_V(self._x, i)
-                self._result.advance = True
+                self.advance = True
                 break
-        return self._result

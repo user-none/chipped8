@@ -35,8 +35,9 @@ class InstrFX55(Instr):
         super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
+        self.self_modified = False
         if registers.get_I() < memory.ram_start():
-            self._result.self_modified = True
+            self.self_modified = True
 
         for i in range(self._x + 1):
             memory.set_byte(registers.get_I() + i, registers.get_V(i))
@@ -46,4 +47,3 @@ class InstrFX55(Instr):
                 registers.set_I(registers.get_I() + self._x)
             else:
                 registers.set_I(registers.get_I() + self._x + 1)
-        return self._result

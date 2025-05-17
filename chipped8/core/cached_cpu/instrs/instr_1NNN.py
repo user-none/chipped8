@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 from .instr import Instr, InstrKind
-from .instr_result import InstrResult
 
 class Instr1NNN(Instr):
     '''
@@ -35,8 +34,9 @@ class Instr1NNN(Instr):
         self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
+        self.self_modified = False
+
         if self._addr >= memory.ram_start():
-            self._result.self_modified = True
+            self.self_modified = True
 
         registers.set_PC(self._addr)
-        return self._result

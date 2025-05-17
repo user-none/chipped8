@@ -33,4 +33,3 @@ class InstrANNN(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(self._n)
-        return self._result

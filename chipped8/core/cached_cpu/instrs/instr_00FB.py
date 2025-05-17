@@ -29,4 +29,3 @@ class Instr00FB(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.scroll_right()
-        return self._result

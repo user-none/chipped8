@@ -36,4 +36,3 @@ class InstrCXNN(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, randint(0, 255) & self._mask)
-        return self._result

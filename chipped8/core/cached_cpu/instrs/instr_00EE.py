@@ -32,11 +32,11 @@ class Instr00EE(Instr):
         self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        pc = stack.pop()
+        self.self_modified = False
 
+        pc = stack.pop()
         if pc >= memory.ram_start()-2:
-            self._result.self_modified = True
+            self.self_modified = True
 
         registers.set_PC(pc)
         registers.advance_PC()
-        return self._result

@@ -33,4 +33,3 @@ class InstrFX07(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, timers.get_delay())
-        return self._result

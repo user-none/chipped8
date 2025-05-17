@@ -33,4 +33,3 @@ class InstrFX18(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         timers.set_sound(registers.get_V(self._x))
-        return self._result

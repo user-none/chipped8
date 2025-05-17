@@ -42,4 +42,3 @@ class Instr8XYE(Instr):
 
         registers.set_V(self._x, n << 1)
         registers.set_V(0xF, n >> 7)
-        return self._result

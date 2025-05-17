@@ -40,4 +40,3 @@ class InstrFN01(Instr):
         if self._n & 2:
             plane = plane | Plane.p2
         display.set_plane(plane)
-        return self._result

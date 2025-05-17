@@ -36,10 +36,11 @@ class Instr2NNN(Instr):
         self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
+        self.self_modified = False
+
         stack.push(self._pc)
 
         if self._call_pc >= memory.ram_start():
-            self._result.self_modified = True
+            self.self_modified = True
 
         registers.set_PC(self._call_pc)
-        return self._result

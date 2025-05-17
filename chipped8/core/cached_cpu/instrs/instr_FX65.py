@@ -44,4 +44,3 @@ class InstrFX65(Instr):
                 registers.set_I(registers.get_I() + self._x)
             else:
                 registers.set_I(registers.get_I() + self._x + 1)
-        return self._result

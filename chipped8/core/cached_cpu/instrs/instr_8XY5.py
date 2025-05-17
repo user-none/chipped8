@@ -39,4 +39,3 @@ class Instr8XY5(Instr):
 
         registers.set_V(self._x, n)
         registers.set_V(0xF, 1 if vx >= vy else 0)
-        return self._result

@@ -37,4 +37,3 @@ class Instr5XY3(Instr):
         step = 1 if self._x <= self._y else -1
         for i, v in enumerate(range(self._x, self._y+step, step)):
             registers.set_V(v, memory.get_byte(registers.get_I() + i))
-        return self._result

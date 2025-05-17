@@ -37,13 +37,14 @@ class InstrBNNN(Instr):
         self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
+        self.self_modified = False
+
         if self._quirk_jump:
             n = self._nn + registers.get_V(self._x)
         else:
             n = self._nnn + registers.get_V(0)
 
         if n >= memory.ram_start():
-            self._result.self_modified = True
+            self.self_modified = True
 
         registers.set_PC(n)
-        return self._result

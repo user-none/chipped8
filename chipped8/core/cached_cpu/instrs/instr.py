@@ -22,8 +22,6 @@
 
 from enum import Enum, auto
 
-from .instr_result import InstrResult
-
 class InstrKind(Enum):
     OPERATION = auto()
     JUMP = auto()
@@ -38,8 +36,9 @@ class Instr:
     def __init__(self):
         self.pic = True
         self.kind = InstrKind.OPERATION
-
-        self._result = InstrResult()
+        self.advance = True
+        self.draw_occurred = False
+        self.self_modified = False
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         raise Exception('Not Implemented')

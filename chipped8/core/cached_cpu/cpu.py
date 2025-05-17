@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from collections import deque
+from copy import deepcopy
 from random import randint
 
 from ..icpu import iCPU
@@ -49,6 +50,10 @@ class CachedCPU(iCPU):
         self._block_emitter = InstrBlockEmitter()
         self._self_modified = False
 
+    def copy_state(self, d):
+        d._instruction_queue = deepcopy(self._instruction_queue)
+        d._block_emitter = self._block_emitter
+        d._self_modified = d._self_modified
 
     def execute_next_op(self):
         self._draw_occurred = False
@@ -60,18 +65,18 @@ class CachedCPU(iCPU):
             raise NoInstructionsException('No instructions')
 
         (pc, instr) = self._instruction_queue.popleft()
-        result = instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._audio)
+        instr.execute(self._registers, self._stack, self._memory, self._timers, self._keys, self._display, self._audio)
 
-        if not result.advance:
+        if not instr.advance:
             self._instruction_queue.appendleft((pc, instr))
-        if result.draw_occurred:
+        if instr.draw_occurred:
             self._draw_occurred = True
 
         # Check if the instruction self modified. This is either memory within the
         # ROMs address space was modified or we have a jump outside of the ROMs
         # address space indicating instructions were written into RAM.
         #if not self._self_modified and instr.self_modified():
-        if not self._self_modified and result.self_modified:
+        if not self._self_modified and instr.self_modified:
             self._self_modified = True
             # Disable caching of basic blocks because they may no longer be correct
             self._block_emitter.set_cache_pc(False)

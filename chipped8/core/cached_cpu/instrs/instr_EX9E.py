@@ -49,4 +49,3 @@ class InstrEX9E(Instr):
                 registers.advance_PC()
 
         registers.advance_PC()
-        return self._result

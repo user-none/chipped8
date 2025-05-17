@@ -34,4 +34,3 @@ class InstrFX29(Instr):
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         n = registers.get_V(self._x)
         registers.set_I(n * 5)
-        return self._result

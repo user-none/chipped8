@@ -33,4 +33,3 @@ class Instr00CN(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.scroll_down(self._n)
-        return self._result

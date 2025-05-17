@@ -42,4 +42,3 @@ class Instr8XY6(Instr):
 
         registers.set_V(self._x, n >> 1)
         registers.set_V(0xF, n & 0x1)
-        return self._result

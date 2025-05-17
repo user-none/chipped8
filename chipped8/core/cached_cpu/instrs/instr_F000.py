@@ -36,4 +36,3 @@ class InstrF000(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(self._addr)
-        return self._result

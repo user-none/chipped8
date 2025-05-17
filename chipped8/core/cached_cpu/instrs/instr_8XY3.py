@@ -37,4 +37,3 @@ class Instr8XY3(Instr):
         registers.set_V(self._x, registers.get_V(self._x) ^ registers.get_V(self._y))
         if self._quirk_logic:
             registers.set_V(0xF, 0)
-        return self._result

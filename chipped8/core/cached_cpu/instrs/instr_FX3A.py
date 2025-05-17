@@ -33,4 +33,3 @@ class InstrFX3A(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         audio.set_pitch(registers.get_V(self._x))
-        return self._result

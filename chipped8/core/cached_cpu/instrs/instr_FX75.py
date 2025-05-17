@@ -36,4 +36,3 @@ class InstrFX75(Instr):
 
         for i in range(n+1):
             registers.set_RPL(i, registers.get_V(i))
-        return self._result

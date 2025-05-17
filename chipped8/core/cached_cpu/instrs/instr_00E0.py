@@ -29,4 +29,3 @@ class Instr00E0(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         display.clear_screen()
-        return self._result

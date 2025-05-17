@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 from .instr import Instr
-from .instr_result import InstrResult
 
 class Instr6XNN(Instr):
     '''
@@ -35,4 +34,3 @@ class Instr6XNN(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, self._n)
-        return self._result

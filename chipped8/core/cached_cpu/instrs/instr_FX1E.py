@@ -33,4 +33,3 @@ class InstrFX1E(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_I(registers.get_I() + registers.get_V(self._x))
-        return self._result

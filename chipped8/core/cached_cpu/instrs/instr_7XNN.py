@@ -34,4 +34,3 @@ class Instr7XNN(Instr):
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         registers.set_V(self._x, registers.get_V(self._x) + self._n)
-        return self._result

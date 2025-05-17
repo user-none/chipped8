@@ -48,4 +48,3 @@ class Instr9XY0(Instr):
                 registers.advance_PC()
 
         registers.advance_PC()
-        return self._result
