@@ -79,7 +79,7 @@ class CachedCPU(iCPU):
         if not self._self_modified and instr.self_modified:
             self._self_modified = True
             # Disable caching of basic blocks because they may no longer be correct
-            self._block_emitter.set_cache_pc(False)
+            self._block_emitter.disable_caching()
 
             # Clear the instruction queue because we can't guarantee the
             # Current basic block is still valid

@@ -143,10 +143,6 @@ class InstrFactory:
         else:
             raise Exception('Unknown opcode: FX{:02X}'.format(subcode))
 
-    def disable_pc_instruction_cache(self):
-        self._pc_instruction_cache = {}
-        self._can_cache_pc_instructions = False
-
     def create(self, pc, opcode, next_opcode, quirks):
         code = opcode & 0xF000
   

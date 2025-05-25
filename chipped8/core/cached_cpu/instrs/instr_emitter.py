@@ -37,8 +37,8 @@ class InstrBlockEmitter:
 
         self._instr_factory = InstrFactory()
 
-    def set_cache_pc(self, can):
-        self._cache_pc = can
+    def disable_caching(self):
+        self._cache_pc = False
         self._pc_instr_cache = None
         self._block_cache = None
 
@@ -112,11 +112,20 @@ class InstrBlockEmitter:
             block = self._block_cache.get(pc)
 
         if not block:
+            # Build block loops and if it's self modifying we might
+            # not know until we run. In which case we could try
+            # reading an invlaid opcode while building the block.
+            # We'll catch the exception and disable caching. Then
+            # try to get the next instruction in non-cached mode.
+            # It could raise an exception but that's fine, it just
+            # means it really is an invalid opcode because it's only
+            # going to read the next opcode which has to be valid
+            # in order to continue emulation.
             try:
                 block = self._build_block(registers, memory, quirks)
                 self._save_block(pc, block)
             except UnknownOpCodeException:
-                self.set_cache_pc(False)
+                self.disable_caching()
                 registers.set_PC(pc)
                 block = [self._get_next_instruction(registers, memory)]
 
