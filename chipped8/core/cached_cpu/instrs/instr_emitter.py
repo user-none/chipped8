@@ -116,7 +116,7 @@ class InstrBlockEmitter:
                 block = self._build_block(registers, memory, quirks)
                 self._save_block(pc, block)
             except UnknownOpCodeException:
-                self._cache_pc = False
+                self.set_cache_pc(False)
                 registers.set_PC(pc)
                 block = [self._get_next_instruction(registers, memory)]
 
