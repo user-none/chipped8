@@ -27,11 +27,12 @@ from copy import deepcopy
 from PySide6.QtCore import Qt, QObject, Slot, Signal, QTimer, QUrl
 
 import chipped8
+import numpy as np
 
 max_rewind_frames = 60*30 # 60 frame per sec, 30 seconds
 
 class c8Handler(QObject):
-    blitReady = Signal(list)
+    blitReady = Signal(np.ndarray)
     audioReady = Signal(bytearray, int)
     clearScreenReady = Signal()
     errorOccurred = Signal(str)

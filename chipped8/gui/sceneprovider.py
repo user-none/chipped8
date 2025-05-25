@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import numpy as np
+
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtGui import QImage, QColor
@@ -39,22 +41,38 @@ class SceneProvider(QQuickImageProvider):
         self._color_3 = QColor(color_3)
         self._color_4 = QColor(color_4)
 
+        # Precompute RGB values
+        self._rgb_map = np.array([
+            self._qcolor_to_rgb32(self._color_1),
+            self._qcolor_to_rgb32(self._color_2),
+            self._qcolor_to_rgb32(self._color_3),
+            self._qcolor_to_rgb32(self._color_4),
+        ], dtype=np.uint32)
+
         self._img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
         self._img.fill(self._color_1)
 
-    @Slot(list)
-    def blitScreen(self, pixels):
-        img = QImage(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT, QImage.Format_RGB32)
-        img.fill(self._color_1)
+    def _qcolor_to_rgb32(self, color: QColor) -> np.uint32:
+        return np.uint32((color.alpha() << 24) | (color.red() << 16) | (color.green() << 8) | color.blue())
 
-        for i in range(chipped8.SCREEN_WIDTH):
-            for j in range(chipped8.SCREEN_HEIGHT):
-                if pixels[i][j] == chipped8.Colors.color_2:
-                    img.setPixelColor(i, j, self._color_2)
-                elif pixels[i][j] == chipped8.Colors.color_3:
-                    img.setPixelColor(i, j, self._color_3)
-                elif pixels[i][j] == chipped8.Colors.color_4:
-                    img.setPixelColor(i, j, self._color_4)
+    @Slot(np.ndarray)
+    def blitScreen(self, pixel_indices):
+        '''
+        pixel_indices: NumPy array of shape (HEIGHT, WIDTH), dtype=np.uint8
+        '''
+
+        # Map color indices to 32-bit RGB values
+        rgb_pixels = self._rgb_map[pixel_indices]
+
+        # Create a QImage that shares memory with the NumPy array
+        img = QImage(
+            rgb_pixels.data,
+            chipped8.SCREEN_WIDTH,
+            chipped8.SCREEN_HEIGHT,
+            rgb_pixels.strides[0],
+            QImage.Format_RGB32
+        )
+        img = img.copy()  # Detach QImage from NumPy memory
 
         self._img = img
         self.blitReady.emit()
