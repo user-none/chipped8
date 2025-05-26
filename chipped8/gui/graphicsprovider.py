@@ -57,6 +57,7 @@ class GraphicsProvider(QQuickItem):
             QImage.Format_RGB32
         )
         self._rgb_buffer.fill(self._rgb_map[0])
+        self._dirty = True
 
         self.update()
 
@@ -71,11 +72,13 @@ class GraphicsProvider(QQuickItem):
 
         # Map color indices to 32-bit RGB values
         np.take(self._rgb_map, pixel_indices, out=self._rgb_buffer)
+        self._dirty = True
         self.update()
 
     @Slot()
     def clearScreen(self):
         self._rgb_buffer.fill(self._rgb_map[0])
+        self._dirty = True
         self.update()
 
     def updatePaintNode(self, old_node, _):
@@ -87,10 +90,17 @@ class GraphicsProvider(QQuickItem):
         else:
             node = QSGSimpleTextureNode()
 
-        if node.texture():
-            node.texture().deleteLater()
-        texture = self.window().createTextureFromImage(self._img)
-        node.setTexture(texture)
+        # Only update the texture when the image changes.
+        # Resize will cause an update to trigger without
+        # the image having changed.
+        if self._dirty:
+            if node.texture():
+                node.texture().deleteLater()
+
+            texture = self.window().createTextureFromImage(self._img)
+            node.setTexture(texture)
+
+            self._dirty = False
 
         # Keep aspect ratio by fitting image inside boundingRect
         item_rect = self.boundingRect()
