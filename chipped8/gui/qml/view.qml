@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import Qt.labs.platform
 
+import GraphicsProvider
+
 ApplicationWindow {
     id: win
     title: "Chipped8"
@@ -75,13 +77,11 @@ ApplicationWindow {
         }
     }
 
-    Image {
-        id: scene
+    GraphicsProvider {
+        id: graphicsProvider
+        objectName: "graphicsProvider"
         width: parent.width
         height: parent.height
-        fillMode: Image.PreserveAspectFit
-        cache: false
-        source: "image://SceneProvider/scene"
         focus: true
 
         Keys.onPressed: (event) => {
@@ -91,7 +91,6 @@ ApplicationWindow {
         Keys.onReleased: (event) => {
             keyEvent(event.key, false, event.modifiers)
         }
-
     }
 
     FileDialog {
@@ -105,14 +104,5 @@ ApplicationWindow {
 
     onActiveChanged: {
         windowFocusChanged(active)
-    }
-
-    Connections {
-        target: SceneProvider
-
-        function onBlitReady() {
-            scene.source = ""
-            scene.source = "image://SceneProvider/scene"
-        }
     }
 }

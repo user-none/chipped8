@@ -31,7 +31,7 @@ from PySide6.QtCore import Qt, QObject, Slot, QThread, QMetaObject, Q_ARG
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtQml import QQmlApplicationEngine
 
-from .sceneprovider import SceneProvider
+from .graphicsprovider import GraphicsProvider
 from .audio import AudioPlayer
 from .c8handler import c8Handler
 
@@ -42,12 +42,8 @@ class QtApp(QObject):
         self._args = args
 
     def run(self):
-        scene = SceneProvider()
-
         app = QApplication(sys.argv)
         engine = QQmlApplicationEngine()
-        engine.rootContext().setContextProperty('SceneProvider', scene)
-        engine.addImageProvider('SceneProvider', scene)
 
         qml_file = os.path.join(Path(__file__).parent, 'qml', 'view.qml')
         engine.load(qml_file)
@@ -55,11 +51,15 @@ class QtApp(QObject):
         if not engine.rootObjects():
             return -1
 
+        root = engine.rootObjects()[0]
+        graphics = root.findChild(QObject, 'graphicsProvider')
+
         c8_thread = QThread()
         c8handler = c8Handler(self._args.platform, self._args.interpreter)
         c8handler.moveToThread(c8_thread)
-        c8handler.blitReady.connect(scene.blitScreen)
-        c8handler.clearScreenReady.connect(scene.clearScreen)
+
+        c8handler.blitReady.connect(graphics.blitScreen)
+        c8handler.clearScreenReady.connect(graphics.clearScreen)
 
         audio_thread = QThread()
         audio = AudioPlayer()
