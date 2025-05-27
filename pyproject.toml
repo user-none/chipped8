@@ -7,7 +7,7 @@ requires = [
 
 [project]
 name = "chipped8"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     { name = "John Schember", email = "john@nachtimwald.com" },
 ]
@@ -19,7 +19,7 @@ keywords = [ "chip8", "chip-8", "emulator", "game", "xochip", "xo-chip", "superc
 
 requires-python = ">=3.11.0"
 dependencies = [
-    "PySide6 >= 6.6.1",
+    "PySide6 >= 6.9.0",
     "numpy"
 ]
 
@@ -43,4 +43,4 @@ chipped8 = "chipped8.main:main"
 py-modules = [ "chipped8" ]
 
 [tool.setuptools.package-data]
-"chipped8.gui.qml" = [ "*.qml" ]
+"chipped8.gui.shaders" = [ "*.qsb" ]

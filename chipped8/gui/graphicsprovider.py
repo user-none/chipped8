@@ -20,105 +20,233 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+import time
+
+from pathlib import Path
+
+from PySide6.QtGui import (
+        QRhiTexture, QRhiSampler, QRhiShaderStage, QRhiGraphicsPipeline,
+        QRhiShaderResourceBinding, QShader, QRhiVertexInputLayout,
+        QRhiVertexInputBinding, QRhiVertexInputAttribute, QRhiBuffer, QImage,
+        QColor, QRhiDepthStencilClearValue
+)
+from PySide6.QtWidgets import QRhiWidget
+from PySide6.QtCore import Slot, QSize
+
 import numpy as np
-
-from PySide6.QtCore import Slot
-from PySide6.QtGui import QImage, QColor
-from PySide6.QtQuick import QQuickItem, QSGSimpleTextureNode
-from PySide6.QtQml import qmlRegisterType
-
 import chipped8
 
-class GraphicsProvider(QQuickItem):
-    def __init__(self, color_1='#0f052d', color_2='#203671', color_3='#36868f', color_4='#5fc75d', parent=None):
+class GraphicsProviderQRhi(QRhiWidget):
+    def __init__(self, parent=None):
         super().__init__(parent)
+        self._texture = None
+        self._sampler = None
+        self._srb = None
+        self._pipeline = None
+        self._vertex_buffer = None
+        self._initialized = False
 
-        self.setFlag(QQuickItem.ItemHasContents)
+        self._start_time = time.time()
 
-        self._color_1 = QColor(color_1)
-        self._color_2 = QColor(color_2)
-        self._color_3 = QColor(color_3)
-        self._color_4 = QColor(color_4)
+        self._texture_size = QSize(chipped8.SCREEN_WIDTH, chipped8.SCREEN_HEIGHT)
+        self._rbg_buffer = np.zeros((chipped8.SCREEN_HEIGHT, chipped8.SCREEN_WIDTH, 4), dtype=np.uint8)
 
-        # Precompute RGB values
-        self._rgb_map = np.array([
-            self._qcolor_to_rgb32(self._color_1),
-            self._qcolor_to_rgb32(self._color_2),
-            self._qcolor_to_rgb32(self._color_3),
-            self._qcolor_to_rgb32(self._color_4),
-        ], dtype=np.uint32)
+        self.set_colors()
 
-        self._rgb_buffer = np.empty((chipped8.SCREEN_HEIGHT, chipped8.SCREEN_WIDTH), dtype=np.uint32)
-        self._img = QImage(
-            self._rgb_buffer.data,
-            chipped8.SCREEN_WIDTH,
-            chipped8.SCREEN_HEIGHT,
-            self._rgb_buffer.strides[0],
-            QImage.Format_RGB32
+        # Shader options
+        self.enable_scanlines = True
+        self.enable_glow = True
+        self.enable_barrel = True
+        self.enable_chromatic = False
+        self.enable_vignette = False
+        self.enable_noise = True
+        self.enable_flicker = True
+        self.enable_quantize = False
+        self.enable_interlace = False
+        self.enable_mask = False
+        self.enable_wrap = True
+        self.enable_scan_delay = True
+
+    def initialize(self, _ = None):
+        rhi = self.rhi()
+        if not rhi:
+            print('QRhi is not initialized')
+            return
+
+        self._texture = rhi.newTexture(QRhiTexture.RGBA8, self._texture_size, 1)
+        self._texture.create()
+
+        self._sampler = rhi.newSampler(
+            QRhiSampler.Nearest, QRhiSampler.Nearest, QRhiSampler.None_,
+            QRhiSampler.ClampToEdge, QRhiSampler.ClampToEdge
         )
-        self._rgb_buffer.fill(self._rgb_map[0])
-        self._dirty = True
+        self._sampler.create()
 
-        self.update()
+        self._scale_buffer = rhi.newBuffer(QRhiBuffer.Dynamic, QRhiBuffer.UniformBuffer, 2 * 4)
+        self._scale_buffer.create()
+        self._frag_buffer = rhi.newBuffer(QRhiBuffer.Dynamic, QRhiBuffer.UniformBuffer, 80)
+        self._frag_buffer.create()
 
-    def _qcolor_to_rgb32(self, color: QColor) -> np.uint32:
-        return np.uint32((color.alpha() << 24) | (color.red() << 16) | (color.green() << 8) | color.blue())
+        self._srb = rhi.newShaderResourceBindings()
+
+        self._srb.setBindings([
+            QRhiShaderResourceBinding.sampledTexture(
+                0, QRhiShaderResourceBinding.FragmentStage, self._texture, self._sampler
+            ),
+            QRhiShaderResourceBinding.uniformBuffer(
+                1, QRhiShaderResourceBinding.VertexStage, self._scale_buffer
+            ),
+            QRhiShaderResourceBinding.uniformBuffer(
+                2, QRhiShaderResourceBinding.FragmentStage, self._frag_buffer
+            )
+
+        ])
+        self._srb.create()
+
+        # Load precompiled SPIR-V shaders
+        vshader = self.load_shader(os.path.join(Path(__file__).parent, 'shaders', 'texture.vert.qsb'))
+        fshader = self.load_shader(os.path.join(Path(__file__).parent, 'shaders', 'retro.frag.qsb'))
+
+        input_layout = QRhiVertexInputLayout()
+        binding = QRhiVertexInputBinding()
+        binding.setStride(2 * 4)
+        input_layout.setBindings([binding])
+        input_layout.setAttributes([
+            QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute.Format.Float2, 0),
+            QRhiVertexInputAttribute(0, 1, QRhiVertexInputAttribute.Format.Float3, 8)
+        ])
+
+        self._pipeline = rhi.newGraphicsPipeline()
+        self._pipeline.setTopology(QRhiGraphicsPipeline.TriangleStrip)
+        shader_stages = [
+            QRhiShaderStage(QRhiShaderStage.Vertex, vshader),
+            QRhiShaderStage(QRhiShaderStage.Fragment, fshader)
+        ]
+        self._pipeline.setShaderStages(shader_stages)
+        self._pipeline.setVertexInputLayout(input_layout)
+        self._pipeline.setShaderResourceBindings(self._srb)
+        self._pipeline.setRenderPassDescriptor(self.renderTarget().renderPassDescriptor())
+        self._pipeline.create()
+
+        self._image = QImage(self._rbg_buffer.data, self._texture_size.width(), self._texture_size.height(), QImage.Format_RGBA8888)
+
+        self._vertex_buffer = rhi.newBuffer(QRhiBuffer.Immutable, QRhiBuffer.VertexBuffer, 4 * 2 * 4)
+        self._vertex_buffer.create()
+        # Vertex data: 4 vertices, 2 floats each (x,y)
+        quad_vertices = np.array([
+            [-1.0, -1.0],
+            [ 1.0, -1.0],
+            [-1.0,  1.0],
+            [ 1.0,  1.0]
+        ], dtype=np.float32)
+
+        # Upload vertex data using a resource update batch
+        update_batch = rhi.nextResourceUpdateBatch()
+        update_batch.uploadStaticBuffer(self._vertex_buffer, quad_vertices.tobytes())
+
+        # Store update batch for submission later in render()
+        self._vertex_data_update_batch = update_batch
+
+        self._initialized = True
+
+    def load_shader(self, qsb_path):
+        try:
+            with open(qsb_path, 'rb') as f:
+                return QShader.fromSerialized(f.read())
+        except Exception as e:
+            raise RuntimeError(f'Failed to open shader file: {qsb_path} - {e}')
+        raise Exception('Failed to load shaders')
 
     @Slot(np.ndarray)
-    def blitScreen(self, pixel_indices):
-        '''
-        pixel_indices: NumPy array of shape (HEIGHT, WIDTH), dtype=np.uint8
-        '''
-
-        # Map color indices to 32-bit RGB values
-        np.take(self._rgb_map, pixel_indices, out=self._rgb_buffer)
-        self._dirty = True
+    def blitScreen(self, pixel_indices: np.ndarray):
+        self._rbg_buffer[:] = self._colors[pixel_indices]
         self.update()
 
     @Slot()
     def clearScreen(self):
-        self._rgb_buffer.fill(self._rgb_map[0])
-        self._dirty = True
+        self._rbg_buffer.fill(0)
         self.update()
 
-    def updatePaintNode(self, old_node, _):
-        if self._img is None:
-            return old_node
+    def _hex_to_rgba(self, hex_color):
+        hex_color = hex_color.lstrip('#')
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return [r, g, b, 255]
 
-        if isinstance(old_node, QSGSimpleTextureNode):
-            node = old_node
+    def set_colors(self, color_1='#0f052d', color_2='#203671', color_3='#36868f', color_4='#5fc75d'):
+        self._colors = np.array([
+            self._hex_to_rgba(color_1),
+            self._hex_to_rgba(color_2),
+            self._hex_to_rgba(color_3),
+            self._hex_to_rgba(color_4)
+        ], dtype=np.uint8)
+
+    def render(self, command_buffer):
+        if not self._initialized:
+            self.initialize()
+            return
+
+        if self._vertex_data_update_batch:
+            command_buffer.resourceUpdate(self._vertex_data_update_batch)
+            self._vertex_data_update_batch = None
+
+        widget_aspect = self.width() / self.height()
+        texture_aspect = self._texture_size.width() / self._texture_size.height()
+
+        if widget_aspect > texture_aspect:
+            scale_x = texture_aspect / widget_aspect
+            scale_y = 1.0
         else:
-            node = QSGSimpleTextureNode()
+            scale_x = 1.0
+            scale_y = widget_aspect / texture_aspect
 
-        # Only update the texture when the image changes.
-        # Resize will cause an update to trigger without
-        # the image having changed.
-        if self._dirty:
-            if node.texture():
-                node.texture().deleteLater()
+        # Aspect ratio scale (used by vertex shader)
+        scale_data = np.array([scale_x, scale_y], dtype=np.float32).tobytes()
 
-            texture = self.window().createTextureFromImage(self._img)
-            node.setTexture(texture)
+        # Time + resolution (used by fragment shader) + feature flags
+        current_time = time.time() - self._start_time
+        frag_data = np.array([
+            current_time,
+            0.0,
+            self._texture_size.width(),
+            self._texture_size.height(),
+        ], dtype=np.float32).tobytes()
 
-            self._dirty = False
+        flags = np.array([
+                1 if self.enable_scanlines else 0,
+                1 if self.enable_glow else 0,
+                1 if self.enable_barrel else 0,
+                1 if self.enable_chromatic else 0,
+                1 if self.enable_vignette else 0,
+                1 if self.enable_noise else 0,
+                1 if self.enable_flicker else 0,
+                1 if self.enable_quantize else 0,
+                1 if self.enable_interlace else 0,
+                1 if self.enable_mask else 0,
+                1 if self.enable_wrap else 0,
+                1 if self.enable_scan_delay else 0,
+            ], dtype=np.int32).tobytes()
 
-        # Keep aspect ratio by fitting image inside boundingRect
-        item_rect = self.boundingRect()
-        image_ratio = chipped8.SCREEN_WIDTH / chipped8.SCREEN_HEIGHT
-        item_ratio = item_rect.width() / item_rect.height()
+        frag_data += flags
+        frag_data += bytes(80 - len(frag_data))
 
-        if image_ratio > item_ratio:
-            w = item_rect.width()
-            h = w / image_ratio
-            x = 0
-            y = (item_rect.height() - h) / 2
-        else:
-            h = item_rect.height()
-            w = h * image_ratio
-            x = (item_rect.width() - w) / 2
-            y = 0
+        update_batch = self.rhi().nextResourceUpdateBatch()
+        update_batch.updateDynamicBuffer(self._scale_buffer, 0, len(scale_data), scale_data)
+        update_batch.updateDynamicBuffer(self._frag_buffer, 0, len(frag_data), frag_data)
+        update_batch.uploadTexture(self._texture, self._image)
 
-        node.setRect(x, y, w, h)
-        return node
+        command_buffer.resourceUpdate(update_batch)
 
-qmlRegisterType(GraphicsProvider, "GraphicsProvider", 0, 1, "GraphicsProvider")
+        rt = self.renderTarget()
+        if rt:
+            # Begin rendering pass
+            command_buffer.beginPass(rt, QColor(0, 0, 0, 255), QRhiDepthStencilClearValue())
+
+            command_buffer.setGraphicsPipeline(self._pipeline)
+            command_buffer.setVertexInput(0, [(self._vertex_buffer, 0)])
+            command_buffer.setShaderResources(self._srb)
+            command_buffer.draw(4)
+
+            command_buffer.endPass()

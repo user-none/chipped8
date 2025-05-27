@@ -34,7 +34,6 @@ class PlatformTypes(Enum):
     superchip = 'superchip'
     megachip8 = 'megachip8'
     xochip = 'xochip'
-    unknown = 'unknown'
 
     def __str__(self):
         return self.value

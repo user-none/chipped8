@@ -190,7 +190,7 @@ class c8Handler(QObject):
 
         if len(self._rewind_stack) > max_rewind_frames:
             self._rewind_stack = self._rewind_stack[1:]
-        self._rewind_stack.append(deepcopy(self._emulator))
+        #self._rewind_stack.append(deepcopy(self._emulator))
 
     def _update_frame_time(self, ns):
         self._frame_times.append(ns)
