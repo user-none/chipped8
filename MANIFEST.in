@@ -1,0 +1,7 @@
+include pyproject.toml
+include setup.py
+include README.md
+include LICENSE
+recursive-include chipped8/gui/shaders *.vert *.frag
+recursive-include pyinstaller *.py *.spec *.plist *.icns *.ico *.svg *.png
+prune *.egg-info
