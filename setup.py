@@ -17,6 +17,7 @@ class build_py(_build_py):
         project_root = Path(__file__).parent.resolve()
         shaders_dir = Path('chipped8', 'gui', 'shaders')
         qsb = shutil.which("pyside6-qsb")
+        print(f'======= qsb = "{qsb}"')
 
         for shader in chain(shaders_dir.glob('*.vert'), shaders_dir.glob('*.frag')):
             output = shader.with_name(shader.name + ".qsb")
