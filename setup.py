@@ -3,6 +3,7 @@ import subprocess
 
 from itertools import chain
 from pathlib import Path
+import shutil
 
 from setuptools import setup
 from setuptools.command.build_py import build_py as _build_py
@@ -15,7 +16,7 @@ class build_py(_build_py):
     def compile_shaders(self):
         project_root = Path(__file__).parent.resolve()
         shaders_dir = Path('chipped8', 'gui', 'shaders')
-        qsb = 'pyside6-qsb'
+        qsb = shutil.which("pyside6-qsb")
 
         for shader in chain(shaders_dir.glob('*.vert'), shaders_dir.glob('*.frag')):
             output = shader.with_name(shader.name + ".qsb")
