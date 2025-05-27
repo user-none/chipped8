@@ -39,9 +39,6 @@ Issues = "https://github.com/user-none/chipped8/issues"
 [project.scripts]
 chipped8 = "chipped8.main:main"
 
-#[tool.setuptools]
-#py-modules = [ "chipped8" ]
-
 [tool.setuptools.packages.find]
 include = ["chipped8*"]
 exclude = ["pyinstaller"]

@@ -139,7 +139,7 @@ void main() {
 
         vec3 mask = vec3(redStripe, greenStripe, blueStripe);
 
-        color *= mix(vec3(1.0), mask, 0.15);  // dim background 100%, blend 15%
+        color *= mix(vec3(1.0), mask, 0.15);  // don't dim background, blend 15%
     }
 
     // Noise
@@ -167,6 +167,5 @@ void main() {
 
     // Final output
     color = clamp(color, 0.0, 1.0);
-    //color = pow(color, vec3(1.0 / 2.2)); // gamma correction
     out_color = vec4(color, 1.0);
 }
