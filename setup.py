@@ -15,9 +15,10 @@ class build_py(_build_py):
 
     def compile_shaders(self):
         project_root = Path(__file__).parent.resolve()
-        shaders_dir = Path('chipped8', 'gui', 'shaders')
+        shaders_dir = project_root / "chipped8" / "gui" / "shaders"
         qsb = shutil.which('pyside6-qsb')
-        print(f'======= qsb = "{qsb}"')
+        if not qsb:
+            raise RuntimeError("pyside6-qsb executable not found on PATH")
 
         for shader in chain(shaders_dir.glob('*.vert'), shaders_dir.glob('*.frag')):
             output = shader.with_name(shader.name + ".qsb")
