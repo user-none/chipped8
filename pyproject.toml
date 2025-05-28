@@ -39,6 +39,7 @@ Issues = "https://github.com/user-none/chipped8/issues"
 
 [project.scripts]
 chipped8 = "chipped8.main:main"
+#compile-shaders = "tools.compile_shaders:compile_shaders"
 
 [tool.setuptools.packages.find]
 include = ["chipped8*"]
@@ -46,3 +47,6 @@ exclude = ["pyinstaller"]
 
 [tool.setuptools.package-data]
 "chipped8.gui.shaders" = [ "*.qsb" ]
+
+[tool.setuptools.exclude-package-data]
+"chipped8.gui.shaders" = ["*.vert", "*.frag"]

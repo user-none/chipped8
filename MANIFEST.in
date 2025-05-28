@@ -4,4 +4,6 @@ include README.md
 include LICENSE
 recursive-include chipped8/gui/shaders *.vert *.frag
 recursive-include pyinstaller *.py *.spec *.plist *.icns *.ico *.svg *.png
+recursive-include tools *.py
+exclude chipped8/gui/shaders/*.qsb
 prune *.egg-info
