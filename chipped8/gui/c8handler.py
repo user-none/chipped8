@@ -139,7 +139,6 @@ class c8Handler(QObject):
 
             if len(self._rewind_stack) == 0:
                 self._record_frame()
-            self._emulator.clear_keys()
 
             self.blitReady.emit(self._emulator.screen_buffer())
 
