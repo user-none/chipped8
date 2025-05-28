@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import copy_metadata
 import sys
 import tomllib
 
-datas = [('../chipped8/gui/shaders', 'chipped8/gui/shaders')]
+datas = [('../chipped8/gui/shaders/*.qsb', 'chipped8/gui/shaders')]
 datas += copy_metadata('chipped8')
 
 # Load toml with project information
