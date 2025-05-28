@@ -39,7 +39,6 @@ Issues = "https://github.com/user-none/chipped8/issues"
 
 [project.scripts]
 chipped8 = "chipped8.main:main"
-#compile-shaders = "tools.compile_shaders:compile_shaders"
 
 [tool.setuptools.packages.find]
 include = ["chipped8*"]
