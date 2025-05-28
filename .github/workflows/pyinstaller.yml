@@ -21,6 +21,10 @@ jobs:
       with:
         python-version: 3.12
 
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: sudo apt-get install -y libegl1 libgl1-mesa-glx
+
     - name: Install dependencies
       run: |
         pip install .

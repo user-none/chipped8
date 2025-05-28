@@ -16,13 +16,13 @@ class build_py(_build_py):
     def compile_shaders(self):
         project_root = Path(__file__).parent.resolve()
         shaders_dir = Path('chipped8', 'gui', 'shaders')
-        qsb = shutil.which("pyside6-qsb")
+        qsb = shutil.which('pyside6-qsb')
         print(f'======= qsb = "{qsb}"')
 
         for shader in chain(shaders_dir.glob('*.vert'), shaders_dir.glob('*.frag')):
             output = shader.with_name(shader.name + ".qsb")
             if not output.exists() or shader.stat().st_mtime > output.stat().st_mtime:
-                print(f'Compiling {shader.name} → {output.name}')
+                print(f'Compiling {shader.name} -> {output.name}')
                 subprocess.run([
                     qsb,
                     '--glsl', '100 es,120,150',#'450',
