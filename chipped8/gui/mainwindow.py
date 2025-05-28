@@ -20,16 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from PySide6.QtWidgets import QMainWindow, QFileDialog
+from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel
 from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot, QTimer, Qt
 
-from .graphicsprovider import GraphicsProviderQRhi
+from .graphicsprovider import GraphicsProvider
 
 import chipped8
 
 class MainWindow(QMainWindow):
-    windowFocusChanged = Signal(bool)
     platformChanged = Signal(str, str)
     interpreterChanged = Signal(str, str)
     keyEvent = Signal(int, bool, int)
@@ -42,10 +41,13 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(128, 64)
         self.resize(640, 320)
 
-        self.gpu_view = GraphicsProviderQRhi()
+        self.gpu_view = GraphicsProvider()
         self.setCentralWidget(self.gpu_view)
 
         self._create_menus(platform, interpreter)
+
+        self._status_fps = QLabel()
+        self.statusBar().addPermanentWidget(self._status_fps)
 
     def _create_menus(self, platform, interpreter):
         menubar = self.menuBar()
@@ -81,6 +83,28 @@ class MainWindow(QMainWindow):
             interpreter_menu.addAction(a)
         interpreter_group.triggered.connect(lambda a: self.interpreterChanged.emit('', a.text()))
 
+        # Effects menu
+        effects_menu = menubar.addMenu('Effects')
+        for name, getter, setter in (
+            ('Scanlines', lambda: self.gpu_view.enable_scanlines, self.gpu_view.toggle_effect_scanlines),
+            ('Glow', lambda: self.gpu_view.enable_glow, self.gpu_view.toggle_effect_glow),
+            ('Barrel', lambda: self.gpu_view.enable_barrel, self.gpu_view.toggle_effect_barrel),
+            ('Chromatic', lambda: self.gpu_view.enable_chromatic, self.gpu_view.toggle_effect_chromatic),
+            ('Vignette', lambda: self.gpu_view.enable_vignette, self.gpu_view.toggle_effect_vignette),
+            ('Noise', lambda: self.gpu_view.enable_noise, self.gpu_view.toggle_effect_noise),
+            ('Flicker', lambda: self.gpu_view.enable_flicker, self.gpu_view.toggle_effect_flicker),
+            ('Quantize', lambda: self.gpu_view.enable_quantize, self.gpu_view.toggle_effect_quantize),
+            ('Interlace', lambda: self.gpu_view.enable_interlace, self.gpu_view.toggle_effect_interlace),
+            ('Mask', lambda: self.gpu_view.enable_mask, self.gpu_view.toggle_effect_mask),
+            ('Wrap', lambda: self.gpu_view.enable_wrap, self.gpu_view.toggle_effect_wrap),
+            ('Scan Delay', lambda: self.gpu_view.enable_scan_delay, self.gpu_view.toggle_effect_scan_delay),
+        ):
+            a = effects_menu.addAction(name)
+            a.setCheckable(True)
+            if getter:
+                a.setChecked(getter())
+            a.toggled.connect(setter)
+
     def _open_rom_dialog(self):
         fname, _ = QFileDialog.getOpenFileName(
             self, 'Open ROM', '', 'Chip-8 (*.ch8);;BIN (*.bin)'
@@ -88,13 +112,9 @@ class MainWindow(QMainWindow):
         if fname:
             self.loadRom.emit(fname)
 
-    def focusInEvent(self, event):
-        self.windowFocusChanged.emit(True)
-        super().focusInEvent(event)
-
-    def focusOutEvent(self, event):
-        self.windowFocusChanged.emit(False)
-        super().focusOutEvent(event)
+    @Slot(float, float)
+    def update_fps(self, frame_sec, fps):
+        self._status_fps.setText(f'fps: {round(fps)}')
 
     def keyPressEvent(self, event):
         self.keyEvent.emit(event.key(), True, event.modifiers().value)

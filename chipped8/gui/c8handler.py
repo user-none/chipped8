@@ -36,6 +36,8 @@ class c8Handler(QObject):
     audioReady = Signal(bytearray, int)
     clearScreenReady = Signal()
     errorOccurred = Signal(str)
+    fps = Signal(float, float)
+    updateScreen = Signal()
 
     def __init__(self, platform=chipped8.PlatformTypes.originalChip8, interpreter=chipped8.InterpreterTypes.cached):
         QObject.__init__(self)
@@ -47,6 +49,7 @@ class c8Handler(QObject):
         self._process_timer = QTimer(self)
         self._process_timer.setTimerType(Qt.PreciseTimer)
         self._process_timer.timeout.connect(self._process_frame)
+        self._process_timer.timeout.connect(lambda: self.updateScreen.emit())
 
         self._frame_times = []
         self._rewind_stack = []
@@ -111,11 +114,13 @@ class c8Handler(QObject):
         elif key == Qt.Key_P and pressed:
             if self._process_timer.isActive():
                 self._process_timer.stop()
+                self.fps.emit(0, 0)
                 self._frame_times = []
             else:
                 self._process_timer.start(0)
         elif key == Qt.Key_Left and pressed:
             self._process_timer.stop()
+            self.fps.emit(0, 0)
             self._frame_times = []
 
             if len(self._rewind_stack) == 0:
@@ -127,11 +132,14 @@ class c8Handler(QObject):
             if frames > len(self._rewind_stack):
                 frames = len(self._rewind_stack)
 
-            for i in range(frames):
-                self._emulator = self._rewind_stack.pop()
+            if frames > 1:
+                self._rewind_stack[:] = self._rewind_stack[:-(frames-1)]
+            self._emulator = self._rewind_stack.pop()
+            self.updateScreen.emit()
 
             if len(self._rewind_stack) == 0:
                 self._record_frame()
+            self._emulator.clear_keys()
 
             self.blitReady.emit(self._emulator.screen_buffer())
 
@@ -190,7 +198,7 @@ class c8Handler(QObject):
 
         if len(self._rewind_stack) > max_rewind_frames:
             self._rewind_stack = self._rewind_stack[1:]
-        #self._rewind_stack.append(deepcopy(self._emulator))
+        self._rewind_stack.append(deepcopy(self._emulator))
 
     def _update_frame_time(self, ns):
         self._frame_times.append(ns)
@@ -202,7 +210,7 @@ class c8Handler(QObject):
 
         frame_time = self._frame_times[-1] - self._frame_times[0]
         sec = frame_time / 1000000000
-        # TODO: Do something with this info
+        self.fps.emit(sec, 60 / sec)
         #print('seconds: ', sec, 'fps: ', 60 / sec, round(60 / sec))
 
         self._frame_times = []
@@ -249,6 +257,7 @@ class c8Handler(QObject):
 
         if not self._emulator:
             self._process_timer.stop()
+            self.fps.emit(0, 0)
             self._frame_times = []
             return
 
@@ -258,6 +267,7 @@ class c8Handler(QObject):
             self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()
+            self.fps.emit(0, 0)
             self._frame_times = []
             self.clearScreenReady.emit()
             return
@@ -266,6 +276,7 @@ class c8Handler(QObject):
             self._emulator = None
             self._rewind_stack = []
             self._process_timer.stop()
+            self.fps.emit(0, 0)
             self._frame_times = []
             return
 

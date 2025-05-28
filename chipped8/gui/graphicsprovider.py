@@ -32,14 +32,19 @@ from PySide6.QtGui import (
         QColor, QRhiDepthStencilClearValue
 )
 from PySide6.QtWidgets import QRhiWidget
-from PySide6.QtCore import Slot, QSize
+from PySide6.QtCore import Signal, Slot, QSize, Qt
 
 import numpy as np
 import chipped8
 
-class GraphicsProviderQRhi(QRhiWidget):
+class GraphicsProvider(QRhiWidget):
+    focusChanged = Signal(bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.setFocusPolicy(Qt.StrongFocus)
+
         self._texture = None
         self._sampler = None
         self._srb = None
@@ -161,12 +166,16 @@ class GraphicsProviderQRhi(QRhiWidget):
     @Slot(np.ndarray)
     def blitScreen(self, pixel_indices: np.ndarray):
         self._rbg_buffer[:] = self._colors[pixel_indices]
-        self.update()
 
     @Slot()
     def clearScreen(self):
         self._rbg_buffer.fill(0)
-        self.update()
+
+    @Slot()
+    def update(self):
+        if not self.isVisible():
+            return
+        super().update()
 
     def _hex_to_rgba(self, hex_color):
         hex_color = hex_color.lstrip('#')
@@ -182,6 +191,48 @@ class GraphicsProviderQRhi(QRhiWidget):
             self._hex_to_rgba(color_3),
             self._hex_to_rgba(color_4)
         ], dtype=np.uint8)
+
+    def toggle_effect_scanlines(self, val):
+        self.enable_scanlines = val
+
+    def toggle_effect_glow(self, val):
+        self.enable_glow = val
+
+    def toggle_effect_barrel(self, val):
+        self.enable_barrel = val
+
+    def toggle_effect_chromatic(self, val):
+        self.enable_chromatic = val
+
+    def toggle_effect_vignette(self, val):
+        self.enable_vignette = val
+
+    def toggle_effect_noise(self, val):
+        self.enable_noise = val
+
+    def toggle_effect_flicker(self, val):
+        self.enable_flicker = val
+
+    def toggle_effect_quantize(self, val):
+        self.enable_quantize = val
+
+    def toggle_effect_interlace(self, val):
+        self.enable_interlace = val
+
+    def toggle_effect_mask(self, val):
+        self.enable_mask = val
+
+    def toggle_effect_wrap(self, val):
+        self.enable_wrap = val
+
+    def toggle_effect_scan_delay(self, val):
+        self.enable_scan_delay = val
+
+    def focusInEvent(self, event):
+        self.focusChanged.emit(True)
+
+    def focusOutEvent(self, event):
+        self.focusChanged.emit(False)
 
     def render(self, command_buffer):
         if not self._initialized:
