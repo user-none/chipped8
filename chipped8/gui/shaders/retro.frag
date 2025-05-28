@@ -117,29 +117,30 @@ void main() {
 
     // Interlace
     if (enable_interlace == 1) {
-        if (mod(floor(uv.y * resolution.y), 2.0) < 1.0) {
-            color *= 0.9;
-        }
+        float scanline = sin(uv.y * resolution.y * 3.14159) * 0.015;
+        color.rgb -= scanline;
     }
 
     // Scanlines
     if (enable_scanlines == 1) {
-        float scanline = sin(uv.y * 800.0);
-        float factor = 0.1 * scanline;
-        color += vec3(factor);
+        float scanline = 1.0 + 0.1 * sin(uv.y * 800.0);  // Ranges from 0.9 to 1.1
+        color.rgb *= scanline;
     }
 
     // Shadow mask / slot mask
     if (enable_mask == 1) {
         float slotPos = fract(uv.x * resolution.x / 3.0);
 
-        float redStripe = smoothstep(0.0, 0.15, slotPos) * smoothstep(0.33, 0.18, slotPos);
-        float greenStripe = smoothstep(0.33, 0.48, slotPos) * smoothstep(0.66, 0.51, slotPos);
-        float blueStripe = smoothstep(0.66, 0.81, slotPos) * smoothstep(1.0, 0.84, slotPos);
+        // Use hard stripes or controlled softness
+        float redStripe   = smoothstep(0.00, 0.05, slotPos) * smoothstep(0.30, 0.25, slotPos);
+        float greenStripe = smoothstep(0.33, 0.38, slotPos) * smoothstep(0.63, 0.58, slotPos);
+        float blueStripe  = smoothstep(0.66, 0.71, slotPos) * smoothstep(0.96, 0.91, slotPos);
 
+        // Assemble slot mask
         vec3 mask = vec3(redStripe, greenStripe, blueStripe);
 
-        color *= mix(vec3(1.0), mask, 0.15);  // don't dim background, blend 15%
+        // Blend with full intensity and apply subtly
+        color.rgb = mix(color.rgb, color.rgb * mask, 0.08); // subtle blend (8%)
     }
 
     // Noise
