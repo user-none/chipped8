@@ -21,11 +21,6 @@ jobs:
       with:
         python-version: 3.12
 
-    - name: Install PySide6
-      run: |
-        pip install PySide6
-        which pyside6-qsb
-
     - name: Install dependencies
       run: |
         pip install .
