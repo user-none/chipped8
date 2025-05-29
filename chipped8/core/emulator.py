@@ -108,7 +108,7 @@ class Emulator():
             d._quirks,
             d._audio
         )
-        self._cpu.copy_state(d._cpu)
+        d._cpu.copy_state(self._cpu)
 
         d._blit_screen_cb = self._blit_screen_cb
         d._sound_cb = self._sound_cb

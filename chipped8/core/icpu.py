@@ -30,6 +30,9 @@ class iCPU(ABC):
 
     @abstractmethod
     def copy_state(self, d):
+        '''
+        copies state of d into self
+        '''
         pass
 
     @abstractmethod
