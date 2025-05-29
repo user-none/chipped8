@@ -20,18 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import numpy as np
+
 from copy import deepcopy
 from enum import Enum, Flag, auto
 
 SCREEN_WIDTH = 128
 SCREEN_HEIGHT = 64
 SCREEN_PIXEL_COUNT = SCREEN_WIDTH * SCREEN_HEIGHT
-
-class Colors(Enum):
-    color_1 = auto()
-    color_2 = auto()
-    color_3 = auto()
-    color_4 = auto()
 
 class ResolutionMode(Enum):
     lowres = auto()
@@ -111,30 +107,24 @@ class Displaly():
 
     def get_pixels(self):
         '''
-        Convert the flat array of on / off bytes that represent pixels to a
-        multi dimensional array of colors based on what pixels are set in each
-        plane.
+        Return a 2D NumPy array of pixel indices (0–3) for fast rendering.
+        Each index maps to a color via.
         '''
-        pixels = []
-        for x in range(SCREEN_WIDTH):
-            row = []
+        plane0 = np.array(self._screen_planes[0], dtype=np.uint8)
+        plane1 = np.array(self._screen_planes[1], dtype=np.uint8)
 
-            for y in range(SCREEN_HEIGHT):
-                idx = x + (y * SCREEN_WIDTH)
+        # Mapping:
+        #   0b00 = 0 -> color_1
+        #   0b01 = 1 -> color_2
+        #   0b10 = 2 -> color_3
+        #   0b11 = 3 -> color_4
+        keys = (plane1 << 1) | plane0
 
-                color = Colors.color_1
-                if self._screen_planes[0][idx] == 1 and self._screen_planes[1][idx] == 0:
-                    color = Colors.color_2
-                elif self._screen_planes[0][idx] == 0 and self._screen_planes[1][idx] == 1:
-                    color = Colors.color_3
-                elif self._screen_planes[0][idx] == 1 and self._screen_planes[1][idx] == 1:
-                    color = Colors.color_4
+        # Remap keys to match color index order: [color_1, color_2, color_3, color_4]
+        remap = np.array([0, 1, 2, 3], dtype=np.uint8)
+        pixel_indices = remap[keys].reshape((SCREEN_HEIGHT, SCREEN_WIDTH))
 
-                row.append(color)
-
-            pixels.append(row)
-
-        return pixels
+        return pixel_indices
 
     def screen_changed(self):
         return self._update_screen

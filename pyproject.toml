@@ -2,30 +2,32 @@
 requires = [
     "setuptools",
     "build",
-    "wheel"
+    "wheel",
+    "PySide6 >= 6.9.0"
 ]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "chipped8"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     { name = "John Schember", email = "john@nachtimwald.com" },
 ]
 
 description = "Chip-8 / Super-Chip / XO-Chip Emulator"
 readme = "README.md"
-license = { file = "LICENSE"  }
+license = "MIT"
 keywords = [ "chip8", "chip-8", "emulator", "game", "xochip", "xo-chip", "superchip", "super-chip" ]
 
 requires-python = ">=3.11.0"
 dependencies = [
-    "PySide6 >= 6.6.1"
+    "PySide6 >= 6.9.0",
+    "numpy"
 ]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
     "Topic :: Games/Entertainment",
     "Topic :: System :: Emulators"
 ]
@@ -38,8 +40,12 @@ Issues = "https://github.com/user-none/chipped8/issues"
 [project.scripts]
 chipped8 = "chipped8.main:main"
 
-[tool.setuptools]
-py-modules = [ "chipped8" ]
+[tool.setuptools.packages.find]
+include = ["chipped8*"]
+exclude = ["pyinstaller"]
 
 [tool.setuptools.package-data]
-"chipped8.gui.qml" = [ "*.qml" ]
+"chipped8.gui.shaders" = [ "*.qsb" ]
+
+[tool.setuptools.exclude-package-data]
+"chipped8.gui.shaders" = ["*.vert", "*.frag"]

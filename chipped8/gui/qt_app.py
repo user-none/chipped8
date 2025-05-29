@@ -20,80 +20,78 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import sys
-import time
-
-from contextlib import suppress
-from pathlib import Path
-
-from PySide6.QtCore import Qt, QObject, Slot, QThread, QMetaObject, Q_ARG
 from PySide6.QtWidgets import QApplication, QMessageBox
-from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtCore import Qt, QObject, Slot, QThread, QMetaObject, Q_ARG
+import sys
+from contextlib import suppress
 
-from .sceneprovider import SceneProvider
+from .mainwindow import MainWindow
 from .audio import AudioPlayer
 from .c8handler import c8Handler
 
 class QtApp(QObject):
     def __init__(self, args):
-        QObject.__init__(self)
-
+        super().__init__()
         self._args = args
 
     def run(self):
-        scene = SceneProvider()
+        QApplication.setApplicationName('Chipped8')
 
         app = QApplication(sys.argv)
-        engine = QQmlApplicationEngine()
-        engine.rootContext().setContextProperty('SceneProvider', scene)
-        engine.addImageProvider('SceneProvider', scene)
+        win = MainWindow(self._args.platform, self._args.interpreter)
 
-        qml_file = os.path.join(Path(__file__).parent, 'qml', 'view.qml')
-        engine.load(qml_file)
-
-        if not engine.rootObjects():
-            return -1
-
+        # Put the emulator on a thread
         c8_thread = QThread()
+        c8_thread.setObjectName('c8_thread')
         c8handler = c8Handler(self._args.platform, self._args.interpreter)
         c8handler.moveToThread(c8_thread)
-        c8handler.blitReady.connect(scene.blitScreen)
-        c8handler.clearScreenReady.connect(scene.clearScreen)
 
+        c8handler.blitReady.connect(win.gpu_view.blitScreen)
+        c8handler.fps.connect(win.update_fps)
+        c8handler.clearScreenReady.connect(win.gpu_view.clearScreen)
+        c8handler.updateScreen.connect(win.gpu_view.update)
+
+        # Put the audio playback on a thread
         audio_thread = QThread()
+        audio_thread.setObjectName('audio_thread')
         audio = AudioPlayer()
         audio.moveToThread(audio_thread)
         c8handler.audioReady.connect(audio.play)
 
-        win = engine.rootObjects()[0]
-        win.windowFocusChanged.connect(c8handler.process_frames)
+        win.gpu_view.focusChanged.connect(c8handler.process_frames)
         win.platformChanged.connect(c8handler.reload_rom)
         win.interpreterChanged.connect(c8handler.reload_rom)
         win.keyEvent.connect(c8handler.key_event)
         win.loadRom.connect(c8handler.load_rom)
-
         c8handler.errorOccurred.connect(self.show_error)
 
+        # Start the processing threads
         audio_thread.start()
         c8_thread.start()
 
         if self._args.in_file:
             QMetaObject.invokeMethod(c8handler, 'load_rom', Qt.QueuedConnection, Q_ARG(str, self._args.in_file))
 
-        # Turn off the splash screen If running a standalone build from PyInstaller
-        # Splash screen isn't avaliable on all platforms
-        with suppress(Exception):
-            import pyi_splash
-            pyi_splash.close()
-
+        win.show()
+        # Start execution of the GUI
         ret = app.exec()
+
+        # Stop the timer for processing frames
+        # This is so the process frame timer stops.
+        # We can't call it directly because we're on a different thread. Hence a blocking queued conenction.
         QMetaObject.invokeMethod(c8handler, 'process_frames', Qt.BlockingQueuedConnection, Q_ARG(bool, False))
+
+        # Stop our threads
         c8_thread.quit()
         audio_thread.quit()
+
+        # Wait for them to fully exit
+        c8_thread.wait()
+        audio_thread.wait()
+
+        # Exit
         sys.exit(ret)
 
     @Slot(str)
     def show_error(self, message):
         QMessageBox.critical(None, 'Error', message)
-

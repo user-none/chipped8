@@ -22,6 +22,8 @@
 
 import math
 
+import numpy as np
+
 from copy import deepcopy
 
 class Audio():
@@ -50,23 +52,33 @@ class Audio():
     def get_pitch(self):
         return self._pitch
 
-
-def generate_audio_frame(pattern, pitch, sample_rate=48000, sound_length=1/60):
+def generate_audio_frame(pattern, pitch, sample_rate=48000, sound_length=1/60, fade_in_ms=2):
     freq = 4000 * 2 ** ((pitch - 64) / 48)
     num_samples = math.ceil(sample_rate * sound_length)
     step = freq / sample_rate
-    binary_data = ''.join(format(byte, '08b') for byte in pattern)
+
+    if pattern == b'\x00' and pitch == 0:
+        return bytes([128] * num_samples)
+
+    # Total bits in the pattern
+    total_bits = len(pattern) * 8
 
     pos = 0.0
     samples = []
-    for i in range(num_samples):
-        p = int(pos) % len(binary_data)
-        samples.append(0x15 if binary_data[p] == '1' else 0)
-        pos = pos + step
+
+    for _ in range(num_samples):
+        bit_index = int(pos) % total_bits
+        byte_index = bit_index // 8
+        bit_in_byte = 7 - (bit_index % 8)  # MSB first
+
+        byte = pattern[byte_index]
+        bit = (byte >> bit_in_byte) & 1
+
+        samples.append(0x15 if bit == 1 else 0)
+        pos += step
 
     # IIR filter to smooth square into sine wave
     for i in range(1, num_samples):
         samples[i] = int(samples[i-1] * 0.4 + samples[i]) % 0xFF
 
     return bytes(samples)
-
