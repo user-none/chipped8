@@ -102,6 +102,7 @@ class MainWindow(QMainWindow):
             ('Wrap', lambda: self.gpu_view.enable_wrap, self.gpu_view.toggle_effect_wrap),
             ('Scan Delay', lambda: self.gpu_view.enable_scan_delay, self.gpu_view.toggle_effect_scan_delay),
             ('Pixel Borders', lambda: self.gpu_view.enable_pixel_borders, self.gpu_view.toggle_effect_pixel_borders),
+            ('Edge Glow', lambda: self.gpu_view.enable_edge_glow, self.gpu_view.toggle_effect_edge_glow),
         ):
             a = effects_menu.addAction(name)
             a.setCheckable(True)

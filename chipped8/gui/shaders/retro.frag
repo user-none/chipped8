@@ -22,6 +22,7 @@ layout(std140, set = 0, binding = 2) uniform Uniforms {
     int enable_wrap;
     int enable_scan_delay;
     int enable_pixel_borders;
+    int enable_edge_glow;
 };
 
 float rand(vec2 co) {
@@ -182,6 +183,22 @@ void main() {
         float intensity = 0.08;
 
         color.rgb = mix(color.rgb, gridColor, grid * intensity);
+    }
+
+    if (enable_edge_glow == 1) {
+        float distLeft = uv.x;
+        float distRight = 1.0 - uv.x;
+
+        float glowWidth = 0.35;
+
+        float glowLeft = 1.0 - smoothstep(0.0, glowWidth, distLeft);
+        float glowRight = 1.0 - smoothstep(0.0, glowWidth, distRight);
+
+        float glowFactor = max(glowLeft, glowRight);
+
+        vec3 glowColor = vec3(0.0, 1.0, 0.5);
+
+        color += glowColor * glowFactor * 0.11;
     }
 
 
