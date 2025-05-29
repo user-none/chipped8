@@ -166,10 +166,12 @@ class GraphicsProvider(QRhiWidget):
     @Slot(np.ndarray)
     def blitScreen(self, pixel_indices: np.ndarray):
         self._rbg_buffer[:] = self._colors[pixel_indices]
+        self.update()
 
     @Slot()
     def clearScreen(self):
         self._rbg_buffer.fill(0)
+        self.update()
 
     @Slot()
     def update(self):

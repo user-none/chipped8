@@ -135,7 +135,6 @@ class c8Handler(QObject):
             if frames > 1:
                 self._rewind_stack[:] = self._rewind_stack[:-(frames-1)]
             self._emulator = self._rewind_stack.pop()
-            self.updateScreen.emit()
 
             if len(self._rewind_stack) == 0:
                 self._record_frame()
