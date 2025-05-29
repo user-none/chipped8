@@ -24,8 +24,13 @@ defined by the [Chip-8 Research Facility](https://github.com/chip-8/chip-8-datab
 
 ## GUI
 
-The GUI is a work in progress and uses Qt. It supports basic features such as
-emulation automatically pausing if focus is lost and few key controls.
+The GUI is a work in progress and uses Qt.
+
+Some of the features currently supported
+
+- Auto pause if focus is lost
+- A variety of shaders
+- Color presets and customization
 
 ### Keyboard Mapping
 
