@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel
+from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel, QDialog
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
 
+from .color_dialog import ColorSelectorDialog
 from .graphicsprovider import GraphicsProvider
 
 import chipped8
@@ -54,10 +55,12 @@ class MainWindow(QMainWindow):
 
         # File menu
         file_menu = menubar.addMenu('File')
-        open_action = QAction('Open...', self)
-        open_action.setShortcut('Ctrl+O')
-        open_action.triggered.connect(self._open_rom_dialog)
-        file_menu.addAction(open_action)
+        a = file_menu.addAction('Open...', 'Ctrl+O')
+        a.triggered.connect(self._open_rom_dialog)
+
+        a = file_menu.addAction('Colors...')
+        a.triggered.connect(self._choose_colors)
+
 
         # Platform menu
         platform_menu = menubar.addMenu('Platform')
@@ -111,6 +114,13 @@ class MainWindow(QMainWindow):
         )
         if fname:
             self.loadRom.emit(fname)
+
+    def _choose_colors(self):
+        colors = self.gpu_view.get_colors()
+        d = ColorSelectorDialog(colors[0], colors[1], colors[2], colors[3])
+        if d.exec() == QDialog.Accepted:
+            colors = d.get_colors()
+            self.gpu_view.set_colors(colors[0], colors[1], colors[2], colors[3])
 
     @Slot(float, float)
     def update_fps(self, frame_sec, fps):

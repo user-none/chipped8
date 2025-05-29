@@ -192,6 +192,12 @@ class GraphicsProvider(QRhiWidget):
             self._hex_to_rgba(color_4)
         ], dtype=np.uint8)
 
+    def get_colors(self):
+        return [
+            '#{:02x}{:02x}{:02x}'.format(r, g, b)
+            for r, g, b in self._colors[:, :3]
+        ]
+
     def toggle_effect_scanlines(self, val):
         self.enable_scanlines = val
 
