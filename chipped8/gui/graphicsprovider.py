@@ -72,6 +72,7 @@ class GraphicsProvider(QRhiWidget):
         self.enable_mask = False
         self.enable_wrap = True
         self.enable_scan_delay = True
+        self.enable_pixel_borders = True
 
     def initialize(self, _ = None):
         rhi = self.rhi()
@@ -236,6 +237,9 @@ class GraphicsProvider(QRhiWidget):
     def toggle_effect_scan_delay(self, val):
         self.enable_scan_delay = val
 
+    def toggle_effect_pixel_borders(self, val):
+        self.enable_pixel_borders = val
+
     def focusInEvent(self, event):
         self.focusChanged.emit(True)
 
@@ -286,6 +290,7 @@ class GraphicsProvider(QRhiWidget):
                 1 if self.enable_mask else 0,
                 1 if self.enable_wrap else 0,
                 1 if self.enable_scan_delay else 0,
+                1 if self.enable_pixel_borders else 0,
             ], dtype=np.int32).tobytes()
 
         frag_data += flags

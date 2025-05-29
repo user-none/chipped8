@@ -21,6 +21,7 @@ layout(std140, set = 0, binding = 2) uniform Uniforms {
     int enable_mask;
     int enable_wrap;
     int enable_scan_delay;
+    int enable_pixel_borders;
 };
 
 float rand(vec2 co) {
@@ -165,6 +166,24 @@ void main() {
         float d = distance(uv, vec2(0.5));
         color *= smoothstep(0.8, 0.4, d);
     }
+
+    // Grid Overlay / Pixel Borders
+    if (enable_pixel_borders == 1) {
+        vec2 fragCoord = uv * resolution.xy;
+        float spacing = 1.0;
+        float lineWidth = 0.1;
+
+        vec2 local = mod(fragCoord, spacing);
+        float edgeX = step(spacing - lineWidth, local.x);
+        float edgeY = step(spacing - lineWidth, local.y);
+        float grid = max(edgeX, edgeY);
+
+        vec3 gridColor = vec3(0.0);
+        float intensity = 0.08;
+
+        color.rgb = mix(color.rgb, gridColor, grid * intensity);
+    }
+
 
     // Final output
     color = clamp(color, 0.0, 1.0);
