@@ -31,17 +31,6 @@ class Quirks():
         self._vblank = False
         self._logic = False
 
-    def __deepcopy__(self, memo):
-        q = Quirks()
-        q._shift = self._shift
-        q._memoryIncrementByX = self._memoryIncrementByX
-        q._memoryLeaveIUnchanged = self._memoryLeaveIUnchanged
-        q._wrap = self._wrap
-        q._jump = self._jump
-        q._vblank = self._vblank
-        q._logic = self._logic
-        return q
-
     def set_shift(self, val: bool):
         self._shift = val
 

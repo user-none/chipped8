@@ -39,14 +39,14 @@ from .audio import Audio
 
 class Emulator():
 
-    def __init__(self, platform=PlatformTypes.originalChip8, interpreter=InterpreterTypes.cached, tickrate=-1, quirks=None):
+    def __init__(self, platform=PlatformTypes.originalChip8, interpreter_type=InterpreterTypes.cached, tickrate=-1, quirks=None):
         platform = Platform(platform)
         if not quirks:
             self._quirks = platform.quirks()
         else:
             self._quirks = quirks
 
-        self._interpreter = interpreter
+        self._interpreter_type = interpreter_type
 
         if tickrate <= 0:
             self._tickrate = platform.tickrate()
@@ -61,7 +61,7 @@ class Emulator():
         self._display = Displaly()
         self._audio = Audio()
 
-        if self._interpreter == InterpreterTypes.cached:
+        if self._interpreter_type == InterpreterTypes.cached:
             CPU = CachedCPU
         else:
             CPU = PureCPU
@@ -84,17 +84,17 @@ class Emulator():
 
     def __deepcopy__(self, memo):
         d = Emulator()
-        d._interpreter = self._interpreter
+        d._interpreter_type = self._interpreter_type
         d._registers = deepcopy(self._registers)
         d._stack = deepcopy(self._stack)
         d._memory = deepcopy(self._memory)
         d._timers = deepcopy(self._timers)
-        d._keys = deepcopy(self._keys)
+        d._keys = self._keys
         d._display = deepcopy(self._display)
-        d._quirks = deepcopy(self._quirks)
+        d._quirks = self._quirks
         d._audio = deepcopy(self._audio)
 
-        if self._interpreter == InterpreterTypes.cached:
+        if self._interpreter_type == InterpreterTypes.cached:
             CPU = CachedCPU
         else:
             CPU = PureCPU
@@ -108,6 +108,7 @@ class Emulator():
             d._quirks,
             d._audio
         )
+        self._cpu.copy_state(d._cpu)
 
         d._blit_screen_cb = self._blit_screen_cb
         d._sound_cb = self._sound_cb
@@ -169,6 +170,9 @@ class Emulator():
 
         self._frame_times = []
         self._frame_times.append(time_61)
+
+    def clear_keys(self):
+        self._keys.clear_key_states()
 
     def run(self):
         self._halt.clear()

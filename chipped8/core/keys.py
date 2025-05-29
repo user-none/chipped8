@@ -50,10 +50,8 @@ class KeyInput():
     def __init__(self):
         self._keys = [KeyState.up] * len(Keys)
 
-    def __deepcopy__(self, memo):
-        d = KeyInput()
-        d._keys = deepcopy(self._keys)
-        return d
+    def clear_key_states(self):
+        self._keys[:] = [KeyState.up] * len(self._keys)
 
     def set_key_state(self, key: Keys, state: KeyState):
         self._keys[key] = state

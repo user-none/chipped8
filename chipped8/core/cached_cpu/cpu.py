@@ -51,9 +51,9 @@ class CachedCPU(iCPU):
         self._self_modified = False
 
     def copy_state(self, d):
-        d._instruction_queue = deepcopy(self._instruction_queue)
+        d._instruction_queue = deque(self._instruction_queue)
         d._block_emitter = self._block_emitter
-        d._self_modified = d._self_modified
+        d._self_modified = self._self_modified
 
     def execute_next_op(self):
         self._draw_occurred = False
