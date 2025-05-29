@@ -23,6 +23,10 @@ layout(std140, set = 0, binding = 2) uniform Uniforms {
     int enable_scan_delay;
     int enable_pixel_borders;
     int enable_edge_glow;
+    int enable_signal_tearing;
+    int enable_channel_shift;
+    int enable_blocky_artifacts;
+    int enable_temporal_shimmer;
 };
 
 float rand(vec2 co) {
@@ -56,6 +60,18 @@ vec2 wrapDistortion(vec2 uv) {
     return uv;
 }
 
+vec2 temporalShimmer(vec2 uv, float time) {
+    float strength = 0.0025;          // very subtle offset
+    float speed = 1.2;
+    float scale = 15.0;
+
+    // Use time + uv-based random seed to jitter offsets smoothly
+    float jitterX = (rand(uv * scale + vec2(time * speed, 0.0)) - 0.5) * strength;
+    float jitterY = (rand(uv * scale + vec2(0.0, time * speed)) - 0.5) * strength;
+
+    return clamp(uv + vec2(jitterX, jitterY), 0.0, 1.0);
+}
+
 void main() {
     vec2 uv = v_uv;
 
@@ -76,6 +92,10 @@ void main() {
 
         uv += vec2(rand(vec2(time * 100.0, uv.y)), rand(vec2(uv.x, time * 100.0))) * jitter * flickerIntensity;
     }
+
+    // Temporal shimmer
+    if (enable_temporal_shimmer == 1)
+        uv = temporalShimmer(uv, time);
 
     // Chromatic aberration
     vec3 color;
@@ -189,18 +209,158 @@ void main() {
         float distLeft = uv.x;
         float distRight = 1.0 - uv.x;
 
-        float glowWidth = 0.35;
+        float glowWidth = 0.35; // Horizontal extent
+        float verticalSpread = 0.5; // Vertical glow spread
 
-        float glowLeft = 1.0 - smoothstep(0.0, glowWidth, distLeft);
-        float glowRight = 1.0 - smoothstep(0.0, glowWidth, distRight);
+        // Vertical falloff using a gentler curve
+        float vertDist = abs(uv.y - 0.5) / verticalSpread;
+        float vertFade = clamp(1.0 - vertDist * vertDist, 0.0, 1.0); // quadratic falloff
+
+        // Horizontal edge glow intensity
+        float glowLeft = (1.0 - smoothstep(0.0, glowWidth, distLeft)) * vertFade;
+        float glowRight = (1.0 - smoothstep(0.0, glowWidth, distRight)) * vertFade;
 
         float glowFactor = max(glowLeft, glowRight);
 
-        vec3 glowColor = vec3(0.0, 1.0, 0.5);
-
-        color += glowColor * glowFactor * 0.11;
+        vec3 glowColor = vec3(1.0); // White glow (lightens without tint)
+        color += glowColor * glowFactor * 0.15; // Overall glow intensity
     }
 
+    if (enable_signal_tearing == 1) {
+        // Base frequency for thin bands
+        float baseFreq = 4.0;
+
+        // Add noise-based random variation to band height (between 0.5x and 1.5x of base band height)
+        float bandNoise = fract(sin(floor(uv.y * baseFreq) * 12.9898 + floor(time * 3.0)) * 43758.5453);
+        float bandHeight = (0.5 + bandNoise) / baseFreq;  // varies between ~0.016 and ~0.05
+
+        // Calculate band index with jittered UV.y
+        float jitter = (fract(sin(time * 10.0) * 10000.0) - 0.5) * bandHeight * 0.5; // small vertical jitter over time
+        float bandPos = uv.y + jitter;
+
+        // Calculate band start position
+        float bandIndex = floor(bandPos / bandHeight);
+
+        // Soft band edge by using smoothstep for transition
+        float bandStart = bandIndex * bandHeight;
+        float edgeSoftness = bandHeight * 0.3;
+
+        float bandMask = smoothstep(bandStart, bandStart + edgeSoftness, bandPos) * 
+            (1.0 - smoothstep(bandStart + bandHeight - edgeSoftness, bandStart + bandHeight, bandPos));
+
+        // Chance of glitch per band (keep low for fewer glitches)
+        float glitchChance = 0.01 + bandNoise * 0.1;  // chance varies per band a bit
+
+        // Slow down glitch updates: change glitches roughly every 2 seconds
+        float slowTime = floor(time * 0.5);  // 0.5 = update every 2 seconds
+
+        // Adjust timeSeed to use slowTime instead of time * 5.0
+        float timeSeed = bandIndex * 13.37 + slowTime;
+
+        // Decide if this band glitches
+        float glitchRoll = fract(sin(timeSeed) * 43758.5453);
+
+        if (glitchRoll > (1.0 - glitchChance)) {
+            // Random horizontal offset with variable strength based on band noise
+            float offset = fract(sin(timeSeed + uv.x * 100.0) * 12345.6789);
+            float strength = (offset - 0.5) * 0.02 * (0.5 + bandNoise);
+
+            vec2 glitchUV = uv;
+            glitchUV.x += strength;
+
+            glitchUV.x = clamp(glitchUV.x, 0.0, 1.0);
+
+            // Blend original color and glitch color by bandMask for smooth edges
+            vec3 glitchColor = texture(tex, glitchUV).rgb;
+            color = mix(color, glitchColor, bandMask);
+        }
+    }
+
+    if (enable_channel_shift == 1) {
+        float maxShift = 0.02;   // max horizontal shift of channels
+        float totalBands = 8.0;  // fewer total bands on screen
+        float bandHeight = 1.0 / totalBands;  // height of each band (thin)
+
+        float speed = 1.0;       // glitch animation speed
+
+        // Calculate which band this UV.y belongs to
+        float bandIndex = floor(uv.y / bandHeight);
+
+        float timeSeed = bandIndex * 13.37 + floor(time * speed);
+
+        float glitchChance = 0.15;  // chance band glitches
+        float glitchRoll = fract(sin(timeSeed) * 43758.5453);
+
+        if (glitchRoll > (1.0 - glitchChance)) {
+            // Random horizontal offsets per RGB channel
+            float shiftR = (fract(sin(timeSeed + 1.0) * 12345.6789) - 0.5) * maxShift;
+            float shiftG = (fract(sin(timeSeed + 2.0) * 12345.6789) - 0.5) * maxShift;
+            float shiftB = (fract(sin(timeSeed + 3.0) * 12345.6789) - 0.5) * maxShift;
+
+            vec2 uvR = uv + vec2(shiftR, 0.0);
+            vec2 uvG = uv + vec2(shiftG, 0.0);
+            vec2 uvB = uv + vec2(shiftB, 0.0);
+
+            uvR.x = clamp(uvR.x, 0.0, 1.0);
+            uvG.x = clamp(uvG.x, 0.0, 1.0);
+            uvB.x = clamp(uvB.x, 0.0, 1.0);
+
+            color.r = texture(tex, uvR).r;
+            color.g = texture(tex, uvG).g;
+            color.b = texture(tex, uvB).b;
+        } else {
+            color = texture(tex, uv).rgb;
+        }
+    }
+
+    if (enable_blocky_artifacts == 1) {
+        float blockSize = 0.05;
+        vec2 blockUV = floor(uv / blockSize);
+        float blockSeed = dot(blockUV, vec2(37.0, 113.0));
+
+
+        // === Global glitch cycle ===
+        float groupCycleDuration = 11.0;  // 4s glitch + up to 7s cooldown
+        float groupTimeSeed = floor(time / groupCycleDuration);
+
+        float groupRand = fract(sin(groupTimeSeed * 12.345) * 45678.9);
+
+        // Timing
+        float glitchDuration = 4.0;
+        float cooldownDuration = 3.0 + fract(groupRand * 1.7) * 4.0;  // 3–7s
+        float groupStartTime = groupTimeSeed * groupCycleDuration;
+
+        float localTime = time - groupStartTime;
+        bool groupActive = localTime < glitchDuration;
+
+        if (groupActive) {
+            // Block count: 5–15
+            float countSeed = fract(sin(groupTimeSeed * 77.77) * 9999.0);
+            int blockCount = 5 + int(fract(sin(countSeed * 8.1234) * 11.0));  // 5–15
+
+            // Determine if this block is active
+            float blockRand = fract(sin(blockSeed * 9.13 + groupTimeSeed) * 10000.0);
+            bool is_active = blockRand < float(blockCount) / 100.0;
+
+            // Random lifetime per block: 2–4s
+            float blockLife = 2.0 + fract(sin(blockSeed * 17.4567) * 10000.0) * 2.0;
+
+            // All blocks start at 0
+            float blockStart = 0.0;
+            float blockEnd = blockLife;
+
+            if (is_active && localTime >= blockStart && localTime < blockEnd) {
+                float offsetX = (fract(sin(blockSeed * 1.3) * 12345.6789) - 0.5) * 0.08;
+                float offsetY = (fract(sin(blockSeed * 1.7) * 98765.4321) - 0.5) * 0.08;
+
+                vec2 glitchUV = uv + vec2(offsetX, offsetY);
+                glitchUV = clamp(glitchUV, 0.0, 1.0);
+
+                vec3 glitchColor = texture(tex, glitchUV).rgb;
+                color = mix(color, glitchColor, 0.8);
+            }
+        }
+    }
 
     // Final output
     color = clamp(color, 0.0, 1.0);

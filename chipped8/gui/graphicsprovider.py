@@ -72,8 +72,12 @@ class GraphicsProvider(QRhiWidget):
         self.enable_mask = False
         self.enable_wrap = True
         self.enable_scan_delay = True
-        self.enable_pixel_borders = True
+        self.enable_pixel_borders = False
         self.enable_edge_glow = False
+        self.enable_signal_tearing = False
+        self.enable_channel_shift = False
+        self.enable_blocky_artifacts = False
+        self.enable_temporal_shimmer = False
 
     def initialize(self, _ = None):
         rhi = self.rhi()
@@ -244,6 +248,18 @@ class GraphicsProvider(QRhiWidget):
     def toggle_effect_edge_glow(self, val):
         self.enable_edge_glow = val
 
+    def toggle_effect_signal_tearing(self, val):
+        self.enable_signal_tearing = val
+
+    def toggle_effect_channel_shift(self, val):
+        self.enable_channel_shift = val
+
+    def toggle_effect_blocky_artifacts(self, val):
+        self.enable_blocky_artifacts = val
+
+    def toggle_effect_temporal_shimmer(self, val):
+        self.enable_temporal_shimmer = val
+
     def focusInEvent(self, event):
         self.focusChanged.emit(True)
 
@@ -296,10 +312,14 @@ class GraphicsProvider(QRhiWidget):
                 1 if self.enable_scan_delay else 0,
                 1 if self.enable_pixel_borders else 0,
                 1 if self.enable_edge_glow else 0,
+                1 if self.enable_signal_tearing else 0,
+                1 if self.enable_channel_shift else 0,
+                1 if self.enable_blocky_artifacts else 0,
+                1 if self.enable_temporal_shimmer else 0,
             ], dtype=np.int32).tobytes()
 
         frag_data += flags
-        frag_data += bytes(80 - len(frag_data))
+        frag_data += bytes(100 - len(frag_data))
 
         update_batch = self.rhi().nextResourceUpdateBatch()
         update_batch.updateDynamicBuffer(self._scale_buffer, 0, len(scale_data), scale_data)

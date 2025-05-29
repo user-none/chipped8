@@ -103,6 +103,10 @@ class MainWindow(QMainWindow):
             ('Scan Delay', lambda: self.gpu_view.enable_scan_delay, self.gpu_view.toggle_effect_scan_delay),
             ('Pixel Borders', lambda: self.gpu_view.enable_pixel_borders, self.gpu_view.toggle_effect_pixel_borders),
             ('Edge Glow', lambda: self.gpu_view.enable_edge_glow, self.gpu_view.toggle_effect_edge_glow),
+            ('Signal Tearing', lambda: self.gpu_view.enable_signal_tearing, self.gpu_view.toggle_effect_signal_tearing),
+            ('Channel Shift', lambda: self.gpu_view.enable_channel_shift, self.gpu_view.toggle_effect_channel_shift),
+            ('Blocky Artifacts', lambda: self.gpu_view.enable_blocky_artifacts, self.gpu_view.toggle_effect_blocky_artifacts),
+            ('Temporal Shimmer', lambda: self.gpu_view.enable_temporal_shimmer, self.gpu_view.toggle_effect_temporal_shimmer),
         ):
             a = effects_menu.addAction(name)
             a.setCheckable(True)
