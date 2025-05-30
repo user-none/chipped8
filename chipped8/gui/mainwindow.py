@@ -20,13 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from pathlib import Path
+
 from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel, QDialog
 from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtCore import QCoreApplication, Signal, Slot, QTimer, Qt
+from PySide6.QtCore import QCoreApplication, QStandardPaths, Signal, Slot, QTimer, Qt
 
 from .color_dialog import ColorSelectorDialog
 from .graphicsprovider import GraphicsProvider
 from .rom_db import RomDBOpener, RomDatabase
+from .settings import AppSettings
 
 import chipped8
 
@@ -36,10 +39,16 @@ class MainWindow(QMainWindow):
     keyEvent = Signal(int, bool, int)
     loadRom = Signal(str, chipped8.PlatformTypes, int)
 
-    def __init__(self, platform, interpreter):
+    def __init__(self, platform=chipped8.PlatformTypes.originalChip8, interpreter=None):
         super().__init__()
 
         self._rom_db = RomDatabase()
+        self._settings = AppSettings()
+
+        if interpreter:
+            self._settings['interpreter'] = str(interpreter)
+        else:
+            interpreter = chipped8.InterpreterTypes(self._settings.get('interpreter', 'cached'))
 
         db_opener = RomDBOpener(self)
         db_opener.status_message.connect(lambda msg: self.statusBar().showMessage(msg, 3000))
@@ -51,6 +60,11 @@ class MainWindow(QMainWindow):
         self.resize(640, 320)
 
         self.gpu_view = GraphicsProvider()
+
+        colors = self._settings.get('colors')
+        if colors and len(colors) == 4:
+            self.gpu_view.set_colors(*colors)
+
         self.setCentralWidget(self.gpu_view)
 
         self._create_menus(platform, interpreter)
@@ -65,6 +79,11 @@ class MainWindow(QMainWindow):
         file_menu = menubar.addMenu('File')
         a = file_menu.addAction('Open...', 'Ctrl+O')
         a.triggered.connect(self._open_rom_dialog)
+
+        self._recent_menu = file_menu.addMenu('Open Recent')
+        self._update_recent_menu()
+
+        file_menu.addSeparator()
 
         a = file_menu.addAction('Colors...')
         a.triggered.connect(self._choose_colors)
@@ -92,7 +111,7 @@ class MainWindow(QMainWindow):
             if name == interpreter:
                 a.setChecked(True)
             interpreter_menu.addAction(a)
-        interpreter_group.triggered.connect(lambda a: self.interpreterChanged.emit('', a.text()))
+        interpreter_group.triggered.connect(self._on_interpreter_selected)
 
         # Effects menu
         effects_menu = menubar.addMenu('Effects')
@@ -122,35 +141,84 @@ class MainWindow(QMainWindow):
                 a.setChecked(getter())
             a.toggled.connect(setter)
 
+    def _update_recent_menu(self):
+        self._recent_menu.clear()
+        recent = self._settings.get('recent_files', [])
+
+        if recent:
+            for path in recent[:10]:
+                action = QAction(Path(path).name, self)
+                action.setData(path)
+                action.setToolTip(path)
+                action.triggered.connect(self._open_recent)
+                self._recent_menu.addAction(action)
+
+            self._recent_menu.addSeparator()
+            clear_action = QAction('Clear Menu', self)
+            clear_action.triggered.connect(self._clear_recent_files)
+            self._recent_menu.addAction(clear_action)
+        else:
+            action = QAction('Clear Menu', self)
+            action.setEnabled(False)
+            self._recent_menu.addAction(action)
+
+    def _add_to_recent_files(self, path: str):
+        recent = self._settings.get('recent_files', [])
+        path = str(Path(path))
+        if path in recent:
+            recent.remove(path)
+        recent.insert(0, path)
+        self._settings['recent_files'] = recent[:10]
+
+    def _clear_recent_files(self):
+        self._settings['recent_files'] = []
+        self._update_recent_menu()
+
+    def _open_recent(self):
+        action = self.sender()
+        path = action.data()
+        if path:
+            self._open_rom(path)
+
     def _open_rom_dialog(self):
+        last_dir = self._settings.get('last_open_dir', QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation))
+
         fname, _ = QFileDialog.getOpenFileName(
-            self, 'Open ROM', '', 'Chip-8 (*.ch8);;BIN (*.bin)'
+            self, 'Open ROM', last_dir, 'Chip-8 (*.ch8);;BIN (*.bin)'
         )
+
         if fname:
-            metadata = self._rom_db.get_metadata_by_path(fname)
+            self._settings['last_open_dir'] = str(Path(fname).parent)
+            self._open_rom(fname)
 
-            if metadata.get('title'):
-                self.setWindowTitle(f'{QCoreApplication.applicationName()} - {metadata.get("title")}')
+    def _open_rom(self, fname):
+        self._add_to_recent_files(fname)
+        self._update_recent_menu()
 
-            try:
-                platform = chipped8.PlatformTypes(metadata.get('platform', 'originalChip8'))
-            except:
-                platform = chipped8.PlatformTypes.originalChip8
-            for a in self._platform_group.actions():
-                if a.text() == str(platform):
-                    a.setChecked(True)
-                    break
+        metadata = self._rom_db.get_metadata_by_path(fname)
+        if metadata.get('title'):
+            self.setWindowTitle(f'{QCoreApplication.applicationName()} - {metadata.get("title")}')
 
-            tickrate = metadata.get('tickrate', -1)
+        try:
+            platform = chipped8.PlatformTypes(metadata.get('platform', 'originalChip8'))
+        except:
+            platform = chipped8.PlatformTypes.originalChip8
+        for a in self._platform_group.actions():
+            if a.text() == str(platform):
+                a.setChecked(True)
+                break
 
-            self.loadRom.emit(fname, platform, tickrate)
+        tickrate = metadata.get('tickrate', -1)
+
+        self.loadRom.emit(fname, platform, tickrate)
 
     def _choose_colors(self):
         colors = self.gpu_view.get_colors()
-        d = ColorSelectorDialog(colors[0], colors[1], colors[2], colors[3])
+        d = ColorSelectorDialog(*colors)
         if d.exec() == QDialog.Accepted:
             colors = d.get_colors()
-            self.gpu_view.set_colors(colors[0], colors[1], colors[2], colors[3])
+            self._settings['colors'] = colors
+            self.gpu_view.set_colors(*colors)
 
     @Slot(object)
     def db_ready(self, data):
@@ -158,6 +226,10 @@ class MainWindow(QMainWindow):
             return
         self._rom_db.load_data(data)
         self.statusBar().showMessage('Ready', 3000)
+
+    def _on_interpreter_selected(self, action):
+        self._settings['interpreter'] = action.text()
+        self.interpreterChanged.emit('', action.text())
 
     @Slot(float, float)
     def update_fps(self, frame_sec, fps):
