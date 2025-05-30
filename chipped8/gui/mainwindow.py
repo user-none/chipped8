@@ -115,6 +115,27 @@ class MainWindow(QMainWindow):
 
         # Effects menu
         effects_menu = menubar.addMenu('Effects')
+
+        effect_presets = {
+            'Ultimate CRT': [ 'Scanlines', 'Glow', 'Barrel', 'Noise', 'Flicker', 'Wrap', 'Scan Delay' ],
+            'Classic CRT Arcade': [ 'Scanlines', 'Barrel', 'Glow', 'Vignette', 'Pixel Borders' ],
+            'Retro Broadcast TV': [ 'Interlace', 'Vignette', 'Noise', 'Signal Tearing', 'Channel Shift' ],
+            'Handheld LCD': [ 'Quantize', 'Pixel Borders', 'Temporal Shimmer', 'Flicker' ],
+            'Digital Artifacts': [ 'Blocky Artifacts', 'Quantize', 'Channel Shift', 'Temporal Shimmer', 'Flicker' ],
+            'Experimental Neon FX': [ 'Glow', 'Chromatic', 'Edge Glow', 'Temporal Shimmer' ],
+            'Broken Cabinet': [ 'Scanlines', 'Mask', 'Flicker', 'Scan Delay', 'Signal Tearing' ],
+            'Clean': [],
+        }
+
+        presets_menu = effects_menu.addMenu('Presets')
+        for name, effects in effect_presets.items():
+            a = presets_menu.addAction(name)
+            a.triggered.connect(lambda checked=False, e=effects: self._apply_shader_preset(e))
+
+        effects_menu.addSeparator()
+
+        self._shader_group = QActionGroup(effects_menu)
+        self._shader_group.setExclusive(False)
         for name, getter, setter in (
             ('Scanlines', lambda: self.gpu_view.enable_scanlines, self.gpu_view.toggle_effect_scanlines),
             ('Glow', lambda: self.gpu_view.enable_glow, self.gpu_view.toggle_effect_glow),
@@ -135,11 +156,11 @@ class MainWindow(QMainWindow):
             ('Blocky Artifacts', lambda: self.gpu_view.enable_blocky_artifacts, self.gpu_view.toggle_effect_blocky_artifacts),
             ('Temporal Shimmer', lambda: self.gpu_view.enable_temporal_shimmer, self.gpu_view.toggle_effect_temporal_shimmer),
         ):
-            a = effects_menu.addAction(name)
+            a = self._shader_group.addAction(name)
             a.setCheckable(True)
-            if getter:
-                a.setChecked(getter())
+            a.setChecked(getter())
             a.toggled.connect(setter)
+            effects_menu.addAction(a)
 
     def _update_recent_menu(self):
         self._recent_menu.clear()
@@ -219,6 +240,13 @@ class MainWindow(QMainWindow):
             colors = d.get_colors()
             self._settings['colors'] = colors
             self.gpu_view.set_colors(*colors)
+
+    def _apply_shader_preset(self, enabled_effects: set[str]):
+        for action in self._shader_group.actions():
+            name = action.text()
+            enable = True if name in enabled_effects else False
+            if action.isChecked() != enable:
+                action.setChecked(enable)
 
     @Slot(object)
     def db_ready(self, data):
