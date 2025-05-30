@@ -60,18 +60,18 @@ class GraphicsProvider(QRhiWidget):
         self.set_colors()
 
         # Shader options
-        self.enable_scanlines = True
-        self.enable_glow = True
-        self.enable_barrel = True
+        self.enable_scanlines = False
+        self.enable_glow = False
+        self.enable_barrel = False
         self.enable_chromatic = False
         self.enable_vignette = False
-        self.enable_noise = True
-        self.enable_flicker = True
+        self.enable_noise = False
+        self.enable_flicker = False
         self.enable_quantize = False
         self.enable_interlace = False
         self.enable_mask = False
-        self.enable_wrap = True
-        self.enable_scan_delay = True
+        self.enable_wrap = False
+        self.enable_scan_delay = False
         self.enable_pixel_borders = False
         self.enable_edge_glow = False
         self.enable_signal_tearing = False

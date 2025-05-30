@@ -159,8 +159,10 @@ class MainWindow(QMainWindow):
             a = self._shader_group.addAction(name)
             a.setCheckable(True)
             a.setChecked(getter())
-            a.toggled.connect(setter)
+            a.toggled.connect(lambda checked, s=setter: (s(checked), self._save_shader_state()))
             effects_menu.addAction(a)
+
+        self._restore_shader_state()
 
     def _update_recent_menu(self):
         self._recent_menu.clear()
@@ -247,6 +249,19 @@ class MainWindow(QMainWindow):
             enable = True if name in enabled_effects else False
             if action.isChecked() != enable:
                 action.setChecked(enable)
+
+    def _restore_shader_state(self):
+        enabled = set(self._settings.get('enabled_shaders', []))
+        for action in self._shader_group.actions():
+            name = action.text()
+            if name in enabled:
+                action.setChecked(True)
+
+    def _save_shader_state(self):
+        enabled = [
+            action.text() for action in self._shader_group.actions() if action.isChecked()
+        ]
+        self._settings.set('enabled_shaders', enabled)
 
     @Slot(object)
     def db_ready(self, data):
