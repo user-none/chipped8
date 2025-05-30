@@ -70,12 +70,12 @@ class RomDBOpener(QThread):
                     return
 
         try:
+            self.status_message.emit('Opening ROM DB...')
             with open(self._file_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
                 self.file_ready.emit(json_data)
         except Exception as e:
-            print(e)
-            self.status_message.emit('Failed to open ROM DB')
+            self.status_message.emit(f'Failed to open ROM DB {e}')
 
 class RomDatabase:
     def __init__(self, data: list = None):
