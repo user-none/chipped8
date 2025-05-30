@@ -22,10 +22,11 @@
 
 from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel, QDialog
 from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtCore import Signal, Slot, QTimer, Qt
+from PySide6.QtCore import QCoreApplication, Signal, Slot, QTimer, Qt
 
 from .color_dialog import ColorSelectorDialog
 from .graphicsprovider import GraphicsProvider
+from .rom_db import RomDBOpener, RomDatabase
 
 import chipped8
 
@@ -33,12 +34,19 @@ class MainWindow(QMainWindow):
     platformChanged = Signal(str, str)
     interpreterChanged = Signal(str, str)
     keyEvent = Signal(int, bool, int)
-    loadRom = Signal(str)
+    loadRom = Signal(str, chipped8.PlatformTypes, int)
 
     def __init__(self, platform, interpreter):
         super().__init__()
 
-        self.setWindowTitle('Chipped8')
+        self._rom_db = RomDatabase()
+
+        db_opener = RomDBOpener(self)
+        db_opener.status_message.connect(lambda msg: self.statusBar().showMessage(msg, 3000))
+        db_opener.file_ready.connect(self.db_ready)
+        db_opener.start()
+
+        self.setWindowTitle(QCoreApplication.applicationName())
         self.setMinimumSize(128, 64)
         self.resize(640, 320)
 
@@ -64,15 +72,15 @@ class MainWindow(QMainWindow):
 
         # Platform menu
         platform_menu = menubar.addMenu('Platform')
-        platform_group = QActionGroup(platform_menu)
-        platform_group.setExclusive(True)
+        self._platform_group = QActionGroup(platform_menu)
+        self._platform_group.setExclusive(True)
         for name in chipped8.PlatformTypes:
-            a = platform_group.addAction(str(name))
+            a = self._platform_group.addAction(str(name))
             a.setCheckable(True)
             if name == platform:
                 a.setChecked(True)
             platform_menu.addAction(a)
-        platform_group.triggered.connect(lambda a: self.platformChanged.emit(a.text(), ''))
+        self._platform_group.triggered.connect(lambda a: self.platformChanged.emit(a.text(), ''))
 
         # Interpreter menu
         interpreter_menu = menubar.addMenu('Interpreter')
@@ -119,7 +127,23 @@ class MainWindow(QMainWindow):
             self, 'Open ROM', '', 'Chip-8 (*.ch8);;BIN (*.bin)'
         )
         if fname:
-            self.loadRom.emit(fname)
+            metadata = self._rom_db.get_metadata_by_path(fname)
+
+            if metadata.get('title'):
+                self.setWindowTitle(f'{QCoreApplication.applicationName()} - {metadata.get("title")}')
+
+            try:
+                platform = chipped8.PlatformTypes(metadata.get('platform', 'originalChip8'))
+            except:
+                platform = chipped8.PlatformTypes.originalChip8
+            for a in self._platform_group.actions():
+                if a.text() == str(platform):
+                    a.setChecked(True)
+                    break
+
+            tickrate = metadata.get('tickrate', -1)
+
+            self.loadRom.emit(fname, platform, tickrate)
 
     def _choose_colors(self):
         colors = self.gpu_view.get_colors()
@@ -127,6 +151,13 @@ class MainWindow(QMainWindow):
         if d.exec() == QDialog.Accepted:
             colors = d.get_colors()
             self.gpu_view.set_colors(colors[0], colors[1], colors[2], colors[3])
+
+    @Slot(object)
+    def db_ready(self, data):
+        if not data:
+            return
+        self._rom_db.load_data(data)
+        self.statusBar().showMessage('Ready', 3000)
 
     @Slot(float, float)
     def update_fps(self, frame_sec, fps):
