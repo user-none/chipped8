@@ -23,7 +23,7 @@
 from pathlib import Path
 
 from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel, QDialog
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QWindowStateChangeEvent
 from PySide6.QtCore import QCoreApplication, QStandardPaths, Signal, Slot, QTimer, Qt
 
 from .color_dialog import ColorSelectorDialog
@@ -277,6 +277,14 @@ class MainWindow(QMainWindow):
     @Slot(float, float)
     def update_fps(self, frame_sec, fps):
         self._status_fps.setText(f'fps: {round(fps)}')
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if isinstance(event, QWindowStateChangeEvent):
+            if self.isFullScreen():
+                self.statusBar().hide()
+            else:
+                self.statusBar().show()
 
     def keyPressEvent(self, event):
         self.keyEvent.emit(event.key(), True, event.modifiers().value)
