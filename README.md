@@ -63,10 +63,10 @@ Basic rewind is supported for 30 seconds.
 
 ### Metadata
 
-ROM metadata is automatically downloaded on a regular basis.
-The metadata is used to auto select a number of parameters such as
-platform and tickrate if a ROM that is found in the database is opened.
-
+ROM metadata is automatically downloaded from the [CHIP-8
+database](https://github.com/chip-8/chip-8-database). The metadata is used to
+auto select a number of parameters such as platform and tickrate on detected
+ROMs. A selection of relevant metadata can be displayed as an overly.
 
 ## Interpreters
 
