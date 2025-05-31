@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import platform as pyplat
+
 from pathlib import Path
 
 from PySide6.QtWidgets import QMainWindow, QFileDialog, QLabel, QDialog
@@ -93,6 +95,29 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self._choose_colors)
 
 
+        # View menu
+        view_menu = menubar.addMenu('View')
+
+        # Status bar toggle
+        visible = self._settings.get('statusbar_visible', True)
+        self._action_statusbar = view_menu.addAction('')
+        if visible:
+            self._action_statusbar.setText('Hide Status Bar')
+            self.statusBar().show()
+        else:
+            self._action_statusbar.setText('Show Status Bar')
+            self.statusBar().hide()
+        self._action_statusbar.triggered.connect(self._toggle_status_bar)
+
+        view_menu.addSeparator()
+
+        # Fullscreen toggle
+        if pyplat.system() != 'Darwin':
+            # macOS automatically adds a full screen option
+            a = view_menu.addAction('View Full Screen', 'F11')
+            a.setCheckable(True)
+            a.toggled.connect(self._toggle_fullscreen)
+
         # Platform menu
         platform_menu = menubar.addMenu('Platform')
         self._platform_group = QActionGroup(platform_menu)
@@ -105,6 +130,7 @@ class MainWindow(QMainWindow):
             platform_menu.addAction(a)
         self._platform_group.triggered.connect(lambda a: self.platformChanged.emit(a.text(), ''))
 
+
         # Interpreter menu
         interpreter_menu = menubar.addMenu('Interpreter')
         interpreter_group = QActionGroup(interpreter_menu)
@@ -116,6 +142,7 @@ class MainWindow(QMainWindow):
                 a.setChecked(True)
             interpreter_menu.addAction(a)
         interpreter_group.triggered.connect(self._on_interpreter_selected)
+
 
         # Effects menu
         effects_menu = menubar.addMenu('Effects')
@@ -240,6 +267,22 @@ class MainWindow(QMainWindow):
 
         self.loadRom.emit(fname, platform, tickrate)
 
+    def _toggle_fullscreen(self, enabled):
+        if enabled:
+            self.showFullScreen()
+        else:
+            self.showNormal()
+
+    def _toggle_status_bar(self):
+        visible = self._settings.get('statusbar_visible', True)
+        if visible:
+            self._action_statusbar.setText('Show Status Bar')
+            self.statusBar().hide()
+        else:
+            self._action_statusbar.setText('Hide Status Bar')
+            self.statusBar().show()
+        self._settings['statusbar_visible'] = not visible
+
     def _choose_colors(self):
         colors = self.gpu_view.get_colors()
         d = ColorSelectorDialog(*colors)
@@ -287,9 +330,15 @@ class MainWindow(QMainWindow):
         super().changeEvent(event)
         if isinstance(event, QWindowStateChangeEvent):
             if self.isFullScreen():
+                self._action_statusbar.setEnabled(False)
                 self.statusBar().hide()
             else:
-                self.statusBar().show()
+                visible = self._settings.get('statusbar_visible', True)
+                if visible:
+                    self.statusBar().show()
+                else:
+                    self.statusBar().hide()
+                self._action_statusbar.setEnabled(True)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_AsciiTilde:
