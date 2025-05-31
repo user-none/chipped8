@@ -53,11 +53,19 @@ Key        | Modifier | description
 `P`        |          | Pause and unpause emulation.
 Left arrow |          | Rewind 1 frame
 Left arrow | Shift    | Rewind 60 frames (1 second)
+`~`        |          | Show / hide metadata overlay
 
 
-## Rewind
+### Rewind
 
 Basic rewind is supported for 30 seconds.
+
+
+### Metadata
+
+ROM metadata is automatically downloaded on a regular basis.
+The metadata is used to auto select a number of parameters such as
+platform and tickrate if a ROM that is found in the database is opened.
 
 
 ## Interpreters

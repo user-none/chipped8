@@ -28,6 +28,7 @@ from PySide6.QtCore import QCoreApplication, QStandardPaths, Signal, Slot, QTime
 
 from .color_dialog import ColorSelectorDialog
 from .graphicsprovider import GraphicsProvider
+from .metadata_overlay import MetadataOverlay
 from .rom_db import RomDBOpener, RomDatabase
 from .settings import AppSettings
 
@@ -57,7 +58,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(QCoreApplication.applicationName())
         self.setMinimumSize(128, 64)
-        self.resize(640, 320)
+        self.resize(640, 345) # 320 if we didn't have the status bar at the bottom
 
         self.gpu_view = GraphicsProvider()
 
@@ -71,6 +72,9 @@ class MainWindow(QMainWindow):
 
         self._status_fps = QLabel()
         self.statusBar().addPermanentWidget(self._status_fps)
+
+        self._metadata_overlay = MetadataOverlay(self.gpu_view)
+        self._metadata_overlay.move(10, 10)
 
     def _create_menus(self, platform, interpreter):
         menubar = self.menuBar()
@@ -219,11 +223,12 @@ class MainWindow(QMainWindow):
         self._update_recent_menu()
 
         metadata = self._rom_db.get_metadata_by_path(fname)
+        self._metadata_overlay.update_metadata(metadata)
         if metadata.get('title'):
             self.setWindowTitle(f'{QCoreApplication.applicationName()} - {metadata.get("title")}')
 
         try:
-            platform = chipped8.PlatformTypes(metadata.get('platform', 'originalChip8'))
+            platform = chipped8.PlatformTypes(metadata.get('best_platform', 'originalChip8'))
         except:
             platform = chipped8.PlatformTypes.originalChip8
         for a in self._platform_group.actions():
@@ -287,7 +292,17 @@ class MainWindow(QMainWindow):
                 self.statusBar().show()
 
     def keyPressEvent(self, event):
-        self.keyEvent.emit(event.key(), True, event.modifiers().value)
+        if event.key() == Qt.Key_AsciiTilde:
+            if self._metadata_overlay.isVisible():
+                self._metadata_overlay.hide()
+            else:
+                self._metadata_overlay.show()
+        else:
+            self.keyEvent.emit(event.key(), True, event.modifiers().value)
 
     def keyReleaseEvent(self, event):
         self.keyEvent.emit(event.key(), False, event.modifiers().value)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._metadata_overlay.move(10, 10)

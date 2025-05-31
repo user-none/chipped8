@@ -122,9 +122,18 @@ class RomDatabase:
         platforms = rom_info.get('platforms', [])
         best_platform = platforms[0] if platforms else 'originalChip8'
 
-        return {
+        d = {
             'sha1': sha1,
             'title': entry['entry'].get('title', 'Unknown Title'),
             'tickrate': rom_info.get('tickrate', None),
-            'platform': best_platform
+            'best_platform': best_platform,
+            'platforms': platforms,
+            'authors': entry['entry'].get('authors'),
+            'description': entry['entry'].get('description', rom_info.get('description', '')),
+            'release': entry['entry'].get('release')
             }
+
+        if not d.get('tickrate'):
+            del d['tickrate']
+
+        return d
