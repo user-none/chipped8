@@ -48,12 +48,10 @@ class CachedCPU(iCPU):
 
         self._instruction_queue = deque()
         self._block_emitter = InstrBlockEmitter()
-        self._self_modified = False
 
     def copy_state(self, d):
         self._instruction_queue = deque(d._instruction_queue)
         self._block_emitter = d._block_emitter
-        self._self_modified = d._self_modified
 
     def execute_next_op(self):
         self._draw_occurred = False
@@ -76,10 +74,9 @@ class CachedCPU(iCPU):
         # ROMs address space was modified or we have a jump outside of the ROMs
         # address space indicating instructions were written into RAM.
         #if not self._self_modified and instr.self_modified():
-        if not self._self_modified and instr.self_modified:
-            self._self_modified = True
+        if instr.self_modified:
             # Disable caching of basic blocks because they may no longer be correct
-            self._block_emitter.disable_caching()
+            self._block_emitter.clear_pc_cache()
 
             # Clear the instruction queue because we can't guarantee the
             # Current basic block is still valid

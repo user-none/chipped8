@@ -79,9 +79,6 @@ class Emulator():
         self._blit_screen_cb = lambda *args: None
         self._sound_cb = lambda *args: None
 
-        self._ts = 0
-        self._ts_cnt = 0
-
     def __deepcopy__(self, memo):
         if id(self) in memo:
             return memo[id(self)]

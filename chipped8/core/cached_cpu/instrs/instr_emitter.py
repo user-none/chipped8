@@ -30,17 +30,13 @@ class InstrBlockEmitter:
     def __init__(self):
         self._instr_cache = {}
         self._pc_instr_cache = {}
-
         self._block_cache = {}
-
-        self._cache_pc = True
 
         self._instr_factory = InstrFactory()
 
-    def disable_caching(self):
-        self._cache_pc = False
-        self._pc_instr_cache = None
-        self._block_cache = None
+    def clear_pc_cache(self):
+        self._pc_instr_cache = {}
+        self._block_cache = {}
 
     def _get_opcode(self, pc, memory):
         return (memory.get_byte(pc) << 8) | memory.get_byte(pc + 1)
@@ -51,9 +47,7 @@ class InstrBlockEmitter:
     def _get_instruction(self, pc, opcode, next_opcode, quirks):
         instr = None
 
-        if self._cache_pc:
-            instr = self._pc_instr_cache.get(pc)
-
+        instr = self._pc_instr_cache.get(pc)
         if not instr:
             instr = self._instr_cache.get(opcode)
 
@@ -66,7 +60,7 @@ class InstrBlockEmitter:
     def _save_instruction(self, pc, opcode, instr):
         if instr.pic:
             self._instr_cache[opcode] = instr
-        elif self._cache_pc:
+        else:
             self._pc_instr_cache[pc] = instr
 
     def _get_next_instruction(self, registers, memory, quirks):
@@ -99,18 +93,12 @@ class InstrBlockEmitter:
             if instr.kind in (InstrKind.JUMP, InstrKind.COND_ADVANCE, InstrKind.EXIT):
                 break;
 
-            if not self._cache_pc:
-                break
-
         return block
 
     def get_block(self, registers, memory, quirks):
         pc = registers.get_PC()
 
-        block = None
-        if self._cache_pc:
-            block = self._block_cache.get(pc)
-
+        block = self._block_cache.get(pc)
         if not block:
             # Build block loops and if it's self modifying we might
             # not know until we run. In which case we could try
@@ -125,13 +113,11 @@ class InstrBlockEmitter:
                 block = self._build_block(registers, memory, quirks)
                 self._save_block(pc, block)
             except UnknownOpCodeException:
-                self.disable_caching()
+                self.clear_pc_cache()
                 registers.set_PC(pc)
                 block = [self._get_next_instruction(registers, memory, quirks)]
 
         return block
 
     def _save_block(self, pc, block):
-        if not self._cache_pc:
-            return
         self._block_cache[pc] = block
