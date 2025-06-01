@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024 John Schember <john@nachtimwald.com>
+# Copyright 2024-2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -52,33 +52,35 @@ class Audio():
     def get_pitch(self):
         return self._pitch
 
-def generate_audio_frame(pattern, pitch, sample_rate=48000, sound_length=1/60, fade_in_ms=2):
-    freq = 4000 * 2 ** ((pitch - 64) / 48)
-    num_samples = math.ceil(sample_rate * sound_length)
-    step = freq / sample_rate
+def generate_audio_frame(pattern: bytes, pitch: int, sample_rate: int,
+                         num_samples: int, start_phase: float, amplitude: float) -> tuple[bytes, float]:
+    '''
+    pattern: 16 bytes (128 bits) repeating waveform pattern
+    pitch: controls frequency via spec formula
+    sample_rate: audio sample rate (48000)
+    num_samples: number of output samples to generate (~800)
+    start_phase: phase position in bits for continuity
+    amplitude: float between 0..1 to scale waveform amplitude
+    '''
+    freq = 4000.0 * (2 ** ((pitch - 64) / 48.0))
+    total_bits = 128  # 16 bytes * 8 bits
+    step = freq / sample_rate  # bits to advance per sample
 
-    if pattern == b'\x00' and pitch == 0:
-        return bytes([128] * num_samples)
+    # Vector of phases for each sample
+    phases = (start_phase + step * np.arange(num_samples)) % total_bits
+    bit_indices = phases.astype(np.uint8)
 
-    # Total bits in the pattern
-    total_bits = len(pattern) * 8
+    # Compute byte indices and bit positions
+    byte_indices = bit_indices // 8
+    bit_offsets = 7 - (bit_indices % 8)
 
-    pos = 0.0
-    samples = []
+    # Convert pattern to NumPy array for vectorized indexing
+    pattern_arr = np.frombuffer(pattern, dtype=np.uint8)
+    selected_bytes = pattern_arr[byte_indices]
+    bit_vals = (selected_bytes >> bit_offsets) & 1
 
-    for _ in range(num_samples):
-        bit_index = int(pos) % total_bits
-        byte_index = bit_index // 8
-        bit_in_byte = 7 - (bit_index % 8)  # MSB first
+    # Convert bits to audio values
+    waveform = np.where(bit_vals, amplitude, -amplitude)
+    samples = np.clip(128 + waveform * 127, 0, 255).astype(np.uint8)
 
-        byte = pattern[byte_index]
-        bit = (byte >> bit_in_byte) & 1
-
-        samples.append(0x15 if bit == 1 else 0)
-        pos += step
-
-    # IIR filter to smooth square into sine wave
-    for i in range(1, num_samples):
-        samples[i] = int(samples[i-1] * 0.4 + samples[i]) % 0xFF
-
-    return bytes(samples)
+    return samples.tobytes(), float(phases[-1])

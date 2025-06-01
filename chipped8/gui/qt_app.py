@@ -56,6 +56,7 @@ class QtApp(QObject):
         audio_thread.setObjectName('audio_thread')
         audio = AudioPlayer()
         audio.moveToThread(audio_thread)
+        audio_thread.started.connect(audio.start)
         c8handler.audioReady.connect(audio.play)
 
         win.gpu_view.focusChanged.connect(c8handler.process_frames)
@@ -80,6 +81,9 @@ class QtApp(QObject):
         # This is so the process frame timer stops.
         # We can't call it directly because we're on a different thread. Hence a blocking queued conenction.
         QMetaObject.invokeMethod(c8handler, 'process_frames', Qt.BlockingQueuedConnection, Q_ARG(bool, False))
+
+        # Stop the audio. The audio buffer is filled using an internal timer that keeps it full.
+        QMetaObject.invokeMethod(audio, "stop", Qt.BlockingQueuedConnection)
 
         # Stop our threads
         c8_thread.quit()
