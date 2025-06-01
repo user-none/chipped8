@@ -45,6 +45,8 @@ class c8Handler(QObject):
         self._emulator = None
         self._platform = platform
         self._tickrate = -1
+        if not interpreter:
+            interpreter = chipped8.InterpreterTypes.cached
         self._interpreter = interpreter
 
         self._process_timer = QTimer(self)
