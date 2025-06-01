@@ -48,10 +48,12 @@ class MainWindow(QMainWindow):
         self._rom_db = RomDatabase()
         self._settings = AppSettings()
 
+        # If a specific interpreter was provided we'll make that the selected one
         if interpreter:
             self._settings['interpreter'] = str(interpreter)
         else:
             interpreter = chipped8.InterpreterTypes(self._settings.get('interpreter', 'cached'))
+        self.interpreter = chipped8.InterpreterTypes(interpreter)
 
         db_opener = RomDBOpener(self)
         db_opener.status_message.connect(lambda msg: self.statusBar().showMessage(msg, 3000))
@@ -321,6 +323,7 @@ class MainWindow(QMainWindow):
     def _on_interpreter_selected(self, action):
         self._settings['interpreter'] = action.text()
         self.interpreterChanged.emit('', action.text())
+        self.interpreter = chipped8.InterpreterTypes(action.text())
 
     @Slot(float, float)
     def update_fps(self, frame_sec, fps):

@@ -69,11 +69,16 @@ class Displaly():
         self._target_plane = Plane.p1
 
     def __deepcopy__(self, memo):
-        d = Displaly()
-        d._screen_planes = deepcopy(self._screen_planes)
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = object.__new__(self.__class__)
+        d._screen_planes = deepcopy(self._screen_planes, memo)
         d._update_screen = self._update_screen
         d._res_mode = self._res_mode
         d._target_plane = self._target_plane
+
+        memo[id(self)] = d
         return d
 
     def _generate_empty_plane(self):

@@ -29,10 +29,15 @@ class Timers:
         self._delay = 0
 
     def __deepcopy__(self, memo):
-        t = Timers()
-        t._sound = self._sound
-        t._delay = self._delay
-        return t
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = object.__new__(self.__class__)
+        d._sound = self._sound
+        d._delay = self._delay
+
+        memo[id(self)] = d
+        return d
 
     def set_sound(self, val):
         self._sound = maths.reduce_ushort(val)

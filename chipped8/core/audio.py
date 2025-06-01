@@ -34,11 +34,16 @@ class Audio():
         self._sound_length = 1 / 60
 
     def __deepcopy__(self, memo):
-        c = Audio()
-        if self._pattern:
-            c._pattern = deepcopy(self._pattern)
-        c._pitch = self._pitch
-        return c
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = object.__new__(self.__class__)
+        d._pattern = deepcopy(self._pattern, memo)
+        d._pitch = self._pitch
+        d._sound_length = self._sound_length
+
+        memo[id(self)] = d
+        return d
 
     def set_pattern(self, pattern):
         self._pattern[:] = pattern[:]

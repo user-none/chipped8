@@ -28,9 +28,14 @@ class Stack:
         self._stack = []
 
     def __deepcopy__(self, memo):
-        s = Stack()
-        s._stack = deepcopy(self._stack)
-        return s
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = object.__new__(self.__class__)
+        d._stack = deepcopy(self._stack, memo)
+
+        memo[id(self)] = d
+        return d
 
     def push(self, addr):
         if len(self._stack) >= 16:

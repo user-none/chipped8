@@ -35,12 +35,17 @@ class Registers:
         self._RPL = bytearray(16)
 
     def __deepcopy__(self, memo):
-        r = Registers()
-        r._V = deepcopy(self._V)
-        r._I = self._I
-        r._PC = self._PC
-        r._RPL = deepcopy(self._RPL)
-        return r
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = object.__new__(self.__class__)
+        d._V = deepcopy(self._V, memo)
+        d._I = self._I
+        d._PC = self._PC
+        d._RPL = deepcopy(self._RPL, memo)
+
+        memo[id(self)] = d
+        return d
         
     def set_V(self, idx, val):
         if idx < 0 or idx > 15:

@@ -79,20 +79,25 @@ class Emulator():
         self._blit_screen_cb = lambda *args: None
         self._sound_cb = lambda *args: None
 
-        self._halt = ThreadingEvent()
-        self._frame_times = []
+        self._ts = 0
+        self._ts_cnt = 0
 
     def __deepcopy__(self, memo):
-        d = Emulator()
-        d._interpreter_type = self._interpreter_type
-        d._registers = deepcopy(self._registers)
-        d._stack = deepcopy(self._stack)
-        d._memory = deepcopy(self._memory)
-        d._timers = deepcopy(self._timers)
-        d._keys = self._keys
-        d._display = deepcopy(self._display)
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = object.__new__(self.__class__)
         d._quirks = self._quirks
-        d._audio = deepcopy(self._audio)
+        d._interpreter_type = self._interpreter_type
+        d._tickrate = self._tickrate
+        d._registers = deepcopy(self._registers, memo)
+        d._stack = deepcopy(self._stack, memo)
+        d._memory = deepcopy(self._memory, memo)
+        d._timers = deepcopy(self._timers, memo)
+        d._keys = self._keys
+        d._display = deepcopy(self._display, memo)
+        d._audio = deepcopy(self._audio, memo)
+
 
         if self._interpreter_type == InterpreterTypes.cached:
             CPU = CachedCPU
@@ -113,8 +118,7 @@ class Emulator():
         d._blit_screen_cb = self._blit_screen_cb
         d._sound_cb = self._sound_cb
 
-        d._tickrate = self._tickrate
-
+        memo[id(self)] = d
         return d
 
     def _blit_screen(self):
@@ -156,41 +160,5 @@ class Emulator():
 
         self._blit_screen()
 
-    def _update_frame_time(self, ns):
-        self._frame_times.append(ns)
-
-        if len(self._frame_times) < 61:
-            return
-
-        time_61 = self._frame_times[-1]
-
-        frame_time = self._frame_times[-1] - self._frame_times[0]
-        sec = frame_time / 1000000000
-        #print('seconds: ', sec, 'fps: ', 60 / sec)
-
-        self._frame_times = []
-        self._frame_times.append(time_61)
-
     def clear_keys(self):
         self._keys.clear_key_states()
-
-    def run(self):
-        self._halt.clear()
-
-        while not self._halt.is_set():
-            ns = time.perf_counter_ns()
-            self._update_frame_time(ns)
-
-            self.process_frame()
-
-            while time.perf_counter_ns() - ns < 1 / 60 * 1000000000:
-                pass
-
-        self._frame_times = []
-
-    def stop(self):
-        self._halt.set()
-
-    def running(self):
-        return not self._halt.is_set()
-

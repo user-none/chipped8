@@ -67,10 +67,15 @@ class Memory:
         self._ram_start = 513
 
     def __deepcopy__(self, memo):
-        m = Memory()
-        m._memory = deepcopy(self._memory)
-        m._ram_start = self._ram_start
-        return m
+        if id(self) in memo:
+            return memo[id(self)]
+
+        d = Memory()
+        d._memory = deepcopy(self._memory, memo)
+        d._ram_start = self._ram_start
+
+        memo[id(self)] = d
+        return d
 
     def _load_fonts(self):
         for i, v in enumerate(self._font_small + self._font_large):

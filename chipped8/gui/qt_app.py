@@ -43,7 +43,7 @@ class QtApp(QObject):
         # Put the emulator on a thread
         c8_thread = QThread()
         c8_thread.setObjectName('c8_thread')
-        c8handler = c8Handler(self._args.platform, self._args.interpreter)
+        c8handler = c8Handler(self._args.platform, win.interpreter)
         c8handler.moveToThread(c8_thread)
 
         c8handler.blitReady.connect(win.gpu_view.blitScreen)
