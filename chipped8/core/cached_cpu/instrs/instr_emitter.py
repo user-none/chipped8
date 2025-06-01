@@ -127,7 +127,7 @@ class InstrBlockEmitter:
             except UnknownOpCodeException:
                 self.disable_caching()
                 registers.set_PC(pc)
-                block = [self._get_next_instruction(registers, memory)]
+                block = [self._get_next_instruction(registers, memory, quirks)]
 
         return block
 
