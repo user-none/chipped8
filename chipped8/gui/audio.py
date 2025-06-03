@@ -107,7 +107,6 @@ class AudioPlayer(QObject):
     def play(self, pattern: bytes, pitch: int):
         pattern_changed = self._pattern_changed_enough(pattern, self._last_pattern)
         pitch_changed = self._pitch_changed_enough(pitch, self._last_pitch)
-        print(pitch, self._last_pitch, pitch_changed)
 
         self._last_pattern = pattern
         self._last_pitch = pitch
