@@ -30,7 +30,7 @@ class Audio():
 
     def __init__(self):
         self._pattern = list(bytes.fromhex('00 00 FF FF 00 00 FF FF 00 00 FF FF 00 00 FF FF'))
-        self._pitch = 64
+        self._pitch = 64 # Default 4000Hz
         self._sound_length = 1 / 60
 
     def __deepcopy__(self, memo):
