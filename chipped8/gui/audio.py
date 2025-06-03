@@ -21,9 +21,12 @@
 # SOFTWARE.
 
 import time
+
 from collections import deque
 from PySide6.QtCore import QObject, QTimer, Slot
 from PySide6.QtMultimedia import QAudioSink, QAudioFormat, QMediaDevices
+
+import numpy as np
 
 from chipped8 import generate_audio_frame
 
@@ -51,6 +54,9 @@ class AudioPlayer(QObject):
         # Clock-based pacing
         self._last_write_ns = time.perf_counter_ns()
         self._frame_interval_ns = 1_000_000_000 // 60  # 16666666 ns which is ~16.666ms which is 1 frame
+
+        self._last_pattern = bytes(16)
+        self._last_pitch = None
 
     @Slot()
     def start(self):
@@ -85,7 +91,30 @@ class AudioPlayer(QObject):
             self._sink_io.write(bytes(output))
             self._last_write_ns += self._frame_interval_ns
 
+    def _pitch_changed_enough(self, current: int, previous: int | None, threshold: int = 2) -> bool:
+        if previous is None:
+            return False
+        return abs(current - previous) >= threshold
+
+    def _pattern_changed_enough(self, current: bytes, previous: bytes, threshold: int = 16) -> bool:
+        a = np.frombuffer(current, dtype=np.uint8)
+        b = np.frombuffer(previous, dtype=np.uint8)
+
+        xor = np.bitwise_xor(a, b)
+        bits = np.unpackbits(xor)
+        return np.count_nonzero(bits) >= threshold
+
     def play(self, pattern: bytes, pitch: int):
+        pattern_changed = self._pattern_changed_enough(pattern, self._last_pattern)
+        pitch_changed = self._pitch_changed_enough(pitch, self._last_pitch)
+        print(pitch, self._last_pitch, pitch_changed)
+
+        self._last_pattern = pattern
+        self._last_pitch = pitch
+
+        if pattern_changed or pitch_changed:
+            self._phase = 0.0
+
         frame, self._phase = generate_audio_frame(
             pattern,
             pitch,
