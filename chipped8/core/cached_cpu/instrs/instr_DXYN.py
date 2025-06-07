@@ -42,54 +42,8 @@ class InstrDXYN(Instr):
         self.kind = InstrKind.DRAW
         self.draw_occurred = True
 
-    def _draw_s8(self, vx, vy, n, registers, memory, display):
-        registers.set_V(0xF, 0)
-        I = registers.get_I()
-        for plane in display.get_planes():
-            for i in range(n):
-                sprite = memory.get_byte(I + i)
-
-                for j in range(8):
-                    # XOR with 0 won't change the value
-                    if sprite & (0x80 >> j) == 0:
-                        continue
-
-                    row = vx + j
-                    col = vy + i
-
-                    if not self._quirk_wrap and display.sprite_will_wrap(vx, vy, vx+j, vy+i):
-                        continue
-
-                    unset = display.set_pixel(plane, row, col, 1)
-                    if unset:
-                        registers.set_V(0xF, 1)
-            I = I + n
-
-    def _draw_s16(self, vx, vy, registers, memory, display):
-        registers.set_V(0xF, 0)
-        I = registers.get_I()
-        for plane in display.get_planes():
-            for i in range(16):
-                sprite = (memory.get_byte(I + (i*2)) << 8) | memory.get_byte(I + (i*2) + 1)
-
-                for j in range(16):
-                    # XOR with 0 won't change the value
-                    if sprite & (0x8000 >> j) == 0:
-                        continue
-
-                    row = vx + j
-                    col = vy + i
-
-                    unset = display.set_pixel(plane, row, col, 1)
-                    if unset:
-                        registers.set_V(0xF, 1)
-            I = I + 32
-
     def execute(self, registers, stack, memory, timers, keys, display, audio):
         vx = registers.get_V(self._x)
         vy = registers.get_V(self._y)
 
-        if self._n == 0:
-            self._draw_s16(vx, vy, registers, memory, display)
-        else:
-            self._draw_s8(vx, vy, self._n, registers, memory, display)
+        display.draw(vx, vy, self._n, self._quirk_wrap, registers, memory)

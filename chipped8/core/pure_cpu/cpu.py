@@ -46,57 +46,6 @@ class PureCPU(iCPU):
         pc = self._registers.get_PC()
         return (self._memory.get_byte(pc) << 8) | self._memory.get_byte(pc + 1)
 
-    def _draw(self, x, y, n):
-        if n == 0:
-            self._draw_s16(x, y)
-        else:
-            self._draw_s8(x, y, n)
-
-        self._draw_occurred = True
-
-    def _draw_s8(self, x, y, n):
-        self._registers.set_V(0xF, 0)
-        I = self._registers.get_I()
-        for plane in self._display.get_planes():
-            for i in range(n):
-                sprite = self._memory.get_byte(I + i)
-
-                for j in range(8):
-                    # XOR with 0 won't change the value
-                    if sprite & (0x80 >> j) == 0:
-                        continue
-
-                    row = x + j
-                    col = y + i
-
-                    if not self._quirks.wrap and self._display.sprite_will_wrap(x, y, x+j, y+i):
-                        continue
-
-                    unset = self._display.set_pixel(plane, row, col, 1)
-                    if unset:
-                        self._registers.set_V(0xF, 1)
-            I = I + n
-
-    def _draw_s16(self, x, y):
-        self._registers.set_V(0xF, 0)
-        I = self._registers.get_I()
-        for plane in self._display.get_planes():
-            for i in range(16):
-                sprite = (self._memory.get_byte(I + (i*2)) << 8) | self._memory.get_byte(I + (i*2) + 1)
-
-                for j in range(16):
-                    # XOR with 0 won't change the value
-                    if sprite & (0x8000 >> j) == 0:
-                        continue
-
-                    row = x + j
-                    col = y + i
-
-                    unset = self._display.set_pixel(plane, row, col, 1)
-                    if unset:
-                        self._registers.set_V(0xF, 1)
-            I = I + 32
-
     def _execute_0(self, opcode):
         subcode = opcode & 0x00FF
         microcode = opcode & 0x00F0
@@ -413,7 +362,8 @@ class PureCPU(iCPU):
         y = (opcode & 0x00F0) >> 4
         n = opcode & 0x000F
 
-        self._draw(self._registers.get_V(x), self._registers.get_V(y), n)
+        self._display.draw(self._registers.get_V(x), self._registers.get_V(y), n, self._quirks.wrap, self._registers, self._memory)
+        self._draw_occurred = True
         self._registers.advance_PC()
 
     def _execute_E(self, opcode):

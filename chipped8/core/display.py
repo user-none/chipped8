@@ -263,3 +263,51 @@ class Displaly():
             return True
         return False
 
+    def _draw_s8(self, x, y, n, wrap, registers, memory):
+        registers.set_V(0xF, 0)
+        I = registers.get_I()
+        for plane in self.get_planes():
+            for i in range(n):
+                sprite = memory.get_byte(I + i)
+
+                for j in range(8):
+                    # XOR with 0 won't change the value
+                    if sprite & (0x80 >> j) == 0:
+                        continue
+
+                    row = x + j
+                    col = y + i
+
+                    if not wrap and self.sprite_will_wrap(x, y, x+j, y+i):
+                        continue
+
+                    unset = self.set_pixel(plane, row, col, 1)
+                    if unset:
+                        registers.set_V(0xF, 1)
+            I = I + n
+
+    def _draw_s16(self, x, y, registers, memory):
+        registers.set_V(0xF, 0)
+        I = registers.get_I()
+        for plane in self.get_planes():
+            for i in range(16):
+                sprite = (memory.get_byte(I + (i*2)) << 8) | memory.get_byte(I + (i*2) + 1)
+
+                for j in range(16):
+                    # XOR with 0 won't change the value
+                    if sprite & (0x8000 >> j) == 0:
+                        continue
+
+                    row = x + j
+                    col = y + i
+
+                    unset = self.set_pixel(plane, row, col, 1)
+                    if unset:
+                        registers.set_V(0xF, 1)
+            I = I + 32
+
+    def draw(self, x, y, n, wrap, registers, memory):
+        if n == 0:
+            self._draw_s16(x, y, registers, memory)
+        else:
+            self._draw_s8(x, y, n, wrap, registers, memory)
