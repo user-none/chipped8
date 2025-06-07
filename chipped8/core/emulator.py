@@ -146,7 +146,7 @@ class Emulator():
             # This isn't quite right. We should be running cycles after the
             # draw and only stop when the next op is a draw. But this works
             # well enough, it's easier to check, and you don't notice a difference.
-            if self._quirks.get_vblank() and self._cpu.draw_occurred():
+            if self._quirks.vblank and self._cpu.draw_occurred():
                 break
 
         self._timers.update_delay()

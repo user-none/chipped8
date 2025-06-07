@@ -69,7 +69,7 @@ class PureCPU(iCPU):
                     row = x + j
                     col = y + i
 
-                    if not self._quirks.get_wrap() and self._display.sprite_will_wrap(x, y, x+j, y+i):
+                    if not self._quirks.wrap and self._display.sprite_will_wrap(x, y, x+j, y+i):
                         continue
 
                     unset = self._display.set_pixel(plane, row, col, 1)
@@ -292,21 +292,21 @@ class PureCPU(iCPU):
     # 8XY1: Sets VX to VX or VY
     def _execute_8XY1(self, x, y):
         self._registers.set_V(x, self._registers.get_V(x) | self._registers.get_V(y))
-        if self._quirks.get_logic():
+        if self._quirks.logic:
             self._registers.set_V(0xF, 0)
         self._registers.advance_PC()
 
     # 8XY2: Sets VX to VX and VY
     def _execute_8XY2(self, x, y):
         self._registers.set_V(x, self._registers.get_V(x) & self._registers.get_V(y))
-        if self._quirks.get_logic():
+        if self._quirks.logic:
             self._registers.set_V(0xF, 0)
         self._registers.advance_PC()
 
     # 8XY3: Sets VX to VX xor VY
     def _execute_8XY3(self, x, y):
         self._registers.set_V(x, self._registers.get_V(x) ^ self._registers.get_V(y))
-        if self._quirks.get_logic():
+        if self._quirks.logic:
             self._registers.set_V(0xF, 0)
         self._registers.advance_PC()
 
@@ -333,7 +333,7 @@ class PureCPU(iCPU):
     # 8XY6: Stores the least significant bit of VX in VF and then shifts VX to the right by 1
     #       Set register VF to the most significant bit prior to the shift
     def _execute_8XY6(self, x, y):
-        if self._quirks.get_shift():
+        if self._quirks.shift:
             n = self._registers.get_V(x)
         else:
             n = self._registers.get_V(y)
@@ -357,7 +357,7 @@ class PureCPU(iCPU):
     # 8XYE: Store the value of register VY shifted left one bit in register VX.
     #       Set register VF to the most significant bit prior to the shift
     def _execute_8XYE(self, x, y):
-        if self._quirks.get_shift():
+        if self._quirks.shift:
             n = self._registers.get_V(x)
         else:
             n = self._registers.get_V(y)
@@ -387,7 +387,7 @@ class PureCPU(iCPU):
 
     # BXNN / BNNN: Jumps to the address NNN plus V0
     def _execute_BNNN(self, opcode):
-        if self._quirks.get_jump():
+        if self._quirks.jump:
             x = (opcode & 0x0F00) >> 8
             n = (opcode & 0x00FF) + self._registers.get_V(x)
         else:
@@ -570,8 +570,8 @@ class PureCPU(iCPU):
         for i in range(x + 1):
             self._memory.set_byte(self._registers.get_I() + i, self._registers.get_V(i))
 
-        if not self._quirks.get_memoryLeaveIUnchanged():
-            if self._quirks.get_memoryIncrementByX():
+        if not self._quirks.memoryLeaveIUnchanged:
+            if self._quirks.memoryIncrementByX:
                 self._registers.set_I(self._registers.get_I() + x)
             else:
                 self._registers.set_I(self._registers.get_I() + x + 1)
@@ -585,8 +585,8 @@ class PureCPU(iCPU):
         for i in range(x + 1):
             self._registers.set_V(i, self._memory.get_byte(self._registers.get_I() + i))
 
-        if not self._quirks.get_memoryLeaveIUnchanged():
-            if self._quirks.get_memoryIncrementByX():
+        if not self._quirks.memoryLeaveIUnchanged:
+            if self._quirks.memoryIncrementByX:
                 self._registers.set_I(self._registers.get_I() + x)
             else:
                 self._registers.set_I(self._registers.get_I() + x + 1)

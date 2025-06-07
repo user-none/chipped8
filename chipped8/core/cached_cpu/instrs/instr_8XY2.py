@@ -30,7 +30,7 @@ class Instr8XY2(Instr):
     def __init__(self, x, y, quirks):
         self._x = x
         self._y = y
-        self._quirk_logic = quirks.get_logic()
+        self._quirk_logic = quirks.logic
         super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):

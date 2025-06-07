@@ -31,7 +31,7 @@ class InstrBNNN(Instr):
         self._x = (opcode & 0x0F00) >> 8
         self._nn  = (opcode & 0x00FF)
         self._nnn  = (opcode & 0x0FFF)
-        self._quirk_jump = quirks.get_jump()
+        self._quirk_jump = quirks.jump
 
         super().__init__()
         self.kind = InstrKind.JUMP

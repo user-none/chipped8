@@ -23,53 +23,10 @@
 class Quirks():
 
     def __init__(self):
-        self._shift = False
-        self._memoryIncrementByX = False
-        self._memoryLeaveIUnchanged = False
-        self._wrap = False
-        self._jump = False
-        self._vblank = False
-        self._logic = False
-
-    def set_shift(self, val: bool):
-        self._shift = val
-
-    def get_shift(self):
-        return self._shift
-
-    def set_memoryIncrementByX(self, val: bool):
-        self._memoryIncrementByX = val
-
-    def get_memoryIncrementByX(self):
-        return self._memoryIncrementByX
-
-    def set_memoryLeaveIUnchanged(self, val: bool):
-        self._memoryLeaveIUnchanged = val
-
-    def get_memoryLeaveIUnchanged(self):
-        return self._memoryLeaveIUnchanged 
-
-    def set_wrap(self, val: bool):
-        self._wrap = val
-
-    def get_wrap(self):
-        return self._wrap 
-
-    def set_jump(self, val: bool):
-        self._jump = val
-
-    def get_jump(self):
-        return self._jump
-
-    def set_vblank(self, val: bool):
-        self._vblank = val
-
-    def get_vblank(self):
-        return self._vblank
-
-    def set_logic(self, val: bool):
-        self._logic = val
-
-    def get_logic(self):
-        return self._logic
-
+        self.shift = False
+        self.memoryIncrementByX = False
+        self.memoryLeaveIUnchanged = False
+        self.wrap = False
+        self.jump = False
+        self.vblank = False
+        self.logic = False

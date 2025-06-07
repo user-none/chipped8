@@ -36,7 +36,7 @@ class InstrDXYN(Instr):
         self._x = (opcode & 0x0F00) >> 8
         self._y = (opcode & 0x00F0) >> 4
         self._n = opcode & 0x000F
-        self._quirk_wrap = quirks.get_wrap()
+        self._quirk_wrap = quirks.wrap
 
         super().__init__()
         self.kind = InstrKind.DRAW

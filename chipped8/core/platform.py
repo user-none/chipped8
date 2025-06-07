@@ -47,18 +47,18 @@ class Platform():
         q = Quirks()
 
         if self._platform == PlatformTypes.originalChip8 or self._platform == PlatformTypes.hybridVIP or self._platform == PlatformTypes.chip8x:
-            q.set_vblank(True)
-            q.set_logic(True)
+            q.vblank = True
+            q.logic = True
         elif self._platform == PlatformTypes.chip48:
-            q.set_shift(True)
-            q.set_memoryIncrementByX(True)
-            q.set_jump(True)
+            q.shift(True)
+            q.memoryIncrementByX = True
+            q.jump = True
         elif self._platform == PlatformTypes.superchip1 or self._platform == PlatformTypes.superchip or self._platform == PlatformTypes.megachip8:
-            q.set_shift(True)
-            q.set_memoryLeaveIUnchanged(True)
-            q.set_jump(True)
+            q.shift = True
+            q.memoryLeaveIUnchanged = True
+            q.jump = True
         elif self._platform == PlatformTypes.xochip:
-            q.set_wrap(True)
+            q.wrap = True
 
         return q
 
