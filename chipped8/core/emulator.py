@@ -149,11 +149,12 @@ class Emulator():
             if self._quirks.vblank and self._cpu.draw_occurred():
                 break
 
-        self._timers.update_delay()
+        if self._timers.delay > 0:
+            self._timers.delay -= 1
 
-        if self._timers.get_sound() != 0:
-            self._sound_cb(self._audio.get_pattern(), self._audio.get_pitch())
-        self._timers.update_sound()
+        if self._timers.sound != 0:
+            self._sound_cb(self._audio.pattern, self._audio.pitch)
+            self._timers.sound -= 1
 
         self._blit_screen()
 

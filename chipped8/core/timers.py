@@ -39,23 +39,26 @@ class Timers:
         memo[id(self)] = d
         return d
 
-    def set_sound(self, val):
-        self._sound = maths.reduce_ushort(val)
-
-    def get_sound(self):
+    @property
+    def sound(self) -> int:
         return self._sound
 
-    def update_sound(self):
-        if self._sound > 0:
-            self._sound = self._sound - 1
+    @sound.setter
+    def sound(self, val: int) -> None:
+        self._sound = val
+        if self._sound < 0:
+            self._sound = 0
+        else:
+            self._sound = maths.reduce_ushort(self._sound)
 
-    def set_delay(self, val):
-        self._delay = maths.reduce_ushort(val)
-
-    def get_delay(self):
+    @property
+    def delay(self) -> int:
         return self._delay
 
-    def update_delay(self):
-        if self._delay > 0:
-            self._delay = self._delay - 1
-
+    @delay.setter
+    def delay(self, val: int) -> None:
+        self._delay = val
+        if self._delay < 0:
+            self._delay = 0
+        else:
+            self._delay = maths.reduce_ushort(val)

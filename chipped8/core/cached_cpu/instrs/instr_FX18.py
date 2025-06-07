@@ -32,4 +32,4 @@ class InstrFX18(Instr):
         super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        timers.set_sound(registers.get_V(self._x))
+        timers.sound = registers.get_V(self._x)

@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from numpy.typing import NDArray
 import numpy as np
 
 from copy import deepcopy
 from enum import Enum, Flag, auto
+
+from .registers import Registers
+from .memory import Memory
 
 SCREEN_WIDTH = 128
 SCREEN_HEIGHT = 64
@@ -84,14 +88,21 @@ class Displaly():
     def _generate_empty_plane(self):
         return bytearray(SCREEN_PIXEL_COUNT)
 
-    def set_resmode(self, mode: ResolutionMode):
+    @property
+    def resmode(self) -> ResolutionMode:
+        return self._res_mode
+
+    @resmode.setter
+    def resmode(self, mode: ResolutionMode):
         self._res_mode = mode
         self.clear_screen()
 
-    def get_planes(self):
+    @property
+    def plane(self) -> Plane:
         return self._target_plane
 
-    def set_plane(self, plane: Plane):
+    @plane.setter
+    def plane(self, plane: Plane):
         if plane == self._target_plane or plane == Plane(0):
             return
         self._target_plane = plane
@@ -106,11 +117,11 @@ class Displaly():
 
         return buffers
 
-    def clear_screen(self):
+    def clear_screen(self) -> None:
         self._screen_planes = [ self._generate_empty_plane(), self._generate_empty_plane() ]
         self._update_screen = True
 
-    def get_pixels(self):
+    def get_pixels(self) -> NDArray[np.uint8]:
         '''
         Return a 2D NumPy array of pixel indices (0–3) for fast rendering.
         Each index maps to a color via.
@@ -131,10 +142,10 @@ class Displaly():
 
         return pixel_indices
 
-    def screen_changed(self):
+    def screen_changed(self) -> bool:
         return self._update_screen
 
-    def screen_updated(self):
+    def screen_updated(self) -> None:
         self._update_screen = False
 
     def _set_pixel_lowres(self, plane_buffer, x, y, v):
@@ -170,7 +181,7 @@ class Displaly():
 
         return unset
 
-    def set_pixel(self, plane, x, y, v):
+    def _set_pixel(self, plane, x, y, v):
         # XOR with 0 won't change the value
         if v == 0:
             return False
@@ -201,7 +212,7 @@ class Displaly():
             plane_buffer[:] = bytearray(SCREEN_WIDTH * num_pixels) + plane_buffer[ : -1 * SCREEN_WIDTH * num_pixels ]
         self._update_screen = True
 
-    def scroll_up(self, num_pixels):
+    def scroll_up(self, num_pixels: int) -> None:
         if self._res_mode == ResolutionMode.lowres:
             num_pixels = num_pixels * 2
 
@@ -211,7 +222,7 @@ class Displaly():
             plane_buffer[:] = plane_buffer[ SCREEN_WIDTH * num_pixels : ] + bytearray(SCREEN_WIDTH * num_pixels)
         self._update_screen = True
 
-    def scroll_left(self):
+    def scroll_left(self) -> None:
         num_pixels = 4
         if self._res_mode == ResolutionMode.lowres:
             num_pixels = 8
@@ -229,7 +240,7 @@ class Displaly():
 
         self._update_screen = True
 
-    def scroll_right(self):
+    def scroll_right(self) -> None:
         num_pixels = 4
         if self._res_mode == ResolutionMode.lowres:
             num_pixels = 8
@@ -247,7 +258,7 @@ class Displaly():
 
         self._update_screen = True
 
-    def sprite_will_wrap(self, x1, y1, x2, y2):
+    def _sprite_will_wrap(self, x1, y1, x2, y2):
         if self._res_mode == ResolutionMode.lowres:
             x1 = x1 * 2
             y1 = y1 * 2
@@ -266,7 +277,7 @@ class Displaly():
     def _draw_s8(self, x, y, n, wrap, registers, memory):
         registers.set_V(0xF, 0)
         I = registers.get_I()
-        for plane in self.get_planes():
+        for plane in self._target_plane:
             for i in range(n):
                 sprite = memory.get_byte(I + i)
 
@@ -278,10 +289,10 @@ class Displaly():
                     row = x + j
                     col = y + i
 
-                    if not wrap and self.sprite_will_wrap(x, y, x+j, y+i):
+                    if not wrap and self._sprite_will_wrap(x, y, x+j, y+i):
                         continue
 
-                    unset = self.set_pixel(plane, row, col, 1)
+                    unset = self._set_pixel(plane, row, col, 1)
                     if unset:
                         registers.set_V(0xF, 1)
             I = I + n
@@ -289,7 +300,7 @@ class Displaly():
     def _draw_s16(self, x, y, registers, memory):
         registers.set_V(0xF, 0)
         I = registers.get_I()
-        for plane in self.get_planes():
+        for plane in self._target_plane:
             for i in range(16):
                 sprite = (memory.get_byte(I + (i*2)) << 8) | memory.get_byte(I + (i*2) + 1)
 
@@ -301,12 +312,12 @@ class Displaly():
                     row = x + j
                     col = y + i
 
-                    unset = self.set_pixel(plane, row, col, 1)
+                    unset = self._set_pixel(plane, row, col, 1)
                     if unset:
                         registers.set_V(0xF, 1)
             I = I + 32
 
-    def draw(self, x, y, n, wrap, registers, memory):
+    def draw(self, x: int, y: int, n: int, wrap: bool, registers: Registers, memory: Memory) -> None:
         if n == 0:
             self._draw_s16(x, y, registers, memory)
         else:

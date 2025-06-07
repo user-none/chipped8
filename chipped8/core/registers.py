@@ -47,56 +47,55 @@ class Registers:
         memo[id(self)] = d
         return d
         
-    def set_V(self, idx, val):
+    def set_V(self, idx: int, val: int) -> None:
         if idx < 0 or idx > 15:
-            raise Exception('Invalid register V{0}'.format(idx))
+            raise IndexError(f'Invalid register V{idx}')
 
         self._V[idx] = maths.reduce_uchar(val)
     
-    def get_V(self, idx):
+    def get_V(self, idx) -> int:
         if idx < 0 or idx > 15: 
-            raise Exception('V{0} not a valid register'.format(idx))
+            raise IndexError(f'V{idx} not a valid register')
 
         return self._V[idx]
 
-    def dump_V(self):
-        return [ x for x in self._V ]
+    def dump_V(self) -> bytearray:
+        return self._V[:]
 
-    def set_I(self, val):
+    def set_I(self, val: int) -> None:
         self._I = maths.reduce_ushort(val)
 
-    def get_I(self):
+    def get_I(self) -> int:
         return self._I
 
-    def set_PC(self, val):
+    def set_PC(self, val: int) -> None:
         val = maths.reduce_ushort(val)
         if val < 512:
             val = 512
         self._PC = val
 
-    def get_PC(self):
+    def get_PC(self) -> int:
         return self._PC
 
-    def advance_PC(self):
+    def advance_PC(self) -> None:
         self.set_PC(self.get_PC() + 2)
 
-    def set_RPL(self, idx, val):
+    def set_RPL(self, idx: int, val: int) -> None:
         if idx < 0 or idx > 15:
-            raise Exception('Invalid flag slot RPL{0}'.format(idx))
+            raise IndexError(f'Invalid flag slot RPL{idx}')
 
         self._RPL[idx] = maths.reduce_ushort(val)
 
-    def get_RPL(self, idx):
+    def get_RPL(self, idx: int) -> int:
         if idx < 0 or idx > 15:
-            raise Exception('RPL{0} not a valid flag slot'.format(idx))
+            raise IndexError(f'RPL{idx} not a valid flag slot')
 
         return self._RPL[idx]
 
-    def export_RPL(self):
-        return deepcopy(self._RPL)
+    def export_RPL(self) -> bytearray:
+        return self._RPL[:]
 
-    def import_RPL(self, rpl=bytearray(0)):
+    def import_RPL(self, rpl: bytes) -> None:
         if len(rpl) != 16:
-            raise Exception('RPL flags wrong length: need 16 have {0}', len(rpl))
-        self._RPL = deepcopy(rpl)
-
+            raise Exception(f'RPL flags wrong length: need 16 have {len(rpl)}')
+        self._RPL = bytearray(rpl)

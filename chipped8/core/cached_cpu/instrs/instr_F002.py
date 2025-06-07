@@ -28,4 +28,4 @@ class InstrF002(Instr):
     '''
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        audio.set_pattern(memory.get_range(registers.get_I(), 16))
+        audio.pattern = memory.get_range(registers.get_I(), 16)

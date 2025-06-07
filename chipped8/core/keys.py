@@ -49,17 +49,17 @@ class KeyInput():
     def __init__(self):
         self._keys = [KeyState.up] * len(Keys)
 
-    def clear_key_states(self):
+    def clear_key_states(self) -> None:
         self._keys[:] = [KeyState.up] * len(self._keys)
 
-    def set_key_state(self, key: Keys, state: KeyState):
+    def set_key_state(self, key: Keys, state: KeyState) -> None:
         self._keys[key] = state
 
-    def get_key_state(self, key):
+    def get_key_state(self, key: Keys) -> KeyState:
         if key < 0 or key > 0xF:
             raise Exception('Error: Invalid key {0}'.format(key))
         return self._keys[key]
 
-    def get_keys(self):
+    def get_keys(self) -> list[Keys]:
         return self._keys
 

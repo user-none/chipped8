@@ -43,7 +43,7 @@ class Platform():
     def __init__(self, platform: PlatformTypes):
         self._platform = platform
 
-    def quirks(self):
+    def quirks(self) -> Quirks:
         q = Quirks()
 
         if self._platform == PlatformTypes.originalChip8 or self._platform == PlatformTypes.hybridVIP or self._platform == PlatformTypes.chip8x:
@@ -62,7 +62,7 @@ class Platform():
 
         return q
 
-    def tickrate(self):
+    def tickrate(self) -> int:
         if self._platform == PlatformTypes.modernChip8:
             return 12
         elif self._platform == PlatformTypes.originalChip8 or self._platform == PlatformTypes.hybridVIP or self._platform == PlatformTypes.chip8x:

@@ -22,10 +22,12 @@
 
 from copy import deepcopy
 
+MAX_MEMORY = 64*1024
+
 class Memory:
     
     def __init__(self):
-        self._memory = bytearray(64*1024)
+        self._memory = bytearray(MAX_MEMORY)
 
         self._font_small = [
             0xF0, 0x90, 0x90, 0x90, 0xF0, # 0
@@ -81,7 +83,7 @@ class Memory:
         for i, v in enumerate(self._font_small + self._font_large):
             self._memory[i] = v
 
-    def load_rom(self, data):
+    def load_rom(self, data) -> None:
         if len(data) > 64*1024 - 512:
             raise Exception('Rom data exceeds available memory')
 
@@ -90,22 +92,25 @@ class Memory:
 
         self._ram_start = len(data)+512+1
 
-    def get_byte(self, idx):
+    def get_byte(self, idx) -> int:
         return self._memory[idx]
 
-    def get_range(self, start, length):
+    def get_range(self, start, length) -> bytearray:
         return deepcopy(self._memory[start : start+length])
 
-    def set_byte(self, idx, val):
+    def set_byte(self, idx: int, val: int) -> None:
         self._memory[idx] = val
 
-    def set_range(self, idx, vals):
-        for b in vals:
-            self._memory[idx] = b
-            idx = idx + 1
+    def set_range(self, start_idx: int, vals: bytes) -> None:
+        if start_idx + len(vals) > MAX_MEMORY:
+            raise IndexError('Values over flows memory size')
 
-    def font_large_offset(self):
+        for b in vals:
+            self._memory[start_idx] = b
+            start_idx += 1
+
+    def font_large_offset(self) -> int:
         return len(self._font_small)
 
-    def ram_start(self):
+    def ram_start(self) -> int:
         return self._ram_start

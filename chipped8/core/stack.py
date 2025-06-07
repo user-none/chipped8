@@ -37,13 +37,13 @@ class Stack:
         memo[id(self)] = d
         return d
 
-    def push(self, addr):
+    def push(self, addr: int) -> None:
         if len(self._stack) >= 16:
-            raise Exception('Stack limit exceeded')
+            raise OverflowError('Stack limit exceeded')
         self._stack.append(addr)
 
-    def pop(self):
+    def pop(self) -> int:
         if len(self._stack) == 0:
-            raise Exception('Stack has no items to pop')
+            raise ValueError('Stack is empty')
         return self._stack.pop()
 

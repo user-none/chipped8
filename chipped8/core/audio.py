@@ -29,9 +29,8 @@ from copy import deepcopy
 class Audio():
 
     def __init__(self):
-        self._pattern = list(bytes.fromhex('00 00 FF FF 00 00 FF FF 00 00 FF FF 00 00 FF FF'))
-        self._pitch = 64 # Default 4000Hz
-        self._sound_length = 1 / 60
+        self._pattern = bytearray.fromhex('00 00 FF FF 00 00 FF FF 00 00 FF FF 00 00 FF FF')
+        self.pitch: int = 64 # Default 4000Hz
 
     def __deepcopy__(self, memo):
         if id(self) in memo:
@@ -39,23 +38,18 @@ class Audio():
 
         d = object.__new__(self.__class__)
         d._pattern = deepcopy(self._pattern, memo)
-        d._pitch = self._pitch
-        d._sound_length = self._sound_length
+        d.pitch = self.pitch
 
         memo[id(self)] = d
         return d
 
-    def set_pattern(self, pattern):
-        self._pattern[:] = pattern[:]
-
-    def get_pattern(self):
+    @property
+    def pattern(self) -> bytearray:
         return self._pattern
 
-    def set_pitch(self, pitch):
-        self._pitch = pitch
-
-    def get_pitch(self):
-        return self._pitch
+    @pattern.setter
+    def pattern(self, pattern: bytearray):
+        self._pattern[:] = pattern[:]
 
 def generate_audio_frame(pattern: bytes, pitch: int, sample_rate: int,
                          num_samples: int, start_phase: float, amplitude: float) -> tuple[bytes, float]:

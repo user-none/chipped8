@@ -108,12 +108,12 @@ class PureCPU(iCPU):
 
     # Switch to low resolution mode
     def _execute_00FE(self):
-        self._display.set_resmode(ResolutionMode.lowres)
+        self._display.resmode = ResolutionMode.lowres
         self._registers.advance_PC()
 
     # Switch to high resolution mode
     def _execute_00FF(self):
-        self._display.set_resmode(ResolutionMode.hires)
+        self._display.resmode = ResolutionMode.hires
         self._registers.advance_PC()
 
     # 1NNN: Jump to address NNN
@@ -451,17 +451,17 @@ class PureCPU(iCPU):
             plane = plane | Plane.p1
         if x & 2:
             plane = plane | Plane.p2
-        self._display.set_plane(plane)
+        self._display.plane = plane
         self._registers.advance_PC()
 
     # F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
     def _execute_F002(self):
-        self._audio.set_pattern(self._memory.get_range(self._registers.get_I(), 16))
+        self._audio.pattern = self._memory.get_range(self._registers.get_I(), 16)
         self._registers.advance_PC()
 
     # FX07: Sets VX to the value of the delay timer
     def _execute_FX07(self, x):
-        self._registers.set_V(x, self._timers.get_delay())
+        self._registers.set_V(x, self._timers.delay)
         self._registers.advance_PC()
 
     # FX0A: Wait for a keypress and store the result in register VX (blocking operation, all instruction halted until next key event)
@@ -474,12 +474,12 @@ class PureCPU(iCPU):
 
     # FX15: Sets the delay timer to VX
     def _execute_FX15(self, x):
-        self._timers.set_delay(self._registers.get_V(x))
+        self._timers.delay = self._registers.get_V(x)
         self._registers.advance_PC()
 
     # FX18: Sets the sound timer to VX
     def _execute_FX18(self, x):
-        self._timers.set_sound(self._registers.get_V(x))
+        self._timers.sound = self._registers.get_V(x)
         self._registers.advance_PC()
 
     # FX1E: Adds VX to I. VF is not affected
@@ -511,7 +511,7 @@ class PureCPU(iCPU):
 
     # Set the pitch register to the value in VX.
     def _execute_FX3A(self, x):
-        self._audio.set_pitch(self._registers.get_V(x))
+        self._audio.pitch = self._registers.get_V(x)
         self._registers.advance_PC()
 
     # FX55: Stores from V0 to VX (including VX) in memory, starting at address

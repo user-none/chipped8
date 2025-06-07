@@ -23,11 +23,11 @@
 def _reduce(val, r):
     return val % r
 
-def reduce_uchar(val):
+def reduce_uchar(val: int) -> int:
     # 1 << 8
     return _reduce(val, 256)
 
-def reduce_ushort(val):
+def reduce_ushort(val: int) -> int:
     # 1 << 16
     return _reduce(val, 65536)
 

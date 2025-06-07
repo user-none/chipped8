@@ -39,4 +39,4 @@ class InstrFN01(Instr):
             plane = plane | Plane.p1
         if self._n & 2:
             plane = plane | Plane.p2
-        display.set_plane(plane)
+        display.plane = plane

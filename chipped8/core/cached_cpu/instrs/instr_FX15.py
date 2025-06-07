@@ -32,4 +32,4 @@ class InstrFX15(Instr):
         super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        timers.set_delay(registers.get_V(self._x))
+        timers.delay = registers.get_V(self._x)

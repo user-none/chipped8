@@ -29,17 +29,17 @@ class iCPU(ABC):
         pass
 
     @abstractmethod
-    def copy_state(self, d):
+    def copy_state(self, d) -> None:
         '''
         copies state of d into self
         '''
         pass
 
     @abstractmethod
-    def execute_next_op(self):
+    def execute_next_op(self) -> None:
         pass
 
     @abstractmethod
-    def draw_occurred(self):
+    def draw_occurred(self) -> bool:
         pass
 
