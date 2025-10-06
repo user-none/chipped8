@@ -22,12 +22,12 @@
 
 from copy import deepcopy
 
-MAX_MEMORY = 64*1024
+MEMORY_SIZE = 64*1024
 
 class Memory:
     
     def __init__(self):
-        self._memory = bytearray(MAX_MEMORY)
+        self._memory = bytearray(MEMORY_SIZE)
 
         self._font_small = [
             0xF0, 0x90, 0x90, 0x90, 0xF0, # 0
@@ -102,7 +102,7 @@ class Memory:
         self._memory[idx] = val
 
     def set_range(self, start_idx: int, vals: bytes) -> None:
-        if start_idx + len(vals) > MAX_MEMORY:
+        if start_idx + len(vals) > MEMORY_SIZE:
             raise IndexError('Values over flows memory size')
 
         for b in vals:
