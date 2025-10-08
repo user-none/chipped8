@@ -29,7 +29,6 @@ class InstrBNNN(Instr):
 
     def __init__(self, opcode, quirks):
         self._x = (opcode & 0x0F00) >> 8
-        self._nn  = (opcode & 0x00FF)
         self._nnn  = (opcode & 0x0FFF)
         self._quirk_jump = quirks.jump
 
@@ -40,7 +39,7 @@ class InstrBNNN(Instr):
         self.self_modified = False
 
         if self._quirk_jump:
-            n = self._nn + registers.get_V(self._x)
+            n = self._nnn + registers.get_V(self._x)
         else:
             n = self._nnn + registers.get_V(0)
 

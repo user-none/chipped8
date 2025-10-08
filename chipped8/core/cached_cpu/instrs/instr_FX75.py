@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -32,7 +31,5 @@ class InstrFX75(Instr):
         super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        n = registers.get_V(self._x)
-
-        for i in range(n+1):
+        for i in range(self._x+1):
             registers.set_RPL(i, registers.get_V(i))

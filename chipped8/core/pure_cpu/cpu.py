@@ -279,8 +279,8 @@ class PureCPU(iCPU):
 
         self._registers.advance_PC()
 
-    # 8XY6: Stores the least significant bit of VX in VF and then shifts VX to the right by 1
-    #       Set register VF to the most significant bit prior to the shift
+    # 8XY6: Store the value of register VY shifted right one bit in register
+    #       VX. Set register VF to the least significant bit prior to the shift
     def _execute_8XY6(self, x, y):
         if self._quirks.shift:
             n = self._registers.get_V(x)
@@ -324,9 +324,9 @@ class PureCPU(iCPU):
         y = (opcode & 0x00F0) >> 4
 
         if self._registers.get_V(x) != self._registers.get_V(y):
+            self._registers.advance_PC()
             if self._get_opcode() == 0xF000:
                 self._registers.advance_PC()
-            self._registers.advance_PC()
         self._registers.advance_PC()
 
     # ANNN: Sets I to the address NNN
@@ -336,11 +336,10 @@ class PureCPU(iCPU):
 
     # BXNN / BNNN: Jumps to the address NNN plus V0
     def _execute_BNNN(self, opcode):
+        x = 0
         if self._quirks.jump:
             x = (opcode & 0x0F00) >> 8
-            n = (opcode & 0x00FF) + self._registers.get_V(x)
-        else:
-            n = (opcode & 0x0FFF) + self._registers.get_V(0)
+        n = (opcode & 0x0FFF) + self._registers.get_V(x)
 
         self._registers.set_PC(n)
 
@@ -509,7 +508,7 @@ class PureCPU(iCPU):
         self._memory.set_byte(self._registers.get_I() + 2, (n % 100) % 10)
         self._registers.advance_PC()
 
-    # Set the pitch register to the value in VX.
+    # FX3A: Set the pitch register to the value in VX.
     def _execute_FX3A(self, x):
         self._audio.pitch = self._registers.get_V(x)
         self._registers.advance_PC()
@@ -545,18 +544,14 @@ class PureCPU(iCPU):
 
     # FX75: Store V0..VX in RPL user flags
     def _execute_FX75(self, x):
-        n = self._registers.get_V(x)
-
-        for i in range(n+1):
+        for i in range(x+1):
             self._registers.set_RPL(i, self._registers.get_V(i))
 
         self._registers.advance_PC()
 
     # FX85: Read V0..VX from RPL user flags
     def _execute_FX85(self, x):
-        n = self._registers.get_V(x)
-
-        for i in range(n+1):
+        for i in range(x+1):
             self._registers.set_V(i, self._registers.get_RPL(i))
 
         self._registers.advance_PC()

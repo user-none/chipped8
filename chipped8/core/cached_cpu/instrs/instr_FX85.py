@@ -32,7 +32,5 @@ class InstrFX85(Instr):
         super().__init__()
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        n = registers.get_V(self._x)
-
-        for i in range(n+1):
+        for i in range(self._x+1):
             registers.set_V(i, registers.get_RPL(i))

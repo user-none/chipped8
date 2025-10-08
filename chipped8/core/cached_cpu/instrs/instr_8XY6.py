@@ -24,8 +24,8 @@ from .instr import Instr
 
 class Instr8XY6(Instr):
     '''
-    8XY6: Stores the least significant bit of VX in VF and then shifts VX to the right by 1
-          Set register VF to the most significant bit prior to the shift
+    8XY6: Store the value of register VY shifted right one bit in register
+          VX. Set register VF to the least significant bit prior to the shift
     '''
 
     def __init__(self, x, y, quirks):
