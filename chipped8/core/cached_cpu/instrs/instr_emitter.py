@@ -102,7 +102,7 @@ class InstrBlockEmitter:
         if not block:
             # Build block loops and if it's self modifying we might
             # not know until we run. In which case we could try
-            # reading an invlaid opcode while building the block.
+            # reading an invalid opcode while building the block.
             # We'll catch the exception and disable caching. Then
             # try to get the next instruction in non-cached mode.
             # It could raise an exception but that's fine, it just
