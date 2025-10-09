@@ -29,6 +29,25 @@ from .instrs.instr_emitter import InstrBlockEmitter
 from .instrs.instr import InstrKind
 
 class CachedCPU(iCPU):
+    '''
+    A caching interpreter.
+
+    Opcodes split into two different types, PIC (position independent code) and non-PIC.
+    Each type is cached in a different cache. PIC are cashed using the full opcode including
+    all operand values that make it up. non-PIC are cached based on their PC. non-PIC are
+    determined if they need knowledge of an opcode outside of their own. For example, a
+    conditional advance which needs to know if the next opcode is 0xF000 to determine if
+    the PC needs to advance once or twice.
+
+    Further, they are cached in blocks based on the PC sequence in the ROM. Each block
+    will have the starting PC as the key and will be all ops that come after unless an
+    ending op is encountered. An ending opcode is one that changes flow. Such as a
+    JUMP, or a conditional advance.
+
+    The PC is not explicitly set and naturally tracks based on program flow and
+    manipulation via jumps when loading a knew block. The non-PIC instructions make
+    this possible.
+    '''
 
     def __init__(self, registers, stack, memory, timers, keys, display, quirks, audio):
         self._registers = registers
