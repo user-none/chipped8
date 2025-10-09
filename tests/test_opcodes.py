@@ -196,10 +196,23 @@ opcode_tests = [
     ),
 
     ProgramTest(
+        name='5XY3: Loads VX..VY from memory location in I',
+        program=[0x5243],
+        initial_state={'I': 0x6000, 'mem': audio_pattern},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x0202),
+            lambda cpu: validate_v(cpu, 0x01, 0x00),
+            lambda cpu: validate_v(cpu, 0x02, 0xAA),
+            lambda cpu: validate_v(cpu, 0x03, 0xBB),
+            lambda cpu: validate_v(cpu, 0x04, 0xCC),
+            lambda cpu: validate_v(cpu, 0x05, 0x00),
+        ]
+    ),
+
+    ProgramTest(
         name='6XNN: Sets VX to NN',
         program=[0x60FF],
         initial_state={'V': [0]*16, 'PC': 0x200},
-        steps=1,
         validators=[
             lambda cpu: validate_v(cpu, 0, 0xFF),
             lambda cpu: validate_pc(cpu, 0x202),
