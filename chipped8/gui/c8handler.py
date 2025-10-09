@@ -168,7 +168,6 @@ class c8Handler(QObject):
             self.errorOccurred.emit(str(e))
             self._emulator = None
             self._rom_fname = None
-            raise e
             return
 
         self.clearScreenReady.emit()
