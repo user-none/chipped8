@@ -22,12 +22,8 @@
 
 from collections import deque
 from copy import deepcopy
-from random import randint
 
 from ..icpu import iCPU
-
-from ..keys import KeyState
-from ..display import Plane, ResolutionMode
 
 from .instrs.instr_emitter import InstrBlockEmitter
 from .instrs.instr import InstrKind
