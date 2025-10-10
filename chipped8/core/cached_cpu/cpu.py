@@ -33,11 +33,18 @@ class CachedCPU(iCPU):
     A caching interpreter.
 
     Opcodes split into two different types, PIC (position independent code) and non-PIC.
-    Each type is cached in a different cache. PIC are cashed using the full opcode including
-    all operand values that make it up. non-PIC are cached based on their PC. non-PIC are
-    determined if they need knowledge of an opcode outside of their own. For example, a
-    conditional advance which needs to know if the next opcode is 0xF000 to determine if
-    the PC needs to advance once or twice.
+    Each type is cached in a different cache.
+
+    PIC are cashed using the full opcode including all operand values that make
+    it up. These are stateless and do not depend on the PC where they were
+    encountered.
+
+    non-PIC are cached based on their PC. non-PIC are determined if they need
+    knowledge of an opcode outside of their own. For example, a conditional
+    advance which needs to know if the next opcode is 0xF000 to determine if
+    the PC needs to advance once or twice. These are stateful due to needing
+    additional information stored that is not part of the operand data within
+    in the opcode.
 
     Further, they are cached in blocks based on the PC sequence in the ROM. Each block
     will have the starting PC as the key and will be all ops that come after unless an
