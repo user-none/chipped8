@@ -57,7 +57,7 @@ class CachedLxCPU(iCPU):
         self._quirks = quirks
         self._audio = audio
 
-        self._vblank_wait = False
+        self._draw_occurred = False
 
         self._instruction_queue = deque()
         self._emitter = Emitter()
@@ -68,7 +68,7 @@ class CachedLxCPU(iCPU):
 
     def execute_next_op(self):
         set_PC = False
-        self._vblank_wait = False
+        self._draw_occurred = False
 
         if len(self._instruction_queue) == 0:
             self._instruction_queue.extend(self._emitter.get_block(self._registers, self._memory))
@@ -104,4 +104,4 @@ class CachedLxCPU(iCPU):
                 self._registers.advance_PC()
 
     def draw_occurred(self):
-        return self._vblank_wait
+        return self._draw_occurred

@@ -244,7 +244,7 @@ def _execute_DXYN(cpu, x, y, n):
     vy = cpu._registers.get_V(y)
 
     cpu._display.draw(vx, vy, n, cpu._quirks.wrap, cpu._registers, cpu._memory)
-    cpu._vblank_wait = True
+    cpu._draw_occurred = True
     return (True, False, False)
 
 def _execute_EX9E(cpu, x):
