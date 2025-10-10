@@ -85,7 +85,7 @@ All three have roughly the same performance. With a few special cases:
 * Cached and Cached Lx are about 25% slower then pure with heavily self modifying ROMs
 
 The different interpreters are available mainly as an exercise in understanding different
-designs. The execution of a ROM is the identical across all of them.
+designs. The execution of a ROM is identical across all of them.
 
 ## Install and Run
 
@@ -130,6 +130,12 @@ Cross compiling is not supported by PyInstaller. The package created will
 be for the OS you are building the package with. A GitHub workflow for creating
 and uploading standalone packages as artifacts for macOS, Linux, and Windows
 can be found in the `.github` directory.
+
+## Unit Tests
+
+Automated tests can be run using `pytest`. The opcode tests will run using all
+interpreters. Tests are not comprehensive and a number of opcodes, mainly drawing,
+do not have tests.
 
 ---
 
