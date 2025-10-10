@@ -27,6 +27,7 @@ from threading import Event as ThreadingEvent
 
 from .pure_cpu.cpu import PureCPU
 from .cached_cpu.cpu import CachedCPU
+from .cached_lx_cpu.cpu import CachedLxCPU
 from .registers import Registers
 from .timers import Timers
 from .stack import Stack
@@ -63,6 +64,8 @@ class Emulator():
 
         if self._interpreter_type == InterpreterTypes.cached:
             CPU = CachedCPU
+        elif self._interpreter_type == InterpreterTypes.cachedlx:
+            CPU = CachedLxCPU
         else:
             CPU = PureCPU
         self._cpu = CPU(
@@ -98,6 +101,8 @@ class Emulator():
 
         if self._interpreter_type == InterpreterTypes.cached:
             CPU = CachedCPU
+        elif self._interpreter_type == InterpreterTypes.cachedlx:
+            CPU = CachedLxCPU
         else:
             CPU = PureCPU
         d._cpu = CPU(

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -20,13 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import Enum
+from enum import Enum, auto
 
-class InterpreterTypes(Enum):
-    cached = 'cached'
-    pure = 'pure'
-    cachedlx = 'cachedlx'
+class InstrKind:
 
-    def __str__(self):
-        return self.value
-
+    OPERATION = auto()
+    JUMP = auto()
+    COND_ADVANCE = auto()
+    DOUBLE_WIDE = auto()
+    BLOCKING = auto()
+    EXIT = auto()
