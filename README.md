@@ -70,23 +70,22 @@ ROMs. A selection of relevant metadata can be displayed as an overly.
 
 ## Interpreters
 
-Two different interpreters are supported.
+Multiple interpreters are supported.
 
 1. Cached
-2. Pure
+2. Cached Lx
+3. Pure
 
-The cached interpreter is the default but the pure interpreter
-can be chosen as a command line option or chosen via the Interpreter menu
+The cached interpreter is the default but the other interpreters
+can be chosen as a command line option or via the Interpreter menu
 in the GUI.
 
-The cached interpreter is slightly faster in most cases but is much slower if a
-ROM is self modifying. It's assumed a ROM is self modifying if a write within
-the ROM's address space or a jump out side of the ROM's address space takes
-place. When this happens most caching that takes place with the cached
-interpreter is be disabled. The performance of the cached interpreter without
-caching is quite poor. That said, Chip-8 is a very simple system and the
-performance degradation is not noticeable.
+All three have roughly the same performance. With a few special cases:
+* Cached Lx is often slower than Cached but the difference is nanoseconds
+* Cached and Cached Lx are about 25% slower then pure with heavily self modifying ROMs
 
+The different interpreters are available mainly as an exercise in understanding different
+designs. The execution of a ROM is the identical across all of them.
 
 ## Install and Run
 
