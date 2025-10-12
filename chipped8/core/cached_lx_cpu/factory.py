@@ -20,16 +20,13 @@
 
 from random import randint
 
-from ..exceptions import UnknownOpCodeException
+from ..exceptions import UnknownOpCodeException, ExitInterpreterException
 from ..keys import KeyState
 from ..display import Plane, ResolutionMode
 from .instr_kind import InstrKind
 
 def _get_opcode(pc, memory):
     return (memory.get_byte(pc) << 8) | memory.get_byte(pc + 1)
-
-def _get_next_opcode(pc, memory):
-    return (memory.get_byte(pc + 2) << 8) | memory.get_byte(pc + 3)
 
 # Returns: (advance, self_modified, is_jump)
 
@@ -264,7 +261,7 @@ def _execute_EXA1(cpu, x):
     return (True, False, False)
 
 def _execute_F000(cpu):
-    addr = _get_next_opcode(cpu._registers.get_PC() - 2, cpu._memory)
+    addr = _get_opcode(cpu._registers.get_PC(), cpu._memory)
     cpu._registers.set_I(addr)
     cpu._registers.advance_PC()
     return (True, False, False)
