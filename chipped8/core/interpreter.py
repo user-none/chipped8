@@ -22,12 +22,29 @@
 
 from enum import Enum
 
+from .cpu.pure.cpu import PureCPU
+from .cpu.cached.obj.cpu import CachedOSplitPreBlockCPU
+from .cpu.cached.lamb.cpu_preblock import CachedLPreBlockCPU
+from .cpu.cached.lamb.cpu_hotblock import CachedLHotBlockCPU
+
 class InterpreterTypes(Enum):
-    cached = 'cached'
     pure = 'pure'
-    cachedlx = 'cachedlx'
-    cachedla = 'cachedla'
+    cachedo = 'cachedo'
+    cachedlp = 'cachedlp'
+    cachedlh = 'cachedlh'
 
     def __str__(self):
         return self.value
 
+def get_interperter(interpreter_type: InterpreterTypes):
+    match interpreter_type:
+        case InterpreterTypes.cachedo:
+            return CachedOSplitPreBlockCPU
+        case InterpreterTypes.cachedlp:
+            return CachedLPreBlockCPU
+        case InterpreterTypes.cachedlh:
+            return CachedLHotBlockCPU
+        case InterpreterTypes.pure:
+            return PureCPU
+        case _:
+            return None

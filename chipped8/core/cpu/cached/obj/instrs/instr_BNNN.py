@@ -20,18 +20,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...exceptions import ExitInterpreterException
+from .instr import Instr
+from ...instr_kind import InstrKind
 
-from .instr import Instr, InstrKind
-
-class Instr00FD(Instr):
+class InstrBNNN(Instr):
     '''
-    00FD: Exit interpreter
+    BXNN / BNNN: Jumps to the address NNN plus V0
     '''
 
-    def __init__(self, quirks):
+    def __init__(self, opcode, quirks):
+        self._x = (opcode & 0x0F00) >> 8
+        self._nnn  = (opcode & 0x0FFF)
+        self._quirk_jump = quirks.jump
+
         super().__init__()
-        self.kind = InstrKind.EXIT
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        raise ExitInterpreterException()
+        self.self_modified = False
+
+        if self._quirk_jump:
+            n = self._nnn + registers.get_V(self._x)
+        else:
+            n = self._nnn + registers.get_V(0)
+
+        if n >= memory.ram_start():
+            self.self_modified = True
+
+        registers.set_PC(n)

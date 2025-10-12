@@ -20,23 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...display import Plane
-
 from .instr import Instr
+from ...instr_kind import InstrKind
 
-class InstrFN01(Instr):
+class InstrF000(Instr):
     '''
-    FN01: Select drawing planes by bitmask (0 planes, plane 1, plane 2 or both planes (3))
+    F000 NNNN: Load I with 16-bit address NNNN this is a four byte instruction
     '''
 
-    def __init__(self, n):
-        self._n = n
+    def __init__(self, addr):
+        self._addr = addr
+
         super().__init__()
+        self.pic = False
+        self.kind = InstrKind.DOUBLE_WIDE
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        plane = Plane(0)
-        if self._n & 1:
-            plane = plane | Plane.p1
-        if self._n & 2:
-            plane = plane | Plane.p2
-        display.plane = plane
+        registers.set_I(self._addr)

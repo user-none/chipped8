@@ -39,7 +39,7 @@ class c8Handler(QObject):
     fps = Signal(float, float)
     updateScreen = Signal()
 
-    def __init__(self, platform=chipped8.PlatformTypes.originalChip8, interpreter=chipped8.InterpreterTypes.cached):
+    def __init__(self, platform=chipped8.PlatformTypes.originalChip8, interpreter=chipped8.InterpreterTypes.pure):
         QObject.__init__(self)
 
         self._emulator = None
@@ -284,6 +284,7 @@ class c8Handler(QObject):
             self._process_timer.stop()
             self.fps.emit(0, 0)
             self._frame_times = []
+            raise e
             return
 
         self._record_frame()

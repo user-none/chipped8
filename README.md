@@ -72,17 +72,27 @@ ROMs. A selection of relevant metadata can be displayed as an overly.
 
 Multiple interpreters are supported.
 
-1. Cached
-2. Cached Lx
-3. Pure
+1. Pure: `pure`. A pure interpreter that uses a decode 
+2. Cached: `cachedo`. A Build-Then-Execute interpreter that uses class objects for instruction caching
+3. Cached: `cachedolp`. A Build-Then-Execute interpreter that uses captured lambdas for instruction caching
+3. Cached: `cachedolh`. An Execute-While-Building instruction that uses captured lambdas for instruction caching
 
-The cached interpreter is the default but the other interpreters
-can be chosen as a command line option or via the Interpreter menu
-in the GUI.
+The different interpreters are provided mainly to understand and test the differences between
+various interpreter designs. None is better then another with chip-8 due to how few cycles take place
+when executing instructions. Performance difference is overall negligible for all practical use.
 
-All three have roughly the same performance. With a few special cases:
-* Cached Lx is often slower than Cached but the difference is nanoseconds
-* Cached and Cached Lx are about 25% slower then pure with heavily self modifying ROMs
+The pure interpreter is the default but the other interpreters can be chosen as
+a command line option or via the Interpreter menu in the GUI.
+
+There are a few special cases where a given design provides better performance than others:
+
+* `cachedolh` is faster when dealing with self modifying code than `cachedo` and `cachedlp`
+  The Build-Then-Execute model is wasteful because blocks of instructions will be built and
+  not fully executed due to self modification needing to reset the cache. Heavily self modifying
+  code can have many instances where a multiple instructions are built into a block only to have
+  a few run.
+* The `pure` CPU in theory should be slower than the caching ones. However, it is the fastest in
+  all situations.
 
 The different interpreters are available mainly as an exercise in understanding different
 designs. The execution of a ROM is identical across all of them.

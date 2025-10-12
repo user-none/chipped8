@@ -20,31 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .instr import Instr, InstrKind
+from ...instr_kind import InstrKind
 
-class Instr9XY0(Instr):
-    '''
-    9XY0: Skips the next instruction if VX does not equal VY
-          XO-Chip uses 0xF000 with a following 2 byte
-          address that also needs to be skipped.
-    '''
+class Instr:
 
-    def __init__(self, pc, opcode, next_opcode):
-        self._pc = pc
-        self._next_opcode = next_opcode
-        self._x = (opcode & 0x0F00) >> 8
-        self._y = (opcode & 0x00F0) >> 4
-
-        super().__init__()
-        self.pic = False
-        self.kind = InstrKind.COND_ADVANCE
+    def __init__(self):
+        self.pic = True
+        self.kind = InstrKind.OPERATION
+        self.advance = True
+        self.draw_occurred = False
+        self.self_modified = False
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        registers.set_PC(self._pc)
+        raise Exception('Not Implemented')
 
-        if registers.get_V(self._x) != registers.get_V(self._y):
-            registers.advance_PC()
-            if self._next_opcode == 0xF000:
-                registers.advance_PC()
-
-        registers.advance_PC()
+    def __str__(self):
+        return self.__class__.__name__

@@ -20,30 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .instr import Instr, InstrKind
+from .....display import Plane
 
-class InstrDXYN(Instr):
+from .instr import Instr
+
+class InstrFN01(Instr):
     '''
-    DXYN: Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels
-          and a height of N pixels. Each row of 8 pixels is read as bit-coded
-          starting from memory location I; I value does not change after the
-          execution of this instruction. As described above, VF is set to 1 if any
-          screen pixels are flipped from set to unset when the sprite is drawn, and
-          to 0 if that does not happen
+    FN01: Select drawing planes by bitmask (0 planes, plane 1, plane 2 or both planes (3))
     '''
 
-    def __init__(self, opcode, quirks):
-        self._x = (opcode & 0x0F00) >> 8
-        self._y = (opcode & 0x00F0) >> 4
-        self._n = opcode & 0x000F
-        self._quirk_wrap = quirks.wrap
-
+    def __init__(self, n):
+        self._n = n
         super().__init__()
-        self.kind = InstrKind.DRAW
-        self.draw_occurred = True
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        vx = registers.get_V(self._x)
-        vy = registers.get_V(self._y)
-
-        display.draw(vx, vy, self._n, self._quirk_wrap, registers, memory)
+        plane = Plane(0)
+        if self._n & 1:
+            plane = plane | Plane.p1
+        if self._n & 2:
+            plane = plane | Plane.p2
+        display.plane = plane

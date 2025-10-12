@@ -25,10 +25,6 @@ import time
 from copy import deepcopy
 from threading import Event as ThreadingEvent
 
-from .pure_cpu.cpu import PureCPU
-from .cached_cpu.cpu import CachedCPU
-from .cached_lx_cpu.cpu import CachedLxCPU
-from .cached_lx_cpu.cpu_la import CachedLaCPU
 from .registers import Registers
 from .timers import Timers
 from .stack import Stack
@@ -36,12 +32,12 @@ from .memory import Memory
 from .keys import KeyInput
 from .display import Displaly
 from .platform import PlatformTypes, Platform
-from .interpreter import InterpreterTypes
+from .interpreter import InterpreterTypes, get_interperter
 from .audio import Audio
 
 class Emulator():
 
-    def __init__(self, platform=PlatformTypes.originalChip8, interpreter_type=InterpreterTypes.cached, tickrate=-1, quirks=None):
+    def __init__(self, platform=PlatformTypes.originalChip8, interpreter_type=InterpreterTypes.pure, tickrate=-1, quirks=None):
         platform = Platform(platform)
         if not quirks:
             self._quirks = platform.quirks()
@@ -63,14 +59,7 @@ class Emulator():
         self._display = Displaly()
         self._audio = Audio()
 
-        if self._interpreter_type == InterpreterTypes.cached:
-            CPU = CachedCPU
-        elif self._interpreter_type == InterpreterTypes.cachedlx:
-            CPU = CachedLxCPU
-        elif self._interpreter_type == InterpreterTypes.cachedla:
-            CPU = CachedLaCPU
-        else:
-            CPU = PureCPU
+        CPU = get_interperter(self._interpreter_type)
         self._cpu = CPU(
             self._registers,
             self._stack,
@@ -102,14 +91,7 @@ class Emulator():
         d._audio = deepcopy(self._audio, memo)
 
 
-        if self._interpreter_type == InterpreterTypes.cached:
-            CPU = CachedCPU
-        elif self._interpreter_type == InterpreterTypes.cachedlx:
-            CPU = CachedLxCPU
-        elif self._interpreter_type == InterpreterTypes.cachedla:
-            CPU = CachedLaCPU
-        else:
-            CPU = PureCPU
+        CPU = get_interperter(self._interpreter_type)
         d._cpu = CPU(
             d._registers,
             d._stack,

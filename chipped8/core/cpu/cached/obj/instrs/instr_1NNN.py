@@ -20,14 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...display import Plane, ResolutionMode
-
 from .instr import Instr
+from ...instr_kind import InstrKind
 
-class Instr00FF(Instr):
+class Instr1NNN(Instr):
     '''
-    00FF: Switch to high resolution mode
+    1NNN: Jump to address NNN
     '''
+
+    def __init__(self, opcode):
+        self._addr = opcode & 0x0FFF
+
+        super().__init__()
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        display.resmode = ResolutionMode.hires
+        self.self_modified = False
+
+        if self._addr >= memory.ram_start():
+            self.self_modified = True
+
+        registers.set_PC(self._addr)

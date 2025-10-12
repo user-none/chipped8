@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright 2025 John Schember <john@nachtimwald.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -18,13 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import Enum, auto
+from .....display import Plane, ResolutionMode
 
-class InstrKind:
+from .instr import Instr
 
-    OPERATION = auto()
-    JUMP = auto()
-    COND_ADVANCE = auto()
-    DOUBLE_WIDE = auto()
-    BLOCKING = auto()
-    EXIT = auto()
+class Instr00FE(Instr):
+    '''
+    00FE: Switch to low resolution mode
+    '''
+
+    def execute(self, registers, stack, memory, timers, keys, display, audio):
+        display.resmode = ResolutionMode.lowres

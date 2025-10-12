@@ -23,17 +23,19 @@
 from collections import deque
 from copy import deepcopy
 
-from ..icpu import iCPU
+from ...icpu import iCPU
 
 from .factory import get_op_instr
-from .instr_kind import InstrKind
+from ..instr_kind import InstrKind
 
 def _get_opcode(pc, memory):
     return (memory.get_byte(pc) << 8) | memory.get_byte(pc + 1)
 
-class CachedLaCPU(iCPU):
+class CachedLHotBlockCPU(iCPU):
     '''
-    A caching interpreter.
+    A caching interpreter that executes while building a of blocks of
+    instructions. The block is cached based on the starting PC for quicker
+    execution of the instruction sequence later.
 
     Opcodes are cached based on the full operand and added to a lookup table.
     This will reduce the need for decoding of the opcodes to take place. All
@@ -45,14 +47,11 @@ class CachedLaCPU(iCPU):
     ending op is encountered. An ending opcode is one that changes flow. Such as a
     JUMP, or a conditional advance.
 
-    Blocks are built as instructions are run. The instruction chain is prebuilt before
-    execution starts. As instructions executer they are added to the current block.
-    Once a control instruction that changes flow is encountered the block is closed
-    and a new one is started.
-
-    The advantage of post building instruction block is for self modifying ROMs. Prebuilding
-    blocks can result in blocks that have instructions that computed never executed. This
-    ensures only executed instructions are put into blocks.
+    Blocks are built as instructions are run. As instructions execute they are
+    added to the current block. Once a control instruction that changes flow is
+    encountered the block is closed and a new one is started. A block can also be closed
+    if a block is open and a PC is encountered for an already cached block. Blocks
+    are no chained within each other.
 
     The PC is set to the last PC + 2 in the current block of opcodes that are being run.
     This simulates the entire block having been run and the PC advancing past. Operations

@@ -20,32 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...keys import KeyState
+from .instr import Instr
+from ...instr_kind import InstrKind
 
-from .instr import Instr, InstrKind
-
-class InstrEXA1(Instr):
+class Instr00EE(Instr):
     '''
-    EXA1: Skips the next instruction if the key stored in VX is not pressed
-          XO-Chip uses 0xF000 with a following 2 byte
-          address that also needs to be skipped.
+    00EE: Return from subroutine
     '''
 
-    def __init__(self, pc, x, next_opcode):
-        self._pc = pc
-        self._x = x
-        self._next_opcode = next_opcode
-
+    def __init__(self):
         super().__init__()
-        self.pic = False
-        self.kind = InstrKind.COND_ADVANCE
+        self.kind = InstrKind.JUMP
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        registers.set_PC(self._pc)
+        self.self_modified = False
 
-        if keys.get_key_state(registers.get_V(self._x)) == KeyState.up:
-            registers.advance_PC()
-            if self._next_opcode == 0xF000:
-                registers.advance_PC()
+        pc = stack.pop()
+        if pc >= memory.ram_start()-2:
+            self.self_modified = True
 
+        registers.set_PC(pc)
         registers.advance_PC()

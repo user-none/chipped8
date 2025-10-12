@@ -23,14 +23,16 @@
 from collections import deque
 from copy import deepcopy
 
-from ..icpu import iCPU
+from ...icpu import iCPU
 
-from .instrs.instr_emitter import InstrBlockEmitter
-from .instrs.instr import InstrKind
+from .instrs.emitter import InstrBlockEmitter
+from ..instr_kind import InstrKind
 
-class CachedCPU(iCPU):
+class CachedOSplitPreBlockCPU(iCPU):
     '''
-    A caching interpreter.
+    A caching interpreter that builds a blocks of instructions until a boundary is reached
+    then executes the block. The block is cached based on the starting PC for quicker
+    execution of the instruction sequence later.
 
     Opcodes split into two different types, PIC (position independent code) and non-PIC.
     Each type is cached in a different cache.

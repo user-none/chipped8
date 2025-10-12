@@ -20,23 +20,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .instr import Instr, InstrKind
+from .instr import Instr
+from ...instr_kind import InstrKind
 
-class Instr1NNN(Instr):
+class Instr3XNN(Instr):
     '''
-    1NNN: Jump to address NNN
+    3XNN: Skips the next instruction if VX equals NN 
+          XO-Chip uses 0xF000 with a following 2 byte
+          address that also needs to be skipped.
     '''
 
-    def __init__(self, opcode):
-        self._addr = opcode & 0x0FFF
+    def __init__(self, pc, opcode, next_opcode):
+        self._pc = pc
+        self._next_opcode = next_opcode
+        self._x = (opcode & 0x0F00) >> 8
+        self._n = opcode & 0x00FF
 
         super().__init__()
-        self.kind = InstrKind.JUMP
+        self.pic = False
+        self.kind = InstrKind.COND_ADVANCE 
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        self.self_modified = False
+        registers.set_PC(self._pc)
 
-        if self._addr >= memory.ram_start():
-            self.self_modified = True
+        if registers.get_V(self._x) == self._n:
+            registers.advance_PC()
+            if self._next_opcode == 0xF000:
+                registers.advance_PC()
 
-        registers.set_PC(self._addr)
+        registers.advance_PC()

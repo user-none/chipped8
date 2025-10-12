@@ -20,10 +20,10 @@
 
 from random import randint
 
-from ..exceptions import UnknownOpCodeException, ExitInterpreterException
-from ..keys import KeyState
-from ..display import Plane, ResolutionMode
-from .instr_kind import InstrKind
+from ....keys import KeyState
+from ....display import Plane, ResolutionMode
+from ....exceptions import UnknownOpCodeException, ExitInterpreterException
+from ..instr_kind import InstrKind
 
 def _get_opcode(pc, memory):
     return (memory.get_byte(pc) << 8) | memory.get_byte(pc + 1)

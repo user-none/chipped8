@@ -18,8 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ..exceptions import UnknownOpCodeException
-from .instr_kind import InstrKind
+from ....exceptions import UnknownOpCodeException
+from ..instr_kind import InstrKind
 from .factory import get_op_instr
 
 class Emitter:

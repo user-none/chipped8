@@ -20,28 +20,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import Enum, auto
+from .....keys import KeyState
 
-class InstrKind(Enum):
-    OPERATION = auto()
-    JUMP = auto()
-    COND_ADVANCE = auto()
-    DOUBLE_WIDE = auto()
-    BLOCKING = auto()
-    DRAW = auto()
-    EXIT = auto()
+from .instr import Instr
+from ...instr_kind import InstrKind
 
-class Instr:
+class InstrEXA1(Instr):
+    '''
+    EXA1: Skips the next instruction if the key stored in VX is not pressed
+          XO-Chip uses 0xF000 with a following 2 byte
+          address that also needs to be skipped.
+    '''
 
-    def __init__(self):
-        self.pic = True
-        self.kind = InstrKind.OPERATION
-        self.advance = True
-        self.draw_occurred = False
-        self.self_modified = False
+    def __init__(self, pc, x, next_opcode):
+        self._pc = pc
+        self._x = x
+        self._next_opcode = next_opcode
+
+        super().__init__()
+        self.pic = False
+        self.kind = InstrKind.COND_ADVANCE
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        raise Exception('Not Implemented')
+        registers.set_PC(self._pc)
 
-    def __str__(self):
-        return self.__class__.__name__
+        if keys.get_key_state(registers.get_V(self._x)) == KeyState.up:
+            registers.advance_PC()
+            if self._next_opcode == 0xF000:
+                registers.advance_PC()
+
+        registers.advance_PC()

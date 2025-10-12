@@ -20,32 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...keys import KeyState
+from .....exceptions import ExitInterpreterException
 
-from .instr import Instr, InstrKind
+from .instr import Instr
+from ...instr_kind import InstrKind
 
-class InstrEX9E(Instr):
+class Instr00FD(Instr):
     '''
-    EX9E: Skips the next instruction if the key stored in VX is pressed
-          XO-Chip uses 0xF000 with a following 2 byte
-          address that also needs to be skipped.
+    00FD: Exit interpreter
     '''
 
-    def __init__(self, pc, x, next_opcode):
-        self._pc = pc
-        self._x = x
-        self._next_opcode = next_opcode
-
+    def __init__(self, quirks):
         super().__init__()
-        self.pic = False
-        self.kind = InstrKind.COND_ADVANCE
+        self.kind = InstrKind.EXIT
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        registers.set_PC(self._pc)
-
-        if keys.get_key_state(registers.get_V(self._x)) == KeyState.down:
-            registers.advance_PC()
-            if self._next_opcode == 0xF000:
-                registers.advance_PC()
-
-        registers.advance_PC()
+        raise ExitInterpreterException()

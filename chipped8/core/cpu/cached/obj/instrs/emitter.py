@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...exceptions import UnknownOpCodeException
+from .....exceptions import UnknownOpCodeException
 
 from .instr import InstrKind
-from .instr_factory import InstrFactory
+from .factory import InstrFactory
 
 class InstrBlockEmitter:
 

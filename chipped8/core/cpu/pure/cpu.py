@@ -24,9 +24,9 @@ from random import randint
 
 from ..icpu import iCPU
 
-from ..keys import KeyState
-from ..display import Plane, ResolutionMode
-from ..exceptions import ExitInterpreterException
+from ...keys import KeyState
+from ...display import Plane, ResolutionMode
+from ...exceptions import ExitInterpreterException
 
 class PureCPU(iCPU):
 

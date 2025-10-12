@@ -20,9 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ...keys import KeyState
+from .....keys import KeyState
 
-from .instr import Instr, InstrKind
+from .instr import Instr
+from ...instr_kind import InstrKind
 
 class InstrFX0A(Instr):
     '''

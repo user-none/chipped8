@@ -23,13 +23,15 @@
 from collections import deque
 from copy import deepcopy
 
-from ..icpu import iCPU
+from ...icpu import iCPU
 
 from .emitter import Emitter
 
-class CachedLxCPU(iCPU):
+class CachedLPreBlockCPU(iCPU):
     '''
-    A caching interpreter.
+    A caching interpreter that builds a blocks of instructions until a boundary is reached
+    then executes the block. The block is cached based on the starting PC for quicker
+    execution of the instruction sequence later.
 
     Opcodes are cached based on the full operand and added to a lookup table.
     This will reduce the need for decoding of the opcodes to take place. All
@@ -41,6 +43,7 @@ class CachedLxCPU(iCPU):
     ending op is encountered. An ending opcode is one that changes flow. Such as a
     JUMP, or a conditional advance.
 
+    Blocks are build before any instruction is run and only completed blocks will be run.
 
     The PC is set to the last PC + 2 in the current block of opcodes that are being run.
     This simulates the entire block having been run and the PC advancing past. Operations

@@ -20,30 +20,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .instr import Instr, InstrKind
+from .instr import Instr
+from ...instr_kind import InstrKind
 
-class InstrBNNN(Instr):
+class Instr5XY0(Instr):
     '''
-    BXNN / BNNN: Jumps to the address NNN plus V0
+    5XY0: Skips the next instruction if VX equals VY
+          XO-Chip uses 0xF000 with a following 2 byte
+          address that also needs to be skipped.
     '''
 
-    def __init__(self, opcode, quirks):
-        self._x = (opcode & 0x0F00) >> 8
-        self._nnn  = (opcode & 0x0FFF)
-        self._quirk_jump = quirks.jump
+    def __init__(self, pc, next_opcode, x, y):
+        self._pc = pc
+        self._next_opcode = next_opcode
+        self._x = x
+        self._y = y
 
         super().__init__()
-        self.kind = InstrKind.JUMP
+        self.pic = False
+        self.kind = InstrKind.COND_ADVANCE
 
     def execute(self, registers, stack, memory, timers, keys, display, audio):
-        self.self_modified = False
+        registers.set_PC(self._pc)
 
-        if self._quirk_jump:
-            n = self._nnn + registers.get_V(self._x)
-        else:
-            n = self._nnn + registers.get_V(0)
+        if registers.get_V(self._x) == registers.get_V(self._y):
+            registers.advance_PC()
+            if self._next_opcode == 0xF000:
+                registers.advance_PC()
 
-        if n >= memory.ram_start():
-            self.self_modified = True
-
-        registers.set_PC(n)
+        registers.advance_PC()

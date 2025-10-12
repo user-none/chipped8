@@ -1,9 +1,6 @@
 import pytest
 
 from .test_framework import ProgramTest, run_test_program, validate_stack, validate_stack_len, validate_v, validate_pc, validate_memory, validate_i, validate_audio_pattern, validate_delay_timer, validate_sound_timer, validate_audio_pitch, validate_rpl
-
-from chipped8.core.pure_cpu.cpu import PureCPU
-from chipped8.core.cached_cpu.cpu import CachedCPU
 from chipped8.core.keys import Keys, KeyState
 
 # -----------------------------
