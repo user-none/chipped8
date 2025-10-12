@@ -5,7 +5,7 @@ from chipped8.core.platform import PlatformTypes
 from chipped8.core.interpreter import InterpreterTypes
 
 # Interpreter types
-interpreter_types = [InterpreterTypes.cached, InterpreterTypes.pure, InterpreterTypes.cachedlx]
+interpreter_types = [InterpreterTypes.cached, InterpreterTypes.pure, InterpreterTypes.cachedlx, InterpreterTypes.cachedla]
 
 # Platform types
 @pytest.fixture(params=interpreter_types)

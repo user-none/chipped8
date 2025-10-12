@@ -26,6 +26,7 @@ class InterpreterTypes(Enum):
     cached = 'cached'
     pure = 'pure'
     cachedlx = 'cachedlx'
+    cachedla = 'cachedla'
 
     def __str__(self):
         return self.value
