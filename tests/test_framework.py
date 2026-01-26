@@ -71,6 +71,19 @@ def load_test_program(cpu, test: ProgramTest):
             quirks.logic = True
         cpu._quirks = quirks
 
+    if 'display' in test.initial_state:
+        from chipped8.core.display import ResolutionMode, Plane
+        display_state = test.initial_state['display']
+        if 'resmode' in display_state:
+            # Set resmode directly to avoid clearing screen
+            cpu._display._res_mode = display_state['resmode']
+        if 'plane' in display_state:
+            cpu._display._target_plane = display_state['plane']
+        if 'pixels' in display_state:
+            for plane_idx, x, y, value in display_state['pixels']:
+                idx = x + (y * 128)
+                cpu._display._screen_planes[plane_idx][idx] = value
+
 def run_test_program(cpu, test: ProgramTest):
     load_test_program(cpu, test)
     for _ in range(test.steps):
@@ -119,3 +132,14 @@ def validate_rpl(cpu, idx, expected):
 def validate_display_plane(cpu, expected):
     from chipped8.core.display import Plane
     assert cpu._display.plane == expected, f'Display plane expected {expected}, got {cpu._display.plane}'
+
+def validate_display_pixel(cpu, plane_idx, x, y, expected):
+    """Validate a pixel in the display buffer (internal 128x64 coords)."""
+    idx = x + (y * 128)
+    actual = cpu._display._screen_planes[plane_idx][idx]
+    assert actual == expected, f'Pixel ({x},{y}) plane {plane_idx}: expected {expected}, got {actual}'
+
+def validate_display_resmode(cpu, expected):
+    """Validate display resolution mode."""
+    from chipped8.core.display import ResolutionMode
+    assert cpu._display._res_mode == expected, f'Resmode: expected {expected}, got {cpu._display._res_mode}'

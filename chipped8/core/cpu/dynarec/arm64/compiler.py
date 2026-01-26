@@ -742,6 +742,7 @@ class BlockCompiler:
         self.emitter.ldr_w(self.REG_SCRATCH0, self.REG_STATE, OFFSET_I)
         self.emitter.ldrb(self.REG_SCRATCH1, self.REG_STATE, OFFSET_V + x)
         self.emitter.add_reg(self.REG_SCRATCH0, self.REG_SCRATCH0, self.REG_SCRATCH1)
+        self.emitter.and_imm(self.REG_SCRATCH0, self.REG_SCRATCH0, 0xFFFF)  # Wrap at 16-bit
         self.emitter.str_w(self.REG_SCRATCH0, self.REG_STATE, OFFSET_I)
         self._emit_store_pc(pc + 2)
         self._emit_block_end()

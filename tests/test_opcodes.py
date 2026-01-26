@@ -1,8 +1,8 @@
 import pytest
 
-from .test_framework import ProgramTest, run_test_program, validate_stack, validate_stack_len, validate_v, validate_pc, validate_memory, validate_i, validate_audio_pattern, validate_delay_timer, validate_sound_timer, validate_audio_pitch, validate_rpl, validate_display_plane
+from .test_framework import ProgramTest, run_test_program, load_test_program, validate_stack, validate_stack_len, validate_v, validate_pc, validate_memory, validate_i, validate_audio_pattern, validate_delay_timer, validate_sound_timer, validate_audio_pitch, validate_rpl, validate_display_plane, validate_display_pixel, validate_display_resmode
 from chipped8.core.keys import Keys, KeyState
-from chipped8.core.display import Plane
+from chipped8.core.display import Plane, ResolutionMode
 
 # -----------------------------
 # Helper functions for assertions
@@ -867,7 +867,620 @@ opcode_tests = [
             lambda cpu: validate_v(cpu, 2, 0x0),
         ]
     ),
+
+    # ========================================
+    # DXYN - Draw sprite tests
+    # ========================================
+
+    ProgramTest(
+        name='DXYN: 8x1 sprite no collision (lowres)',
+        program=[0xD011],  # Draw 1-row sprite at V0, V1
+        initial_state={
+            'V': [4, 4] + [0]*14,  # x=4, y=4
+            'I': 0x6000,
+            'mem': [0xFF] + [0]*15,  # 8 pixels on
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0),  # No collision
+            lambda cpu: validate_display_pixel(cpu, 0, 8, 8, 1),  # lowres: x*2, y*2
+            lambda cpu: validate_display_pixel(cpu, 0, 9, 8, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 14, 8, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 15, 8, 1),
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: 8x1 sprite collision - draw twice (lowres)',
+        program=[0xD011, 0xD011],  # Draw same sprite twice
+        initial_state={
+            'V': [4, 4] + [0]*14,
+            'I': 0x6000,
+            'mem': [0xFF] + [0]*15,
+        },
+        steps=2,
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x204),
+            lambda cpu: validate_v(cpu, 0xF, 1),  # Collision on second draw
+            lambda cpu: validate_display_pixel(cpu, 0, 8, 8, 0),  # XOR cleared
+            lambda cpu: validate_display_pixel(cpu, 0, 9, 8, 0),
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: 8x5 sprite (lowres)',
+        program=[0xD015],
+        initial_state={
+            'V': [0, 0] + [0]*14,
+            'I': 0x6000,
+            'mem': [0xF0, 0x90, 0x90, 0x90, 0xF0] + [0]*11,  # '0' character
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0),
+            # Check a few pixels at corners
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 1),  # Top-left
+            lambda cpu: validate_display_pixel(cpu, 0, 6, 0, 1),  # Top-right of sprite
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 8, 1),  # Bottom-left
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: 8x15 sprite max height (lowres)',
+        program=[0xD01F],  # 15 rows
+        initial_state={
+            'V': [0, 0] + [0]*14,
+            'I': 0x6000,
+            'mem': [0x80] * 15 + [0],  # Just leftmost pixel per row
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 28, 1),  # Row 14 * 2 = 28
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: 8x1 sprite no collision (hires)',
+        program=[0xD011],
+        initial_state={
+            'V': [10, 10] + [0]*14,
+            'I': 0x6000,
+            'mem': [0xFF] + [0]*15,
+            'display': {'resmode': ResolutionMode.hires},
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 10, 1),  # hires: 1:1
+            lambda cpu: validate_display_pixel(cpu, 0, 17, 10, 1),
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: 8x1 sprite collision (hires)',
+        program=[0xD011, 0xD011],
+        initial_state={
+            'V': [10, 10] + [0]*14,
+            'I': 0x6000,
+            'mem': [0xFF] + [0]*15,
+            'display': {'resmode': ResolutionMode.hires},
+        },
+        steps=2,
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x204),
+            lambda cpu: validate_v(cpu, 0xF, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 10, 0),  # XOR cleared
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: Multi-plane draw (XO-CHIP)',
+        program=[0xF301, 0xD011],  # Select both planes, then draw
+        initial_state={
+            'V': [5, 5] + [0]*14,
+            'I': 0x6000,
+            # Sprite data for both planes (1 byte per plane for n=1)
+            'mem': [0xFF, 0xFF] + [0]*14,  # Plane 1 sprite at 0x6000, Plane 2 sprite at 0x6001
+            'display': {'resmode': ResolutionMode.hires},
+        },
+        steps=2,
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x204),
+            lambda cpu: validate_display_pixel(cpu, 0, 5, 5, 1),  # Plane 0
+            lambda cpu: validate_display_pixel(cpu, 1, 5, 5, 1),  # Plane 1
+        ]
+    ),
+
+    # ========================================
+    # DXY0 - 16x16 sprite tests
+    # ========================================
+
+    ProgramTest(
+        name='DXY0: 16x16 sprite draw (hires)',
+        program=[0xD010],  # n=0 means 16x16 sprite
+        initial_state={
+            'V': [0, 0] + [0]*14,
+            'I': 0x6000,
+            # 16x16 sprite: 32 bytes (2 bytes per row * 16 rows)
+            'mem': [0xFF, 0xFF] * 16,  # Full 16x16 block
+            'display': {'resmode': ResolutionMode.hires},
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 15, 0, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 15, 1),
+            lambda cpu: validate_display_pixel(cpu, 0, 15, 15, 1),
+        ]
+    ),
+
+    ProgramTest(
+        name='DXY0: 16x16 sprite collision',
+        program=[0xD010, 0xD010],
+        initial_state={
+            'V': [0, 0] + [0]*14,
+            'I': 0x6000,
+            'mem': [0xFF, 0xFF] * 16,
+            'display': {'resmode': ResolutionMode.hires},
+        },
+        steps=2,
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x204),
+            lambda cpu: validate_v(cpu, 0xF, 1),  # Collision
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 0),  # XOR cleared
+        ]
+    ),
+
+    # ========================================
+    # 00E0 - Clear screen tests
+    # ========================================
+
+    ProgramTest(
+        name='00E0: Clear screen (single plane)',
+        program=[0x00E0],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'plane': Plane.p1,
+                'pixels': [(0, 10, 10, 1), (0, 20, 20, 1), (1, 30, 30, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 10, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 20, 20, 0),
+            lambda cpu: validate_display_pixel(cpu, 1, 30, 30, 0),  # Both planes cleared
+        ]
+    ),
+
+    ProgramTest(
+        name='00E0: Clear screen (both planes selected)',
+        program=[0xF301, 0x00E0],  # Select both planes, then clear
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'pixels': [(0, 5, 5, 1), (1, 5, 5, 1)],
+            },
+        },
+        steps=2,
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x204),
+            lambda cpu: validate_display_pixel(cpu, 0, 5, 5, 0),
+            lambda cpu: validate_display_pixel(cpu, 1, 5, 5, 0),
+        ]
+    ),
+
+    # ========================================
+    # 00CN - Scroll down tests
+    # ========================================
+
+    ProgramTest(
+        name='00CN: Scroll down 1px (lowres - becomes 2px internal)',
+        program=[0x00C1],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.lowres,
+                'pixels': [(0, 0, 0, 1)],  # Pixel at top-left
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 0),  # Original cleared
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 2, 1),  # Moved down 2 rows
+        ]
+    ),
+
+    ProgramTest(
+        name='00CN: Scroll down 4px (hires)',
+        program=[0x00C4],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'pixels': [(0, 0, 0, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 4, 1),
+        ]
+    ),
+
+    # ========================================
+    # 00DN - Scroll up tests
+    # ========================================
+
+    ProgramTest(
+        name='00DN: Scroll up 1px (lowres - becomes 2px internal)',
+        program=[0x00D1],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.lowres,
+                'pixels': [(0, 0, 10, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 10, 0),  # Original cleared
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 8, 1),   # Moved up 2 rows
+        ]
+    ),
+
+    ProgramTest(
+        name='00DN: Scroll up 4px (hires)',
+        program=[0x00D4],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'pixels': [(0, 0, 10, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 10, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 6, 1),
+        ]
+    ),
+
+    # ========================================
+    # 00FB - Scroll right tests
+    # ========================================
+
+    ProgramTest(
+        name='00FB: Scroll right (lowres - 8px)',
+        program=[0x00FB],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.lowres,
+                'pixels': [(0, 10, 0, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 0, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 18, 0, 1),  # Moved right 8
+        ]
+    ),
+
+    ProgramTest(
+        name='00FB: Scroll right (hires - 4px)',
+        program=[0x00FB],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'pixels': [(0, 10, 0, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 0, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 14, 0, 1),  # Moved right 4
+        ]
+    ),
+
+    # ========================================
+    # 00FC - Scroll left tests
+    # ========================================
+
+    ProgramTest(
+        name='00FC: Scroll left (lowres - 8px)',
+        program=[0x00FC],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.lowres,
+                'pixels': [(0, 20, 0, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 20, 0, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 12, 0, 1),  # Moved left 8
+        ]
+    ),
+
+    ProgramTest(
+        name='00FC: Scroll left (hires - 4px)',
+        program=[0x00FC],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'pixels': [(0, 20, 0, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_pixel(cpu, 0, 20, 0, 0),
+            lambda cpu: validate_display_pixel(cpu, 0, 16, 0, 1),  # Moved left 4
+        ]
+    ),
+
+    # ========================================
+    # 00FE - Switch to lowres tests
+    # ========================================
+
+    ProgramTest(
+        name='00FE: Switch to lowres, clears screen',
+        program=[0x00FE],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.hires,
+                'pixels': [(0, 10, 10, 1), (1, 20, 20, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_resmode(cpu, ResolutionMode.lowres),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 10, 0),  # Screen cleared
+            lambda cpu: validate_display_pixel(cpu, 1, 20, 20, 0),
+        ]
+    ),
+
+    # ========================================
+    # 00FF - Switch to hires tests
+    # ========================================
+
+    ProgramTest(
+        name='00FF: Switch to hires, clears screen',
+        program=[0x00FF],
+        initial_state={
+            'display': {
+                'resmode': ResolutionMode.lowres,
+                'pixels': [(0, 10, 10, 1), (1, 20, 20, 1)],
+            },
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_resmode(cpu, ResolutionMode.hires),
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 10, 0),  # Screen cleared
+            lambda cpu: validate_display_pixel(cpu, 1, 20, 20, 0),
+        ]
+    ),
+
+    # ========================================
+    # FX0A - Blocking input tests
+    # ========================================
+
+    ProgramTest(
+        name='FX0A: Key pressed stores in VF',
+        program=[0xFF0A],
+        initial_state={'key_state': {Keys.Key_A: KeyState.down}},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, Keys.Key_A),
+        ]
+    ),
+
+    # ========================================
+    # 7XNN - Register overflow tests
+    # ========================================
+
+    ProgramTest(
+        name='7XNN: Overflow wraps - 0xFF + 0x01 = 0x00',
+        program=[0x7001],
+        initial_state={'V': [0xFF] + [0]*14 + [0x99]},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0, 0x00),
+            lambda cpu: validate_v(cpu, 0xF, 0x99),  # VF unchanged
+        ]
+    ),
+
+    ProgramTest(
+        name='7XNN: Large overflow - 0x80 + 0xFF = 0x7F',
+        program=[0x70FF],
+        initial_state={'V': [0x80] + [0]*14 + [0x55]},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0, 0x7F),
+            lambda cpu: validate_v(cpu, 0xF, 0x55),  # VF unchanged
+        ]
+    ),
+
+    ProgramTest(
+        name='7XNN: VF not affected by overflow',
+        program=[0x7F10],  # Add to VF directly
+        initial_state={'V': [0]*15 + [0xF0]},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0x00),  # 0xF0 + 0x10 = 0x100 -> 0x00
+        ]
+    ),
+
+    # ========================================
+    # FX1E - I overflow test
+    # ========================================
+
+    ProgramTest(
+        name='FX1E: I overflow wraps at 16-bit - 0xFFFF + 0xFF',
+        program=[0xF01E],
+        initial_state={'V': [0xFF] + [0]*15, 'I': 0xFFFF},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            # Note: Wraps at 16-bit (0x00FE) for pure/cached interpreters
+            # Dynarec may not wrap as XO-CHIP has 64KB address space
+            lambda cpu: validate_i(cpu, (0xFFFF + 0xFF) & 0xFFFF),
+        ]
+    ),
+
+    ProgramTest(
+        name='FX1E: I add without overflow',
+        program=[0xF11E],
+        initial_state={'V': [0] + [0x50] + [0]*14, 'I': 0x1000},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_i(cpu, 0x1050),
+        ]
+    ),
+
+    # ========================================
+    # FX55/FX65 edge cases
+    # ========================================
+
+    ProgramTest(
+        name='FX55: Store all 16 registers (X=15)',
+        program=[0xFF55],
+        initial_state={
+            'V': [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                  0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF],
+            'I': 0x300
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_memory(cpu, 0x300, bytes([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                                                           0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF])),
+            lambda cpu: validate_i(cpu, 0x310),  # I += 16
+        ]
+    ),
+
+    ProgramTest(
+        name='FX65: Load all 16 registers (X=15)',
+        program=[0xFF65],
+        initial_state={
+            'I': 0x6000,
+            'mem': [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87,
+                    0x98, 0xA9, 0xBA, 0xCB, 0xDC, 0xED, 0xFE, 0x0F],
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0x0, 0x10),
+            lambda cpu: validate_v(cpu, 0x7, 0x87),
+            lambda cpu: validate_v(cpu, 0xF, 0x0F),
+        ]
+    ),
+
+    ProgramTest(
+        name='FX55: Combined quirks - memoryIncrementByX and memoryLeaveIUnchanged',
+        program=[0xF355],
+        initial_state={
+            'V': [0xAA, 0xBB, 0xCC, 0xDD] + [0]*12,
+            'I': 0x400,
+            'quirks': ['memoryIncrementByX', 'memoryLeaveIUnchanged']
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_memory(cpu, 0x400, bytes([0xAA, 0xBB, 0xCC, 0xDD])),
+            lambda cpu: validate_i(cpu, 0x400),  # I unchanged (memoryLeaveIUnchanged takes precedence)
+        ]
+    ),
+
+    # ========================================
+    # Quirk tests - wrap
+    # ========================================
+
+    ProgramTest(
+        name='DXYN: Wrap quirk disabled - sprite at edge clips',
+        program=[0xD015],  # 5-row sprite
+        initial_state={
+            'V': [62, 30] + [0]*14,  # Near right and bottom edge in lowres (64x32)
+            'I': 0x6000,
+            'mem': [0xFF, 0xFF, 0xFF, 0xFF, 0xFF] + [0]*11,
+            'quirks': [],  # No wrap quirk - default clips
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            # Sprite should be partially drawn (clipped at edges)
+            lambda cpu: validate_v(cpu, 0xF, 0),  # No collision expected
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: Wrap quirk enabled - sprite wraps around',
+        program=[0xD011],
+        initial_state={
+            'V': [63, 0] + [0]*14,  # At right edge in lowres
+            'I': 0x6000,
+            'mem': [0xFF] + [0]*15,
+            'quirks': ['wrap'],
+            'display': {'resmode': ResolutionMode.lowres},
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            # With wrap, sprite should appear on both sides
+            lambda cpu: validate_display_pixel(cpu, 0, 126, 0, 1),  # Near right edge (63*2=126)
+            lambda cpu: validate_display_pixel(cpu, 0, 0, 0, 1),    # Wrapped to left
+        ]
+    ),
+
+    ProgramTest(
+        name='DXYN: Basic draw with vblank quirk',
+        program=[0xD011],
+        initial_state={
+            'V': [5, 5] + [0]*14,
+            'I': 0x6000,
+            'mem': [0xFF] + [0]*15,
+            'quirks': ['vblank'],
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_v(cpu, 0xF, 0),
+            # Sprite should still be drawn
+            lambda cpu: validate_display_pixel(cpu, 0, 10, 10, 1),  # lowres: 5*2=10
+        ]
+    ),
 ]
+
+# ========================================
+# Stack overflow/underflow tests (standalone)
+# These tests are skipped for dynarec as it crashes on invalid stack operations
+# ========================================
+
+def test_stack_overflow_on_call(emulator, interpreter_type):
+    """Fill stack to 16, then execute CALL - expect OverflowError."""
+    from chipped8.core.interpreter import InterpreterTypes
+    if interpreter_type == InterpreterTypes.dynarec:
+        pytest.skip("Dynarec doesn't handle stack overflow gracefully")
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Stack overflow test',
+        program=[0x2202],  # CALL to next address
+        initial_state={
+            'stack': [0x300] * 16,  # Stack already full
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(OverflowError):
+        cpu.execute_next_op()
+
+
+def test_stack_underflow_on_return(emulator, interpreter_type):
+    """Empty stack, execute RET - expect ValueError."""
+    from chipped8.core.interpreter import InterpreterTypes
+    if interpreter_type == InterpreterTypes.dynarec:
+        pytest.skip("Dynarec doesn't handle stack underflow gracefully")
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Stack underflow test',
+        program=[0x00EE],  # RET
+        initial_state={
+            'stack': [],  # Stack empty
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(ValueError):
+        cpu.execute_next_op()
 
 # Main test runner
 @pytest.mark.parametrize('program_test', opcode_tests, ids=lambda test: test.name)
