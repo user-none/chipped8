@@ -24,7 +24,7 @@ from .instr import Instr
 
 class Instr5XY3(Instr):
     '''
-    5XY3: Loads VX–VY from memory location in I
+    5XY3: Loads VX-VY from memory location in I
           order can be ascending or descending. Does not increment I
     '''
 

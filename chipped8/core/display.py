@@ -123,8 +123,8 @@ class Displaly():
 
     def get_pixels(self) -> NDArray[np.uint8]:
         '''
-        Return a 2D NumPy array of pixel indices (0–3) for fast rendering.
-        Each index maps to a color via.
+        Return a 2D NumPy array of pixel indices (0-3) for fast rendering.
+        Each index maps to a color.
         '''
         plane0 = np.array(self._screen_planes[0], dtype=np.uint8)
         plane1 = np.array(self._screen_planes[1], dtype=np.uint8)

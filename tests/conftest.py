@@ -2,10 +2,18 @@ import pytest
 
 from chipped8.core.emulator import Emulator
 from chipped8.core.platform import PlatformTypes
-from chipped8.core.interpreter import InterpreterTypes
+from chipped8.core.interpreter import InterpreterTypes, is_dynarec_available
 
-# Interpreter types
-interpreter_types = [InterpreterTypes.pure, InterpreterTypes.cachedo, InterpreterTypes.cachedlp, InterpreterTypes.cachedlh]
+# Interpreter types - include dynarec if available on this platform
+interpreter_types = [
+    InterpreterTypes.pure,
+    InterpreterTypes.cachedo,
+    InterpreterTypes.cachedlp,
+    InterpreterTypes.cachedlh,
+]
+
+if is_dynarec_available():
+    interpreter_types.append(InterpreterTypes.dynarec)
 
 # Platform types
 @pytest.fixture(params=interpreter_types)

@@ -21,17 +21,25 @@
 # SOFTWARE.
 
 from enum import Enum
+import platform
 
 from .cpu.pure.cpu import PureCPU
 from .cpu.cached.obj.cpu import CachedOSplitPreBlockCPU
 from .cpu.cached.lamb.cpu_preblock import CachedLPreBlockCPU
 from .cpu.cached.lamb.cpu_hotblock import CachedLHotBlockCPU
 
+# Dynarec is only available on ARM64 macOS
+_dynarec_available = platform.system() == 'Darwin' and platform.machine() == 'arm64'
+
+if _dynarec_available:
+    from .cpu.dynarec.cpu import DynarecCPU
+
 class InterpreterTypes(Enum):
     pure = 'pure'
     cachedo = 'cachedo'
     cachedlp = 'cachedlp'
     cachedlh = 'cachedlh'
+    dynarec = 'dynarec'
 
     def __str__(self):
         return self.value
@@ -46,5 +54,15 @@ def get_interperter(interpreter_type: InterpreterTypes):
             return CachedLHotBlockCPU
         case InterpreterTypes.pure:
             return PureCPU
+        case InterpreterTypes.dynarec:
+            if _dynarec_available:
+                return DynarecCPU
+            else:
+                raise RuntimeError('Dynarec is only available on ARM64 macOS')
         case _:
             return None
+
+
+def is_dynarec_available() -> bool:
+    '''Check if the dynarec interpreter is available on this platform.'''
+    return _dynarec_available

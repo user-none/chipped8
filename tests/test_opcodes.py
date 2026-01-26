@@ -1,7 +1,8 @@
 import pytest
 
-from .test_framework import ProgramTest, run_test_program, validate_stack, validate_stack_len, validate_v, validate_pc, validate_memory, validate_i, validate_audio_pattern, validate_delay_timer, validate_sound_timer, validate_audio_pitch, validate_rpl
+from .test_framework import ProgramTest, run_test_program, validate_stack, validate_stack_len, validate_v, validate_pc, validate_memory, validate_i, validate_audio_pattern, validate_delay_timer, validate_sound_timer, validate_audio_pitch, validate_rpl, validate_display_plane
 from chipped8.core.keys import Keys, KeyState
+from chipped8.core.display import Plane
 
 # -----------------------------
 # Helper functions for assertions
@@ -649,7 +650,34 @@ opcode_tests = [
         ]
     ),
 
-    # FN01 - NOT IMP
+    # FN01: Select drawing plane
+    ProgramTest(
+        name='FN01: Select plane 1 only',
+        program=[0xF101],  # F101 = select plane 1
+        initial_state={},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_plane(cpu, Plane.p1),
+        ]
+    ),
+    ProgramTest(
+        name='FN01: Select plane 2 only',
+        program=[0xF201],  # F201 = select plane 2
+        initial_state={},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_plane(cpu, Plane.p2),
+        ]
+    ),
+    ProgramTest(
+        name='FN01: Select both planes',
+        program=[0xF301],  # F301 = select both planes (1 | 2 = 3)
+        initial_state={},
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_display_plane(cpu, Plane.p1 | Plane.p2),
+        ]
+    ),
 
     ProgramTest(
         name='F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer',

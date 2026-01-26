@@ -115,3 +115,7 @@ def validate_sound_timer(cpu, expected):
 
 def validate_rpl(cpu, idx, expected):
     assert cpu._registers._RPL[idx] == expected, f'RPL[{idx}] expected {expected}, got {cpu._registers._RPL[idx]}: {cpu._registers._RPL}'
+
+def validate_display_plane(cpu, expected):
+    from chipped8.core.display import Plane
+    assert cpu._display.plane == expected, f'Display plane expected {expected}, got {cpu._display.plane}'
