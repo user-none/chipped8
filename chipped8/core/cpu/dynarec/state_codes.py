@@ -59,5 +59,9 @@ class TrapCode(IntEnum):
     # Special/complex operations
     SPECIAL = 9          # F000, FX30, FX33, FX75, FX85, etc.
 
+    # Stack errors
+    STACK_OVERFLOW = 253   # CALL with full stack
+    STACK_UNDERFLOW = 254  # RET with empty stack
+
     # Exit
     EXIT = 255           # 00FD: Exit interpreter

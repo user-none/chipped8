@@ -323,6 +323,18 @@ class ARM64Emitter:
         instr = (0b1101011001011111000000 << 10) | (rn << 5) | 0
         self.emit(instr)
 
+    def b_cond(self, cond: int, offset_bytes: int):
+        '''
+        B.cond label
+        Conditional branch with PC-relative offset.
+        offset_bytes must be within ±1MB range and 4-byte aligned.
+        '''
+        assert offset_bytes % 4 == 0, 'Offset must be 4-byte aligned'
+        imm19 = (offset_bytes >> 2) & 0x7FFFF
+        # B.cond: 0101_0100_iiii_iiii_iiii_iiii_iii0_cccc
+        instr = (0b01010100 << 24) | (imm19 << 5) | cond
+        self.emit(instr)
+
     def add_x_imm(self, rd: int, rn: int, imm: int):
         '''ADD Xd, Xn, #imm - 64-bit add immediate'''
         assert 0 <= imm <= 0xFFF, 'Immediate must be 12-bit'

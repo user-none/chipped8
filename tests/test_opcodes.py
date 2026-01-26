@@ -1444,14 +1444,10 @@ opcode_tests = [
 
 # ========================================
 # Stack overflow/underflow tests (standalone)
-# These tests are skipped for dynarec as it crashes on invalid stack operations
 # ========================================
 
-def test_stack_overflow_on_call(emulator, interpreter_type):
+def test_stack_overflow_on_call(emulator):
     """Fill stack to 16, then execute CALL - expect OverflowError."""
-    from chipped8.core.interpreter import InterpreterTypes
-    if interpreter_type == InterpreterTypes.dynarec:
-        pytest.skip("Dynarec doesn't handle stack overflow gracefully")
     cpu = emulator._cpu
     test = ProgramTest(
         name='Stack overflow test',
@@ -1465,11 +1461,8 @@ def test_stack_overflow_on_call(emulator, interpreter_type):
         cpu.execute_next_op()
 
 
-def test_stack_underflow_on_return(emulator, interpreter_type):
+def test_stack_underflow_on_return(emulator):
     """Empty stack, execute RET - expect ValueError."""
-    from chipped8.core.interpreter import InterpreterTypes
-    if interpreter_type == InterpreterTypes.dynarec:
-        pytest.skip("Dynarec doesn't handle stack underflow gracefully")
     cpu = emulator._cpu
     test = ProgramTest(
         name='Stack underflow test',

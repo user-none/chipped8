@@ -170,6 +170,10 @@ class DynarecCPU(iCPU):
             self._handle_audio(opcode)
         elif trap_code == TrapCode.SPECIAL:
             self._handle_special(opcode)
+        elif trap_code == TrapCode.STACK_OVERFLOW:
+            raise OverflowError('Stack limit exceeded')
+        elif trap_code == TrapCode.STACK_UNDERFLOW:
+            raise ValueError('Stack is empty')
         elif trap_code == TrapCode.EXIT:
             raise ExitInterpreterException()
 

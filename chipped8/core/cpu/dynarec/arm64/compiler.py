@@ -214,8 +214,13 @@ class BlockCompiler:
 
     def _compile_00EE(self, pc: int) -> bool:
         '''00EE: Return from subroutine'''
-        # Decrement SP
+        # Load SP and check for underflow
         self.emitter.ldrb(self.REG_SCRATCH0, self.REG_STATE, OFFSET_SP)
+        self.emitter.cmp_imm(self.REG_SCRATCH0, 0)
+        # Branch to underflow trap if SP == 0 (11 instructions ahead = 44 bytes)
+        self.emitter.b_cond(self.emitter.COND_EQ, 44)
+
+        # Normal path: Decrement SP
         self.emitter.sub_imm(self.REG_SCRATCH0, self.REG_SCRATCH0, 1)
         self.emitter.strb(self.REG_SCRATCH0, self.REG_STATE, OFFSET_SP)
 
@@ -244,6 +249,9 @@ class BlockCompiler:
         # Return 0 (no trap)
         self.emitter.mov_imm(self.REG_RETVAL, 0)
         self.emitter.ret()
+
+        # Underflow trap path (reached via branch):
+        self._emit_stack_error_trap(pc, TrapCode.STACK_UNDERFLOW)
         return True
 
     # -------------------------------------------------------------------------
@@ -266,10 +274,13 @@ class BlockCompiler:
         '''2NNN: Call subroutine at NNN'''
         nnn = opcode & 0x0FFF
 
-        # Push current PC onto stack
-        # stack[sp] = pc
+        # Load SP and check for overflow
         self.emitter.ldrb(self.REG_SCRATCH0, self.REG_STATE, OFFSET_SP)
+        self.emitter.cmp_imm(self.REG_SCRATCH0, 16)
+        # Branch to overflow trap if SP >= 16 (12 instructions ahead = 48 bytes)
+        self.emitter.b_cond(self.emitter.COND_HS, 48)
 
+        # Normal path: Push current PC onto stack
         # Compute stack address: state + OFFSET_STACK + sp * 2
         self.emitter.lsl_imm(self.REG_SCRATCH1, self.REG_SCRATCH0, 1)
         self.emitter.add_x_imm(self.REG_SCRATCH2, self.REG_STATE, OFFSET_STACK)
@@ -287,6 +298,9 @@ class BlockCompiler:
         self._emit_store_pc(nnn)
         self.emitter.mov_imm(self.REG_RETVAL, 0)
         self.emitter.ret()
+
+        # Overflow trap path (reached via branch):
+        self._emit_stack_error_trap(pc, TrapCode.STACK_OVERFLOW)
         return True
 
     # -------------------------------------------------------------------------
@@ -801,3 +815,11 @@ class BlockCompiler:
         self.emitter.mov_imm(self.REG_RETVAL, trap_code)
         self.emitter.ret()
         return True
+
+    def _emit_stack_error_trap(self, pc: int, trap_code: int):
+        '''Emit trap for stack overflow/underflow.'''
+        self._emit_store_pc(pc)
+        self.emitter.mov_imm(self.REG_SCRATCH0, trap_code)
+        self.emitter.strb(self.REG_SCRATCH0, self.REG_STATE, OFFSET_TRAP_CODE)
+        self.emitter.mov_imm(self.REG_RETVAL, trap_code)
+        self.emitter.ret()
