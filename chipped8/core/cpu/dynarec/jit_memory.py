@@ -140,7 +140,18 @@ class JITMemory:
 
         Returns:
             A callable ctypes function
+
+        Raises:
+            ValueError: If offset is invalid (negative or beyond written code)
         '''
+        # Validate offset is within bounds of written code
+        if offset < 0:
+            raise ValueError(f'Invalid JIT code offset: {offset} (must be non-negative)')
+        if self.offset == 0:
+            raise ValueError('No code has been written to JIT buffer')
+        if offset >= self.offset:
+            raise ValueError(f'Invalid JIT code offset: {offset} (valid range: 0-{self.offset-1})')
+
         if argtypes is None:
             argtypes = [c_void_p]
 
@@ -150,6 +161,45 @@ class JITMemory:
     def reset(self):
         '''Reset the buffer offset, allowing reuse of the entire buffer.'''
         self.offset = 0
+
+    @property
+    def bytes_used(self) -> int:
+        '''Return the number of bytes currently used in the buffer.'''
+        return self.offset
+
+    @property
+    def bytes_available(self) -> int:
+        '''Return the number of bytes available in the buffer.'''
+        return self.size - self.offset
+
+    @property
+    def usage_ratio(self) -> float:
+        '''Return the buffer usage as a ratio (0.0 to 1.0).'''
+        return self.offset / self.size if self.size > 0 else 0.0
+
+    def needs_reset(self, threshold: float = 0.9) -> bool:
+        '''
+        Check if the buffer should be reset based on usage threshold.
+
+        Args:
+            threshold: Usage ratio above which reset is recommended (default 0.9 = 90%)
+
+        Returns:
+            True if buffer usage exceeds threshold
+        '''
+        return self.usage_ratio >= threshold
+
+    def has_space_for(self, num_bytes: int) -> bool:
+        '''
+        Check if the buffer has space for the specified number of bytes.
+
+        Args:
+            num_bytes: Number of bytes to check
+
+        Returns:
+            True if there's enough space
+        '''
+        return self.offset + num_bytes <= self.size
 
     def __del__(self):
         '''Free the allocated memory.'''

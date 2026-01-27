@@ -67,8 +67,10 @@ class ARM64Emitter:
         Move wide with zero. Sets register to imm << shift, zeroing other bits.
         shift must be 0 or 16 for 32-bit.
         '''
-        assert 0 <= imm <= 0xFFFF, 'Immediate must be 16-bit'
-        assert shift in (0, 16), 'Shift must be 0 or 16 for 32-bit'
+        if not (0 <= imm <= 0xFFFF):
+            raise ValueError(f'Immediate must be 16-bit, got {imm:#x}')
+        if shift not in (0, 16):
+            raise ValueError(f'Shift must be 0 or 16 for 32-bit, got {shift}')
         hw = shift // 16
         # MOVZ: sf=0, opc=10, hw, imm16, rd
         # 0101_0010_1HWi_iiii_iiii_iiii_iiid_dddd
@@ -80,8 +82,10 @@ class ARM64Emitter:
         MOVK Wd, #imm{, LSL #shift}
         Move wide with keep. Inserts imm at shift position, keeping other bits.
         '''
-        assert 0 <= imm <= 0xFFFF, 'Immediate must be 16-bit'
-        assert shift in (0, 16), 'Shift must be 0 or 16 for 32-bit'
+        if not (0 <= imm <= 0xFFFF):
+            raise ValueError(f'Immediate must be 16-bit, got {imm:#x}')
+        if shift not in (0, 16):
+            raise ValueError(f'Shift must be 0 or 16 for 32-bit, got {shift}')
         hw = shift // 16
         # MOVK: sf=0, opc=11, hw, imm16, rd
         # 0111_0010_1HWi_iiii_iiii_iiii_iiid_dddd
@@ -121,7 +125,8 @@ class ARM64Emitter:
 
     def add_imm(self, rd: int, rn: int, imm: int):
         '''ADD Wd, Wn, #imm'''
-        assert 0 <= imm <= 0xFFF, 'Immediate must be 12-bit'
+        if not (0 <= imm <= 0xFFF):
+            raise ValueError(f'Immediate must be 12-bit, got {imm:#x}')
         # ADD (immediate): 0001_0001_00ii_iiii_iiii_iinn_nnnd_dddd
         instr = (0b00010001 << 24) | (0 << 22) | (imm << 10) | (rn << 5) | rd
         self.emit(instr)
@@ -140,7 +145,8 @@ class ARM64Emitter:
 
     def sub_imm(self, rd: int, rn: int, imm: int):
         '''SUB Wd, Wn, #imm'''
-        assert 0 <= imm <= 0xFFF, 'Immediate must be 12-bit'
+        if not (0 <= imm <= 0xFFF):
+            raise ValueError(f'Immediate must be 12-bit, got {imm:#x}')
         # SUB (immediate): 0101_0001_00ii_iiii_iiii_iinn_nnnd_dddd
         instr = (0b01010001 << 24) | (0 << 22) | (imm << 10) | (rn << 5) | rd
         self.emit(instr)
@@ -205,7 +211,8 @@ class ARM64Emitter:
 
     def lsr_imm(self, rd: int, rn: int, shift: int):
         '''LSR Wd, Wn, #shift (logical shift right)'''
-        assert 0 <= shift <= 31, 'Shift must be 0-31'
+        if not (0 <= shift <= 31):
+            raise ValueError(f'Shift must be 0-31, got {shift}')
         # LSR is UBFM with immr=shift, imms=31
         immr = shift
         imms = 31
@@ -215,7 +222,8 @@ class ARM64Emitter:
 
     def lsl_imm(self, rd: int, rn: int, shift: int):
         '''LSL Wd, Wn, #shift (logical shift left)'''
-        assert 0 <= shift <= 31, 'Shift must be 0-31'
+        if not (0 <= shift <= 31):
+            raise ValueError(f'Shift must be 0-31, got {shift}')
         # LSL is UBFM with immr=(32-shift)%32, imms=31-shift
         immr = (32 - shift) % 32
         imms = 31 - shift
@@ -229,42 +237,48 @@ class ARM64Emitter:
 
     def ldrb(self, rt: int, rn: int, offset: int):
         '''LDRB Wt, [Xn, #offset] - load byte (zero-extend)'''
-        assert 0 <= offset <= 4095, 'Offset must be 0-4095'
+        if not (0 <= offset <= 4095):
+            raise ValueError(f'Offset must be 0-4095, got {offset}')
         # LDRB (unsigned offset): 0011_1001_01oo_oooo_oooo_oonn_nnnt_tttt
         instr = (0b0011100101 << 22) | (offset << 10) | (rn << 5) | rt
         self.emit(instr)
 
     def strb(self, rt: int, rn: int, offset: int):
         '''STRB Wt, [Xn, #offset] - store byte'''
-        assert 0 <= offset <= 4095, 'Offset must be 0-4095'
+        if not (0 <= offset <= 4095):
+            raise ValueError(f'Offset must be 0-4095, got {offset}')
         # STRB (unsigned offset): 0011_1001_00oo_oooo_oooo_oonn_nnnt_tttt
         instr = (0b0011100100 << 22) | (offset << 10) | (rn << 5) | rt
         self.emit(instr)
 
     def ldrh(self, rt: int, rn: int, offset: int):
         '''LDRH Wt, [Xn, #offset] - load halfword, offset must be 2-byte aligned'''
-        assert offset % 2 == 0 and 0 <= offset <= 8190, 'Offset must be 2-aligned, 0-8190'
+        if not (offset % 2 == 0 and 0 <= offset <= 8190):
+            raise ValueError(f'Offset must be 2-aligned and 0-8190, got {offset}')
         # LDRH (unsigned offset): 0111_1001_01oo_oooo_oooo_oonn_nnnt_tttt
         instr = (0b0111100101 << 22) | ((offset // 2) << 10) | (rn << 5) | rt
         self.emit(instr)
 
     def strh(self, rt: int, rn: int, offset: int):
         '''STRH Wt, [Xn, #offset] - store halfword'''
-        assert offset % 2 == 0 and 0 <= offset <= 8190, 'Offset must be 2-aligned, 0-8190'
+        if not (offset % 2 == 0 and 0 <= offset <= 8190):
+            raise ValueError(f'Offset must be 2-aligned and 0-8190, got {offset}')
         # STRH (unsigned offset): 0111_1001_00oo_oooo_oooo_oonn_nnnt_tttt
         instr = (0b0111100100 << 22) | ((offset // 2) << 10) | (rn << 5) | rt
         self.emit(instr)
 
     def ldr_w(self, rt: int, rn: int, offset: int):
         '''LDR Wt, [Xn, #offset] - load 32-bit word, offset must be 4-byte aligned'''
-        assert offset % 4 == 0 and 0 <= offset <= 16380, 'Offset must be 4-aligned, 0-16380'
+        if not (offset % 4 == 0 and 0 <= offset <= 16380):
+            raise ValueError(f'Offset must be 4-aligned and 0-16380, got {offset}')
         # LDR (unsigned offset) 32-bit: 1011_1001_01oo_oooo_oooo_oonn_nnnt_tttt
         instr = (0b1011100101 << 22) | ((offset // 4) << 10) | (rn << 5) | rt
         self.emit(instr)
 
     def str_w(self, rt: int, rn: int, offset: int):
         '''STR Wt, [Xn, #offset] - store 32-bit word'''
-        assert offset % 4 == 0 and 0 <= offset <= 16380, 'Offset must be 4-aligned, 0-16380'
+        if not (offset % 4 == 0 and 0 <= offset <= 16380):
+            raise ValueError(f'Offset must be 4-aligned and 0-16380, got {offset}')
         # STR (unsigned offset) 32-bit: 1011_1001_00oo_oooo_oooo_oonn_nnnt_tttt
         instr = (0b1011100100 << 22) | ((offset // 4) << 10) | (rn << 5) | rt
         self.emit(instr)
@@ -275,7 +289,8 @@ class ARM64Emitter:
 
     def cmp_imm(self, rn: int, imm: int):
         '''CMP Wn, #imm (actually SUBS WZR, Wn, #imm)'''
-        assert 0 <= imm <= 0xFFF, 'Immediate must be 12-bit'
+        if not (0 <= imm <= 0xFFF):
+            raise ValueError(f'Immediate must be 12-bit, got {imm:#x}')
         # SUBS (immediate): 0111_0001_00ii_iiii_iiii_iinn_nnnd_dddd (rd=31=WZR)
         instr = (0b01110001 << 24) | (0 << 22) | (imm << 10) | (rn << 5) | 31
         self.emit(instr)
@@ -329,7 +344,8 @@ class ARM64Emitter:
         Conditional branch with PC-relative offset.
         offset_bytes must be within ±1MB range and 4-byte aligned.
         '''
-        assert offset_bytes % 4 == 0, 'Offset must be 4-byte aligned'
+        if offset_bytes % 4 != 0:
+            raise ValueError(f'Offset must be 4-byte aligned, got {offset_bytes}')
         imm19 = (offset_bytes >> 2) & 0x7FFFF
         # B.cond: 0101_0100_iiii_iiii_iiii_iiii_iii0_cccc
         instr = (0b01010100 << 24) | (imm19 << 5) | cond
@@ -337,7 +353,8 @@ class ARM64Emitter:
 
     def add_x_imm(self, rd: int, rn: int, imm: int):
         '''ADD Xd, Xn, #imm - 64-bit add immediate'''
-        assert 0 <= imm <= 0xFFF, 'Immediate must be 12-bit'
+        if not (0 <= imm <= 0xFFF):
+            raise ValueError(f'Immediate must be 12-bit, got {imm:#x}')
         # ADD (immediate) 64-bit: 1001_0001_00ii_iiii_iiii_iinn_nnnd_dddd
         instr = (0b10010001 << 24) | (0 << 22) | (imm << 10) | (rn << 5) | rd
         self.emit(instr)

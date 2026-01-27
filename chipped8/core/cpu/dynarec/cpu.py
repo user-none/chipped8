@@ -38,6 +38,7 @@ from .arm64 import BlockCompiler
 
 from ...display import Plane, ResolutionMode
 from ...exceptions import ExitInterpreterException
+from ...memory import MEMORY_SIZE
 
 
 class DynarecCPU(iCPU):
@@ -84,6 +85,33 @@ class DynarecCPU(iCPU):
         '''Check if address is within ROM region (0x200 to rom_end-1).'''
         return 0x200 <= addr < self._shared_state.rom_end
 
+    def _write_overlaps_rom(self, start: int, length: int) -> bool:
+        '''Check if a write range [start, start+length) overlaps ROM region.'''
+        write_end = start + length
+        rom_start = 0x200
+        rom_end = self._shared_state.rom_end
+        # Two ranges overlap if: start < rom_end AND rom_start < write_end
+        return start < rom_end and rom_start < write_end
+
+    def _write_code_safe(self, code: bytes) -> int:
+        '''
+        Write code to JIT buffer, resetting if necessary.
+
+        If the buffer doesn't have space for the code, resets the buffer
+        and clears the block cache, then writes the code.
+
+        Args:
+            code: The machine code bytes to write
+
+        Returns:
+            The offset in the buffer where the code was written
+        '''
+        if not self._jit_memory.has_space_for(len(code)):
+            # Buffer full - reset and clear cache
+            self.invalidate_cache()
+
+        return self._jit_memory.write_code(code)
+
     def execute_next_op(self):
         '''Execute the next Chip-8 instruction.'''
         self._draw_occurred = False
@@ -110,6 +138,10 @@ class DynarecCPU(iCPU):
 
         pc = self._shared_state.pc
 
+        # Check if JIT buffer needs reset (approaching capacity)
+        if self._jit_memory.needs_reset():
+            self.invalidate_cache()
+
         # Only cache blocks within ROM region
         if self._is_in_rom_region(pc):
             if pc not in self._block_cache:
@@ -117,7 +149,7 @@ class DynarecCPU(iCPU):
                     bytes(self._shared_state.memory),
                     pc
                 )
-                offset = self._jit_memory.write_code(code)
+                offset = self._write_code_safe(code)
                 self._block_cache[pc] = offset
             offset = self._block_cache[pc]
             block_func = self._jit_memory.get_callable(offset)
@@ -127,7 +159,7 @@ class DynarecCPU(iCPU):
                 bytes(self._shared_state.memory),
                 pc
             )
-            offset = self._jit_memory.write_code(code)
+            offset = self._write_code_safe(code)
             block_func = self._jit_memory.get_callable(offset)
         trap_code = block_func(ctypes.byref(self._shared_state))
 
@@ -170,6 +202,8 @@ class DynarecCPU(iCPU):
             self._handle_audio(opcode)
         elif trap_code == TrapCode.SPECIAL:
             self._handle_special(opcode)
+        elif trap_code == TrapCode.JUMP_BNNN:
+            self._handle_jump_bnnn(opcode)
         elif trap_code == TrapCode.STACK_OVERFLOW:
             raise OverflowError('Stack limit exceeded')
         elif trap_code == TrapCode.STACK_UNDERFLOW:
@@ -261,8 +295,13 @@ class DynarecCPU(iCPU):
 
         # Calculate skip amount - check if next instruction is F000 NNNN (4 bytes)
         pc = self._shared_state.pc
-        next_opcode = (self._shared_state.memory[pc + 2] << 8) | self._shared_state.memory[pc + 3]
-        skip_amount = 4 if next_opcode == 0xF000 else 2
+        # Bounds check for reading next opcode
+        if pc + 4 > MEMORY_SIZE:
+            # Near end of memory, can't have 4-byte instruction
+            skip_amount = 2
+        else:
+            next_opcode = (self._shared_state.memory[pc + 2] << 8) | self._shared_state.memory[pc + 3]
+            skip_amount = 4 if next_opcode == 0xF000 else 2
 
         if nn == 0x9E:
             # EX9E: Skip if key pressed
@@ -280,26 +319,36 @@ class DynarecCPU(iCPU):
     def _handle_store_regs(self, opcode: int):
         '''Handle FX55 or 5XY2 store registers instruction.'''
         I = self._shared_state.I
-
-        # Check if write starts in ROM region (SMC detection)
-        if self._is_in_rom_region(I):
-            self.invalidate_cache()
-
         top_nibble = (opcode & 0xF000) >> 12
 
         if top_nibble == 0x5:
             # 5XY2: Store VX..VY to memory at I
             x = (opcode & 0x0F00) >> 8
             y = (opcode & 0x00F0) >> 4
-            I = self._shared_state.I
+            # Ensure x <= y to prevent negative range
+            if x > y:
+                x, y = y, x
+            num_bytes = y - x + 1
+        else:
+            # FX55: Store V0..VX to memory at I
+            x = (opcode & 0x0F00) >> 8
+            num_bytes = x + 1
+
+        # Bounds check: ensure write doesn't exceed memory
+        if I + num_bytes > MEMORY_SIZE:
+            raise IndexError(f'Memory write out of bounds: I={I:#x}, bytes={num_bytes}')
+
+        # SMC detection: check if write range overlaps ROM
+        if self._write_overlaps_rom(I, num_bytes):
+            self.invalidate_cache()
+
+        if top_nibble == 0x5:
+            # 5XY2: Store VX..VY to memory at I
             for i in range(x, y + 1):
                 self._shared_state.memory[I + (i - x)] = self._shared_state.V[i]
             # I is not modified for 5XY2
         else:
             # FX55: Store V0..VX to memory at I
-            x = (opcode & 0x0F00) >> 8
-            I = self._shared_state.I
-
             for i in range(x + 1):
                 self._shared_state.memory[I + i] = self._shared_state.V[i]
 
@@ -319,7 +368,14 @@ class DynarecCPU(iCPU):
             # 5XY3: Load VX..VY from memory at I
             x = (opcode & 0x0F00) >> 8
             y = (opcode & 0x00F0) >> 4
+            # Ensure x <= y to prevent negative range
+            if x > y:
+                x, y = y, x
             I = self._shared_state.I
+            num_bytes = y - x + 1
+            # Bounds check: ensure I + num_bytes - 1 < MEMORY_SIZE
+            if I + num_bytes > MEMORY_SIZE:
+                raise IndexError(f'Memory read out of bounds: I={I:#x}, bytes={num_bytes}')
             for i in range(x, y + 1):
                 self._shared_state.V[i] = self._shared_state.memory[I + (i - x)]
             # I is not modified for 5XY3
@@ -327,6 +383,10 @@ class DynarecCPU(iCPU):
             # FX65: Load V0..VX from memory at I
             x = (opcode & 0x0F00) >> 8
             I = self._shared_state.I
+            num_bytes = x + 1
+            # Bounds check: ensure I + num_bytes - 1 < MEMORY_SIZE
+            if I + num_bytes > MEMORY_SIZE:
+                raise IndexError(f'Memory read out of bounds: I={I:#x}, bytes={num_bytes}')
 
             for i in range(x + 1):
                 self._shared_state.V[i] = self._shared_state.memory[I + i]
@@ -344,8 +404,11 @@ class DynarecCPU(iCPU):
         nn = opcode & 0x00FF
 
         if nn == 0x02:
-            # F002: Load audio pattern from I
+            # F002: Load audio pattern from I (16 bytes)
             I = self._shared_state.I
+            # Bounds check: ensure I + 16 <= MEMORY_SIZE
+            if I + 16 > MEMORY_SIZE:
+                raise IndexError(f'Memory read out of bounds: I={I:#x}, bytes=16')
             for i in range(16):
                 self._shared_state.pattern[i] = self._shared_state.memory[I + i]
         elif nn == 0x3A:
@@ -363,8 +426,12 @@ class DynarecCPU(iCPU):
         if nn == 0x00 and (opcode & 0xF000) == 0xF000:
             # F000 NNNN: Load I with 16-bit address (4-byte instruction)
             self._shared_state.pc += 2
-            addr = (self._shared_state.memory[self._shared_state.pc] << 8) | \
-                   self._shared_state.memory[self._shared_state.pc + 1]
+            pc = self._shared_state.pc
+            # Bounds check: ensure pc + 1 < MEMORY_SIZE
+            if pc + 2 > MEMORY_SIZE:
+                raise IndexError(f'Memory read out of bounds: pc={pc:#x}, bytes=2')
+            addr = (self._shared_state.memory[pc] << 8) | \
+                   self._shared_state.memory[pc + 1]
             self._shared_state.I = addr
             self._shared_state.pc += 2
         elif nn == 0x30:
@@ -374,11 +441,15 @@ class DynarecCPU(iCPU):
             self._shared_state.I = 80 + (digit * 10)
             self._shared_state.pc += 2
         elif nn == 0x33:
-            # FX33: BCD
+            # FX33: BCD (writes 3 bytes at I, I+1, I+2)
             I = self._shared_state.I
 
-            # Check if any BCD write address is in ROM region (SMC detection)
-            if self._is_in_rom_region(I):
+            # Bounds check: ensure I + 3 <= MEMORY_SIZE
+            if I + 3 > MEMORY_SIZE:
+                raise IndexError(f'Memory write out of bounds: I={I:#x}, bytes=3')
+
+            # SMC detection: check if write range overlaps ROM
+            if self._write_overlaps_rom(I, 3):
                 self.invalidate_cache()
 
             n = self._shared_state.V[x]
@@ -388,17 +459,47 @@ class DynarecCPU(iCPU):
             self._shared_state.pc += 2
         elif nn == 0x75:
             # FX75: Store V0-VX in RPL
+            if x > 15:
+                raise IndexError(f'RPL register index out of bounds: {x}')
             for i in range(x + 1):
                 self._shared_state.RPL[i] = self._shared_state.V[i]
             self._shared_state.pc += 2
         elif nn == 0x85:
             # FX85: Load V0-VX from RPL
+            if x > 15:
+                raise IndexError(f'RPL register index out of bounds: {x}')
             for i in range(x + 1):
                 self._shared_state.V[i] = self._shared_state.RPL[i]
             self._shared_state.pc += 2
         else:
             # Unknown - just advance PC
             self._shared_state.pc += 2
+
+    def _handle_jump_bnnn(self, opcode: int):
+        '''Handle BNNN: Jump to V0 + NNN (or VX + XNN with quirk).
+
+        Validates and masks the jump address, and invalidates cache if
+        jumping outside ROM (possible self-modifying code).
+        '''
+        nnn = opcode & 0x0FFF
+
+        if self._quirks.jump:
+            # BXNN: Jump to VX + XNN
+            x = (opcode & 0x0F00) >> 8
+            target = nnn + self._shared_state.V[x]
+        else:
+            # BNNN: Jump to V0 + NNN
+            target = nnn + self._shared_state.V[0]
+
+        # Mask to 16-bit address space for safety
+        target = target & 0xFFFF
+
+        # SMC detection: if jumping outside ROM, invalidate cache
+        # This matches behavior of other interpreters
+        if target >= self._shared_state.rom_end:
+            self.invalidate_cache()
+
+        self._shared_state.pc = target
 
     def draw_occurred(self) -> bool:
         '''Return whether a draw operation occurred in the last instruction.'''

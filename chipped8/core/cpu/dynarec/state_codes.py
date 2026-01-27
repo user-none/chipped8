@@ -59,6 +59,9 @@ class TrapCode(IntEnum):
     # Special/complex operations
     SPECIAL = 9          # F000, FX30, FX33, FX75, FX85, etc.
 
+    # Jump operations (need address validation)
+    JUMP_BNNN = 10       # BNNN/BXNN: Jump with offset (needs SMC check)
+
     # Stack errors
     STACK_OVERFLOW = 253   # CALL with full stack
     STACK_UNDERFLOW = 254  # RET with empty stack

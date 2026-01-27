@@ -28,6 +28,10 @@ def load_test_program(cpu, test: ProgramTest):
     for i, opcode in enumerate(test.program):
         cpu._memory._memory[pc_start + i*2: pc_start + i*2 + 2] = opcode.to_bytes(2, 'big')
 
+    # Update ram_start to mark end of ROM region (for SMC detection in dynarec)
+    program_end = pc_start + len(test.program) * 2
+    cpu._memory._ram_start = program_end + 1
+
     if 'V' in test.initial_state:
         cpu._registers._V[:] = test.initial_state['V'][:]
 

@@ -103,9 +103,16 @@ class BlockCompiler:
 
         Returns:
             Compiled ARM64 machine code as bytes
+
+        Raises:
+            ValueError: If start_pc is out of bounds
         '''
         self.emitter.reset()
         self._memory = memory  # Store for skip calculations
+
+        # Validate start_pc is within bounds (need 2 bytes for opcode)
+        if start_pc < 0 or start_pc + 1 >= len(memory):
+            raise ValueError(f'PC out of bounds: {start_pc:#x} (memory size: {len(memory):#x})')
 
         # No prologue needed - we use X0 directly as state pointer
         # since we don't make any function calls
@@ -114,6 +121,14 @@ class BlockCompiler:
         instruction_count = 0
 
         while instruction_count < self.MAX_BLOCK_INSTRUCTIONS:
+            # Check bounds before fetching opcode
+            if pc + 1 >= len(memory):
+                # At end of memory, emit exit and stop compilation
+                self._emit_store_pc(pc)
+                self.emitter.mov_imm(self.REG_RETVAL, 0)
+                self.emitter.ret()
+                break
+
             # Fetch opcode (big-endian)
             opcode = (memory[pc] << 8) | memory[pc + 1]
 
@@ -661,23 +676,14 @@ class BlockCompiler:
     # -------------------------------------------------------------------------
 
     def _compile_BNNN(self, opcode: int, pc: int) -> bool:
-        '''BNNN: Jump to V0 + NNN (or VX + XNN with quirk)'''
-        nnn = opcode & 0x0FFF
+        '''BNNN: Jump to V0 + NNN (or VX + XNN with quirk) - trap to Python.
 
-        if self.quirks.jump:
-            # BXNN: Jump to VX + XNN
-            x = (opcode & 0x0F00) >> 8
-            self.emitter.ldrb(self.REG_SCRATCH0, self.REG_STATE, OFFSET_V + x)
-        else:
-            # BNNN: Jump to V0 + NNN
-            self.emitter.ldrb(self.REG_SCRATCH0, self.REG_STATE, OFFSET_V)
-
-        self.emitter.add_imm(self.REG_SCRATCH0, self.REG_SCRATCH0, nnn & 0xFFF)
-        self.emitter.str_w(self.REG_SCRATCH0, self.REG_STATE, OFFSET_PC)
-
-        self.emitter.mov_imm(self.REG_RETVAL, 0)
-        self.emitter.ret()
-        return True
+        This traps to Python for proper handling:
+        - Address masking to 0xFFFF
+        - SMC detection when jumping outside ROM
+        - Cache invalidation if needed
+        '''
+        return self._emit_trap(opcode, pc, TrapCode.JUMP_BNNN)
 
     # -------------------------------------------------------------------------
     # EXXX: Key operations

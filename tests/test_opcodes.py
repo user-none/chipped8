@@ -15,6 +15,24 @@ def fx65_memory_setup():
 
 audio_pattern = bytearray.fromhex('AA BB CC DD EE FF 11 22 33 44 55 66 77 88 99 00')
 
+
+def get_block_cache(cpu):
+    """Get the block cache dict from any cached interpreter type."""
+    # dynarec
+    if hasattr(cpu, '_block_cache') and isinstance(cpu._block_cache, dict):
+        return cpu._block_cache
+    # cachedo
+    if hasattr(cpu, '_block_emitter') and hasattr(cpu._block_emitter, '_block_cache'):
+        return cpu._block_emitter._block_cache
+    # cachedlp
+    if hasattr(cpu, '_emitter') and hasattr(cpu._emitter, '_block_cache'):
+        return cpu._emitter._block_cache
+    # cachedlh - also has _block_cache at top level
+    if hasattr(cpu, '_block_cache'):
+        return cpu._block_cache
+    return None
+
+
 # -----------------------------
 # Test program definitions
 # -----------------------------
@@ -1474,6 +1492,309 @@ def test_stack_underflow_on_return(emulator):
     load_test_program(cpu, test)
     with pytest.raises(ValueError):
         cpu.execute_next_op()
+
+
+# ========================================
+# Memory bounds checking tests
+# These verify that malicious ROMs cannot exploit I register to access memory out of bounds
+# ========================================
+
+def test_memory_oob_fx55_store(emulator):
+    """FX55 with I near end of memory - expect IndexError."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory OOB FX55 test',
+        program=[0xFF55],  # Store V0-VF (16 bytes) to memory at I
+        initial_state={
+            'I': 0xFFF1,  # 65521 - writing 16 bytes needs indices 65521-65536, exceeds 65535
+            'V': [0x11] * 16,
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(IndexError):
+        cpu.execute_next_op()
+
+
+def test_memory_oob_fx65_load(emulator):
+    """FX65 with I near end of memory - expect IndexError."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory OOB FX65 test',
+        program=[0xFF65],  # Load V0-VF (16 bytes) from memory at I
+        initial_state={
+            'I': 0xFFF1,  # 65521 - reading 16 bytes needs indices 65521-65536, exceeds 65535
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(IndexError):
+        cpu.execute_next_op()
+
+
+def test_memory_oob_fx33_bcd(emulator):
+    """FX33 (BCD) with I at end of memory - expect IndexError."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory OOB FX33 test',
+        program=[0xF033],  # BCD of V0, writes 3 bytes at I, I+1, I+2
+        initial_state={
+            'I': 0xFFFE,  # 65534 - writing I+2 would exceed 65536
+            'V': [0x99] + [0] * 15,  # V0 = 153 -> BCD 1, 5, 3
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(IndexError):
+        cpu.execute_next_op()
+
+
+def test_memory_oob_f002_audio(emulator):
+    """F002 (load audio pattern) with I near end of memory - expect IndexError."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory OOB F002 test',
+        program=[0xF002],  # Load 16-byte audio pattern from I
+        initial_state={
+            'I': 0xFFF1,  # 65521 - reading 16 bytes needs indices 65521-65536, exceeds 65535
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(IndexError):
+        cpu.execute_next_op()
+
+
+def test_memory_oob_5xy2_store_range(emulator):
+    """5XY2 (store range) with I near end of memory - expect IndexError."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory OOB 5XY2 test',
+        program=[0x50F2],  # Store V0-VF (16 bytes) at I
+        initial_state={
+            'I': 0xFFF1,  # 65521 - writing 16 bytes needs indices 65521-65536, exceeds 65535
+            'V': [0x22] * 16,
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(IndexError):
+        cpu.execute_next_op()
+
+
+def test_memory_oob_5xy3_load_range(emulator):
+    """5XY3 (load range) with I near end of memory - expect IndexError."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory OOB 5XY3 test',
+        program=[0x50F3],  # Load V0-VF (16 bytes) from I
+        initial_state={
+            'I': 0xFFF1,  # 65521 - reading 16 bytes needs indices 65521-65536, exceeds 65535
+        },
+    )
+    load_test_program(cpu, test)
+    with pytest.raises(IndexError):
+        cpu.execute_next_op()
+
+
+def test_memory_boundary_fx55_valid(emulator):
+    """FX55 exactly at memory boundary should succeed (last valid position)."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory boundary FX55 valid test',
+        program=[0xFF55],  # Store V0-VF (16 bytes)
+        initial_state={
+            'I': 0xFFF0,  # 65520 - writing 16 bytes to indices 65520-65535 (last valid)
+            'V': [0x11] * 16,
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+        ]
+    )
+    # This should succeed - indices 65520 to 65535 are all valid
+    run_test_program(cpu, test)
+
+
+def test_memory_valid_fx55(emulator):
+    """FX55 within valid memory range should succeed."""
+    cpu = emulator._cpu
+    test = ProgramTest(
+        name='Memory valid FX55 test',
+        program=[0xF155],  # Store V0-V1 (2 bytes)
+        initial_state={
+            'I': 0x6000,  # Well within memory
+            'V': [0xAA, 0xBB] + [0] * 14,
+        },
+        validators=[
+            lambda cpu: validate_pc(cpu, 0x202),
+            lambda cpu: validate_memory(cpu, 0x6000, bytes([0xAA, 0xBB])),
+        ]
+    )
+    run_test_program(cpu, test)
+
+
+# ========================================
+# SMC (Self-Modifying Code) detection tests - all cached interpreters
+# These verify that the block cache is invalidated when writes overlap ROM
+#
+# Note: Different interpreters cache blocks at different times:
+# - dynarec: caches immediately on execution
+# - cachedlp: pre-builds blocks before execution
+# - cachedlh: builds blocks during execution, records on control flow
+# - cachedo: pre-builds with split caching
+#
+# Tests use conditional skip instructions (3XNN) which are control flow
+# and force block recording in all interpreters.
+# ========================================
+
+def test_smc_write_overlaps_rom_from_before(cached_emulator):
+    """Write starting before ROM but extending into ROM should trigger SMC detection."""
+    cpu = cached_emulator._cpu
+
+    # Program with conditional skip to ensure block is recorded
+    # Skip is never taken (V1=0, skip if V1==1), but it forces block boundary
+    # FX55 stores V0..Vx, so F355 stores V0-V3 (4 bytes)
+    # Writing to 0x1FE: 0x1FE, 0x1FF, 0x200, 0x201 - overlaps ROM at 0x200
+    program = [
+        0x6001,  # 0x200: V0 = 0x01
+        0x6100,  # 0x202: V1 = 0x00
+        0x3101,  # 0x204: Skip next if V1 == 1 (never skips, but ends block)
+        0xA1FE,  # 0x206: I = 0x1FE (before ROM at 0x200)
+        0xF355,  # 0x208: Store V0-V3 to [I] (writes to 0x1FE-0x201, overlaps ROM)
+    ]
+    test = ProgramTest(
+        name='SMC overlap from before test',
+        program=program,
+        initial_state={},
+    )
+    load_test_program(cpu, test)
+
+    # Execute first 3 instructions (ends with control flow, should record block)
+    for _ in range(3):
+        cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is not None and len(cache) > 0, "Block should be cached after control flow"
+
+    # Execute I assignment
+    cpu.execute_next_op()
+
+    # Execute the FX55 store - should trigger SMC since write extends into ROM
+    cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is None or len(cache) == 0, "Cache should be invalidated when write overlaps ROM"
+
+
+def test_smc_write_fully_in_rom(cached_emulator):
+    """Write fully within ROM should trigger SMC detection."""
+    cpu = cached_emulator._cpu
+
+    # Program with conditional skip to ensure block is recorded
+    program = [
+        0x60FF,  # 0x200: V0 = 0xFF
+        0x6100,  # 0x202: V1 = 0x00
+        0x3101,  # 0x204: Skip next if V1 == 1 (never skips, but ends block)
+        0xA220,  # 0x206: I = 0x220 (within ROM since program extends past this)
+        0xF055,  # 0x208: Store V0 to [I]
+        # Pad with NOPs to extend ROM past 0x220
+    ] + [0x0000] * 20  # Extend ROM to ~0x22C
+
+    test = ProgramTest(
+        name='SMC fully in ROM test',
+        program=program,
+        initial_state={},
+    )
+    load_test_program(cpu, test)
+
+    # Execute first 3 instructions (ends with control flow)
+    for _ in range(3):
+        cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is not None and len(cache) > 0, "Block should be cached"
+
+    # Execute I assignment
+    cpu.execute_next_op()
+
+    # Execute FX55 - writes to 0x220 which is within ROM
+    cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is None or len(cache) == 0, "Cache should be invalidated when write is in ROM"
+
+
+def test_smc_write_fully_after_rom(cached_emulator):
+    """Write fully after ROM (in RAM area) should NOT trigger SMC detection."""
+    cpu = cached_emulator._cpu
+
+    # Program with conditional skip to ensure block is recorded
+    # Need a control flow instruction after FX55 to properly terminate the block
+    # (otherwise cachedo reads past end of program, hits unknown opcode, clears cache)
+    program = [
+        0x60FF,  # 0x200: V0 = 0xFF
+        0x6100,  # 0x202: V1 = 0x00
+        0x3101,  # 0x204: Skip next if V1 == 1 (never skips, but ends block)
+        0xF055,  # 0x206: Store V0 to [I] (I will be set to 0x6000 - after ROM)
+        0x120A,  # 0x208: Jump to 0x20A (control flow to end block)
+        0x0000,  # 0x20A: Would be invalid, but we stop before this
+    ]
+    test = ProgramTest(
+        name='SMC after ROM test',
+        program=program,
+        initial_state={
+            'I': 0x6000,  # RAM area, well after ROM
+        },
+    )
+    load_test_program(cpu, test)
+
+    # Execute first 3 instructions (ends with control flow)
+    for _ in range(3):
+        cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is not None and len(cache) > 0, "Block should be cached"
+    cache_size_before = len(cache)
+
+    # Execute FX55 - writes to 0x6000 which is after ROM
+    cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    # Cache should still exist and not be fully cleared
+    assert cache is not None and len(cache) >= cache_size_before, \
+        "Cache should NOT be invalidated when write is after ROM"
+
+
+def test_smc_bcd_overlaps_rom(cached_emulator):
+    """FX33 (BCD) write overlapping ROM should trigger SMC detection."""
+    cpu = cached_emulator._cpu
+
+    # Program with conditional skip to ensure block is recorded
+    program = [
+        0x607B,  # 0x200: V0 = 123 (BCD: 1, 2, 3)
+        0x6100,  # 0x202: V1 = 0x00
+        0x3101,  # 0x204: Skip next if V1 == 1 (never skips, but ends block)
+        0xA1FF,  # 0x206: I = 0x1FF (just before ROM)
+        0xF033,  # 0x208: BCD of V0 to [I], [I+1], [I+2]
+    ]
+    test = ProgramTest(
+        name='SMC BCD overlap test',
+        program=program,
+        initial_state={},
+    )
+    load_test_program(cpu, test)
+
+    # Execute first 3 instructions (ends with control flow)
+    for _ in range(3):
+        cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is not None and len(cache) > 0, "Block should be cached"
+
+    # Execute I assignment
+    cpu.execute_next_op()
+
+    # Execute FX33 - writes to 0x1FF, 0x200, 0x201 (overlaps ROM)
+    cpu.execute_next_op()
+
+    cache = get_block_cache(cpu)
+    assert cache is None or len(cache) == 0, "Cache should be invalidated when BCD overlaps ROM"
+
 
 # Main test runner
 @pytest.mark.parametrize('program_test', opcode_tests, ids=lambda test: test.name)

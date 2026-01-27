@@ -185,10 +185,11 @@ def transfer_state_to_dynarec(shared_state: SharedState, memory, registers, stac
     for i in range(rpl_len):
         shared_state.RPL[i] = registers._RPL[i]
 
-    # Stack
-    for i in range(len(stack._stack)):
+    # Stack (limit to 16 entries to prevent buffer overflow)
+    stack_len = min(len(stack._stack), 16)
+    for i in range(stack_len):
         shared_state.stack[i] = stack._stack[i]
-    shared_state.sp = len(stack._stack)
+    shared_state.sp = stack_len
 
     # Timers
     shared_state.sound_timer = timers._sound
