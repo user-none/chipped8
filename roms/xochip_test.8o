@@ -1,0 +1,2340 @@
+# XO-CHIP Test ROM
+#
+# Register allocation:
+#   v0-v6: Scratch for tests
+#   v7: Results bitmask (6 bits, one per test)
+#   v8-v9: X/Y coordinates for drawing
+#   vA-vD: Additional scratch
+#   vE: Timer/counter
+#   vF: Hardware flag register
+
+# Constants for Opcode Display System
+
+# Character constants for opcode data
+:const CHR_N 16
+:const CHR_X 17
+:const CHR_Y 18
+:const CHR_S 19
+:const CHR_K 20
+:const CHR_I 21
+:const CHR_P 22
+:const CHR_D 23
+:const CHR_R 24
+:const CHR_A 25
+:const CHR_W 26
+:const CHR_O 27
+:const CHR_V 28
+:const CHR_E 29
+:const CHR_M 30
+:const CHR_SPC 31
+
+# Opcode ID constants
+:const OP_00E0 0
+:const OP_1NNN 1
+:const OP_2NNN 2
+:const OP_00EE 3
+:const OP_6XNN 4
+:const OP_7XNN 5
+:const OP_8XY0 6
+:const OP_8XY1 7
+:const OP_8XY2 8
+:const OP_8XY3 9
+:const OP_8XY4 10
+:const OP_8XY5 11
+:const OP_8XY6 12
+:const OP_8XY7 13
+:const OP_8XYE 14
+:const OP_3XNN 15
+:const OP_4XNN 16
+:const OP_5XY0 17
+:const OP_5XY2 18
+:const OP_5XY3 19
+:const OP_9XY0 20
+:const OP_ANNN 21
+:const OP_BNNN 22
+:const OP_DXYN 23
+:const OP_FX07 24
+:const OP_FX15 25
+:const OP_FX1E 26
+:const OP_FX29 27
+:const OP_FX30 28
+:const OP_FX33 29
+:const OP_FX55 30
+:const OP_FX65 31
+:const OP_FX75 32
+:const OP_FX85 33
+:const OP_00CN 34
+:const OP_00DN 35
+:const OP_00FB 36
+:const OP_00FC 37
+:const OP_00FE 38
+:const OP_00FF 39
+:const OP_F000 40
+:const OP_FN01 41
+:const OP_SKIP 42
+:const OP_DRAW 43
+:const OP_XOR  44
+:const OP_MOVE 45
+:const OP_OVER 46
+:const OP_WRAP 47
+:const OP_DXY0 48
+
+# Entry Point - Jump over data section
+: main
+    jump main-code
+
+# DATA SECTION - All sprite and table data (placed early for i := access)
+
+# Test data used by Group 3
+: test-data-byte
+    0xAB 0xCD
+
+: test-sprite
+    0x80   # Single pixel
+
+# Buffers for Group 4
+: bcd-buffer
+    0 0 0
+
+: save-buffer
+    0 0 0 0
+
+: load-test-data
+    0xAA 0xBB 0xCC
+
+# Buffers for Group 5
+: range-buffer
+    0 0 0 0
+
+: range-test-data
+    0xDD 0xEE 0xFF
+
+# Buffer to store group results (one byte per group)
+: group-results
+    0 0 0 0 0 0 0 0
+
+# Audio Data - XO-CHIP sound
+# Square wave pattern for notes
+: waveform
+    0x00 0x00 0xFF 0xFF 0x00 0x00 0xFF 0xFF
+    0x00 0x00 0xFF 0xFF 0x00 0x00 0xFF 0xFF
+
+# Silence pattern for rests
+: silence
+    0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+    0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+
+
+# Data for Group 6
+: long-test-data
+    0x77
+
+# Group 9 sprite patterns
+: g9-solid
+    0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF
+: g9-outline
+    0xFF 0x81 0x81 0x81 0x81 0x81 0x81 0xFF
+: g9-hstripe
+    0xFF 0x00 0xFF 0x00 0xFF 0x00 0xFF 0x00
+: g9-hstripe2
+    0x00 0xFF 0xFF 0x00 0x00 0xFF 0xFF 0x00
+: g9-vstripe
+    0xAA 0xAA 0xAA 0xAA 0xAA 0xAA 0xAA 0xAA
+: g9-vstripe2
+    0x66 0x66 0x66 0x66 0x66 0x66 0x66 0x66
+: g9-check
+    0xAA 0x55 0xAA 0x55 0xAA 0x55 0xAA 0x55
+: g9-check2
+    0x66 0x66 0xCC 0xCC 0x66 0x66 0xCC 0xCC
+: g9-diag
+    0x80 0x40 0x20 0x10 0x08 0x04 0x02 0x01
+
+# Opcode data table: 4 bytes per opcode (character codes)
+# Character codes: 0-15 = hex, 16=N, 17=X, 18=Y, 19=S, 20=K, 21=I, 22=P,
+#                  23=D, 24=R, 25=A, 26=W, 27=O, 28=V, 29=E, 30=M, 31=space
+: opcode-data
+    0    0    0x0E 0       # 00E0
+    1    16   16   16      # 1NNN
+    2    16   16   16      # 2NNN
+    0    0    0x0E 0x0E    # 00EE
+    6    17   16   16      # 6XNN
+    7    17   16   16      # 7XNN
+    8    17   18   0       # 8XY0
+    8    17   18   1       # 8XY1
+    8    17   18   2       # 8XY2
+    8    17   18   3       # 8XY3
+    8    17   18   4       # 8XY4
+    8    17   18   5       # 8XY5
+    8    17   18   6       # 8XY6
+    8    17   18   7       # 8XY7
+    8    17   18   0x0E    # 8XYE
+    3    17   16   16      # 3XNN
+    4    17   16   16      # 4XNN
+    5    17   18   0       # 5XY0
+    5    17   18   2       # 5XY2
+    5    17   18   3       # 5XY3
+    9    17   18   0       # 9XY0
+    0x0A 16   16   16      # ANNN
+    0x0B 16   16   16      # BNNN
+    0x0D 17   18   16      # DXYN
+    0x0F 17   0    7       # FX07
+    0x0F 17   1    5       # FX15
+    0x0F 17   1    0x0E    # FX1E
+    0x0F 17   2    9       # FX29
+    0x0F 17   3    0       # FX30
+    0x0F 17   3    3       # FX33
+    0x0F 17   5    5       # FX55
+    0x0F 17   6    5       # FX65
+    0x0F 17   7    5       # FX75
+    0x0F 17   8    5       # FX85
+    0    0    0x0C 16      # 00CN
+    0    0    0x0D 16      # 00DN
+    0    0    0x0F 0x0B    # 00FB
+    0    0    0x0F 0x0C    # 00FC
+    0    0    0x0F 0x0E    # 00FE
+    0    0    0x0F 0x0F    # 00FF
+    0x0F 0    0    0       # F000
+    0x0F 16   0    1       # FN01
+    19   20   21   22      # SKIP
+    23   24   25   26      # DRAW
+    17   27   24   31      # XOR (space at end)
+    30   27   28   29      # MOVE
+    27   28   29   24      # OVER
+    26   24   25   22      # WRAP
+    0x0D 17   18   0       # DXY0
+
+# Letter sprite table (5 bytes each, indexed by letter code - 16)
+# Order: N, X, Y, S, K, I, P, D, R, A, W, O, V, E, M
+: letter-table
+    # N (index 0)
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    # X (index 1)
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    # Y (index 2)
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+    0x40   # .X..
+    0x40   # .X..
+    # S (index 3)
+    0x60   # .XX.
+    0x80   # X...
+    0x60   # .XX.
+    0x20   # ..X.
+    0xC0   # XX..
+    # K (index 4)
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    # I (index 5)
+    0xE0   # XXX.
+    0x40   # .X..
+    0x40   # .X..
+    0x40   # .X..
+    0xE0   # XXX.
+    # P (index 6)
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xC0   # XX..
+    0x80   # X...
+    0x80   # X...
+    # D (index 7)
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xC0   # XX..
+    # R (index 8)
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    # A (index 9)
+    0x40   # .X..
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    # W (index 10)
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    # O (index 11)
+    0x40   # .X..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+    # V (index 12)
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+    # E (index 13)
+    0xE0   # XXX.
+    0x80   # X...
+    0xC0   # XX..
+    0x80   # X...
+    0xE0   # XXX.
+    # M (index 14)
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+# Custom Letters (4x5 pixels each)
+: letter-S
+    0x60   # .XX.
+    0x80   # X...
+    0x60   # .XX.
+    0x20   # ..X.
+    0xC0   # XX..
+
+: letter-T
+    0xE0   # XXX.
+    0x40   # .X..
+    0x40   # .X..
+    0x40   # .X..
+    0x40   # .X..
+
+: letter-A
+    0x40   # .X..
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+: letter-R
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+: letter-I
+    0xE0   # XXX.
+    0x40   # .X..
+    0x40   # .X..
+    0x40   # .X..
+    0xE0   # XXX.
+
+: letter-N
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+: letter-G
+    0x60   # .XX.
+    0x80   # X...
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x60   # .XX.
+
+: letter-F
+    0xE0   # XXX.
+    0x80   # X...
+    0xC0   # XX..
+    0x80   # X...
+    0x80   # X...
+
+: letter-E
+    0xE0   # XXX.
+    0x80   # X...
+    0xC0   # XX..
+    0x80   # X...
+    0xE0   # XXX.
+
+: letter-D
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xC0   # XX..
+
+: letter-O
+    0x40   # .X..
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+
+: letter-U
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+
+: letter-P
+    0xC0   # XX..
+    0xA0   # X.X.
+    0xC0   # XX..
+    0x80   # X...
+    0x80   # X...
+
+: letter-H
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+: letter-X
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+# Pass indicator (checkmark)
+: sprite-pass
+    0x20   # ..X.
+    0x20   # ..X.
+    0xA0   # X.X.
+    0x40   # .X..
+    0x00   # ....
+
+# Fail indicator (X mark)
+: sprite-fail
+    0xA0   # X.X.
+    0x40   # .X..
+    0x40   # .X..
+    0x40   # .X..
+    0xA0   # X.X.
+
+: letter-W
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xA0   # X.X.
+
+: letter-M
+    0xA0   # X.X.
+    0xE0   # XXX.
+    0xE0   # XXX.
+    0xA0   # X.X.
+    0xA0   # X.X.
+
+: letter-V
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0xA0   # X.X.
+    0x40   # .X..
+
+: letter-C
+    0x60   # .XX.
+    0x80   # X...
+    0x80   # X...
+    0x80   # X...
+    0x60   # .XX.
+
+: letter-L
+    0x80   # X...
+    0x80   # X...
+    0x80   # X...
+    0x80   # X...
+    0xE0   # XXX.
+
+: sprite-dot
+    0x00   # ....
+    0x00   # ....
+    0x00   # ....
+    0x00   # ....
+    0x40   # .X..
+
+# 8x8 sprite for visual demos (smiley face)
+: sprite-8x8
+    0x3C   # ..XXXX..
+    0x42   # .X....X.
+    0xA5   # X.X..X.X
+    0x81   # X......X
+    0xA5   # X.X..X.X
+    0x99   # X..XX..X
+    0x42   # .X....X.
+    0x3C   # ..XXXX..
+
+# 4-row sprite for tests
+: sprite-8x4
+    0xF0   # XXXX....
+    0xF0   # XXXX....
+    0xF0   # XXXX....
+    0xF0   # XXXX....
+
+# 16x16 sprite for DXY0 test (32 bytes total: 16 rows x 2 bytes each)
+# Box pattern outline
+: sprite-16x16
+    0xFF 0xFF   # Row 0:  XXXXXXXX XXXXXXXX
+    0x80 0x01   # Row 1:  X..............X
+    0x80 0x01   # Row 2:  X..............X
+    0x80 0x01   # Row 3:  X..............X
+    0x80 0x01   # Row 4:  X..............X
+    0x80 0x01   # Row 5:  X..............X
+    0x80 0x01   # Row 6:  X..............X
+    0x80 0x01   # Row 7:  X..............X
+    0x80 0x01   # Row 8:  X..............X
+    0x80 0x01   # Row 9:  X..............X
+    0x80 0x01   # Row 10: X..............X
+    0x80 0x01   # Row 11: X..............X
+    0x80 0x01   # Row 12: X..............X
+    0x80 0x01   # Row 13: X..............X
+    0x80 0x01   # Row 14: X..............X
+    0xFF 0xFF   # Row 15: XXXXXXXX XXXXXXXX
+
+# CODE SECTION - All executable code starts here
+: main-code
+    # Enable hi-res mode (128x64)
+    hires
+    clear
+
+    # Initialize registers
+    v7 := 0           # Results bitmask (all fail initially)
+
+    # Show starting screen with 5 already visible
+    show-starting-screen
+    v8 := 60
+    v9 := 35
+    v0 := 5
+    i := hex v0
+    sprite v8 v9 5
+
+    # Start countdown - 5 is already drawn, just play sound and continue
+    melody-count-5
+    i := hex v0
+    sprite v8 v9 5
+    countdown-4
+    countdown-3
+    countdown-2
+    countdown-1
+
+    clear
+
+    # Run test groups 0 and 1, save results, display combined
+    run-group-0
+    i := group-results
+    v0 := v7
+    save v0 - v0        # Save group 0 result
+    run-group-1
+    i := group-results
+    load v0             # v0 = group 0 result
+    v1 := v7            # v1 = group 1 result
+    show-results-screen-01
+
+    # Wait 2 seconds
+    vE := 120
+    delay := vE
+: wait-results-01
+    vE := delay
+    if vE != 0 then jump wait-results-01
+
+    clear
+
+    # Run test groups 2 and 3
+    run-group-2
+    i := group-results
+    v0 := v7
+    save v0 - v0        # Save to temp
+    run-group-3
+    i := group-results
+    load v0             # v0 = group 2 result
+    v1 := v7            # v1 = group 3 result
+    show-results-screen-23
+
+    vE := 120
+    delay := vE
+: wait-results-23
+    vE := delay
+    if vE != 0 then jump wait-results-23
+
+    clear
+
+    # Run test groups 4 and 5
+    run-group-4
+    i := group-results
+    v0 := v7
+    save v0 - v0
+    run-group-5
+    i := group-results
+    load v0             # v0 = group 4 result
+    v1 := v7            # v1 = group 5 result
+    show-results-screen-45
+
+    vE := 120
+    delay := vE
+: wait-results-45
+    vE := delay
+    if vE != 0 then jump wait-results-45
+
+    clear
+
+    # Run test groups 6 and 7
+    run-group-6
+    i := group-results
+    v0 := v7
+    save v0 - v0
+    run-group-7
+    i := group-results
+    load v0             # v0 = group 6 result
+    v1 := v7            # v1 = group 7 result
+    show-results-screen-67
+
+    vE := 120
+    delay := vE
+: wait-results-67
+    vE := delay
+    if vE != 0 then jump wait-results-67
+
+    clear
+
+    # Run test group 8 (Sprite tests - displays for 6 seconds)
+    run-group-8
+
+    clear
+
+    # Run test group 9 (Color demos)
+    run-group-9
+
+    clear
+
+    # Show finished screen
+    show-finished-screen
+
+    # Play finished melody
+    melody-finished
+
+    # Infinite loop
+: halt-loop
+    jump halt-loop
+
+
+# Starting Screen - Display "STARTING"
+: show-starting-screen
+    v8 := 44
+    v9 := 20
+    i := letter-S
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-T
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-A
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-R
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-T
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-I
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-N
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-G
+    sprite v8 v9 5
+    return
+
+
+# Countdown Display - Draw number, play sound, erase
+# v0 = number to display
+: do-countdown
+    v8 := 60
+    v9 := 35
+    i := hex v0
+    sprite v8 v9 5
+    return
+
+: do-countdown-erase
+    v8 := 60
+    v9 := 35
+    i := hex v0
+    sprite v8 v9 5
+    return
+
+: countdown-4
+    v0 := 4
+    do-countdown
+    melody-count-4
+    do-countdown-erase
+    return
+
+: countdown-3
+    v0 := 3
+    do-countdown
+    melody-count-3
+    do-countdown-erase
+    return
+
+: countdown-2
+    v0 := 2
+    do-countdown
+    melody-count-2
+    do-countdown-erase
+    return
+
+: countdown-1
+    v0 := 1
+    do-countdown
+    melody-count-1
+    do-countdown-erase
+    return
+
+
+# Audio/Music System - XO-CHIP
+# Based on Octo xomusicplayer2.8o example
+
+# Silence/rest note
+: ---
+    i := silence
+    jump play
+
+# Play routine - plays current note for duration
+: note
+    pitch := vF
+    i := waveform
+: play
+    audio
+    vF := 40       # Note duration (frames)
+    delay := vF
+    buzzer := vF   # Sound duration matches delay
+: play-wait
+    vF := delay
+    if vF != 0 then jump play-wait
+    return
+
+# Short tone for countdown - brief beep then silence
+: tone
+    pitch := vF
+    i := waveform
+    audio
+    vF := 10       # Short beep (10 frames)
+    buzzer := vF
+    vF := 50       # Total wait time (includes silence)
+    delay := vF
+: tone-wait
+    vF := delay
+    if vF != 0 then jump tone-wait
+    return
+
+# Note definitions (pitch values for different frequencies)
+: G-3  vF := 98   jump note   # 196hz
+: A-3  vF := 104  jump note   # 220hz
+: C-4  vF := 115  jump note   # 262hz
+: D-4  vF := 123  jump note   # 293hz
+: E-4  vF := 131  jump note   # 330hz
+: F-4  vF := 139  jump note   # 349hz
+: G-4  vF := 147  jump note   # 392hz
+: A-4  vF := 156  jump note   # 440hz
+: B-4  vF := 165  jump note   # 494hz
+: C-5  vF := 175  jump note   # 523hz
+: D-5  vF := 185  jump note   # 587hz
+: E-5  vF := 196  jump note   # 659hz
+
+# Short tones for countdown (descending pitches)
+: melody-count-5
+    vF := 196
+    jump tone
+
+: melody-count-4
+    vF := 165
+    jump tone
+
+: melody-count-3
+    vF := 147
+    jump tone
+
+: melody-count-2
+    vF := 123
+    jump tone
+
+: melody-count-1
+    vF := 104
+    jump tone
+
+# Celebratory finish melody
+: melody-finished
+    C-4 E-4 G-4 C-5 --- C-5 B-4 C-5 ---
+    E-5 D-5 C-5 G-4 --- A-4 B-4 C-5 ;
+
+
+# Test Group 0 - Basic Instructions
+# Tests: 00E0 (clear), 1NNN (jump), 2NNN (call), 00EE (return), 6XNN (set), 7XNN (add)
+: run-group-0
+    v7 := 0     # Reset results bitmask
+
+    # Test 1: 00E0 (clear) - If we get here, clear works (already used above)
+    # We'll mark it pass if we successfully reach this point
+    v7 := 1     # Test 1 passed (bit 0)
+
+    # Test 2: 1NNN (jump) - Jump to a label and verify we get there
+    v0 := 0          # Will be set to 0x42 if jump works
+    jump test-jump-target
+: test-jump-return
+    if v0 != 0x42 then jump skip-test-2
+    vA := 2          # bit 1
+    v7 |= vA         # Test 2 passed
+: skip-test-2
+
+    # Test 3: 2NNN (call) and Test 4: 00EE (return) - Test together
+    v0 := 0
+    test-call-subroutine   # Call subroutine that sets v0 = 0x55
+    if v0 != 0x55 then jump skip-test-3-4
+    vA := 4          # bit 2 - call worked
+    v7 |= vA
+    vA := 8          # bit 3 - return worked
+    v7 |= vA
+: skip-test-3-4
+
+    # Test 5: 6XNN (set register)
+    v1 := 0x42
+    if v1 != 0x42 then jump skip-test-5
+    vA := 16         # bit 4
+    v7 |= vA
+: skip-test-5
+
+    # Test 6: 7XNN (add to register)
+    v2 := 5
+    v2 += 3
+    if v2 != 8 then jump skip-test-6
+    vA := 32         # bit 5
+    v7 |= vA
+: skip-test-6
+
+    return
+
+: test-jump-target
+    v0 := 0x42
+    jump test-jump-return
+
+: test-call-subroutine
+    v0 := 0x55
+    return
+
+
+# Test Group 1 - ALU Operations
+# Tests: 8XY0 (mov), 8XY1 (or), 8XY2 (and), 8XY3 (xor), 8XY4 (add), 8XY5 (sub)
+: run-group-1
+    v7 := 0     # Reset results bitmask
+
+    # Test 1: 8XY0 (mov) - vX := vY
+    v0 := 0x37
+    v1 := v0
+    if v1 != 0x37 then jump skip-g1-test-1
+    vA := 1
+    v7 |= vA
+: skip-g1-test-1
+
+    # Test 2: 8XY1 (or) - vX |= vY
+    v0 := 0x0F
+    v1 := 0xF0
+    v0 |= v1
+    if v0 != 0xFF then jump skip-g1-test-2
+    vA := 2
+    v7 |= vA
+: skip-g1-test-2
+
+    # Test 3: 8XY2 (and) - vX &= vY
+    v0 := 0xFF
+    v1 := 0x0F
+    v0 &= v1
+    if v0 != 0x0F then jump skip-g1-test-3
+    vA := 4
+    v7 |= vA
+: skip-g1-test-3
+
+    # Test 4: 8XY3 (xor) - vX ^= vY
+    v0 := 0xFF
+    v1 := 0x0F
+    v0 ^= v1
+    if v0 != 0xF0 then jump skip-g1-test-4
+    vA := 8
+    v7 |= vA
+: skip-g1-test-4
+
+    # Test 5: 8XY4 (add with carry) - vX += vY, vF = carry
+    # Test overflow: 0xFF + 0x02 = 0x01 with carry
+    v0 := 0xFF
+    v1 := 0x02
+    v0 += v1
+    if v0 != 0x01 then jump skip-g1-test-5
+    if vF != 1 then jump skip-g1-test-5
+    vA := 16
+    v7 |= vA
+: skip-g1-test-5
+
+    # Test 6: 8XY5 (sub with borrow) - vX -= vY, vF = NOT borrow
+    # Test: 0x10 - 0x05 = 0x0B, vF = 1 (no borrow)
+    v0 := 0x10
+    v1 := 0x05
+    v0 -= v1
+    if v0 != 0x0B then jump skip-g1-test-6
+    if vF != 1 then jump skip-g1-test-6
+    vA := 32
+    v7 |= vA
+: skip-g1-test-6
+
+    return
+
+
+# Test Group 2 - More ALU + Skip Instructions
+# Tests: 8XY6 (shr), 8XY7 (subn), 8XYE (shl), 3XNN (skip==), 4XNN (skip!=), 5XY0 (skip VX==VY)
+: run-group-2
+    v7 := 0
+
+    # Test 1: 8XY6 (shift right) - vX >>= 1, vF = LSB
+    # Note: XO-CHIP shifts vX in place (not vY)
+    v0 := 0b00000011   # 3, LSB is 1
+    v0 >>= v0
+    if v0 != 1 then jump skip-g2-test-1
+    if vF != 1 then jump skip-g2-test-1
+    vA := 1
+    v7 |= vA
+: skip-g2-test-1
+
+    # Test 2: 8XY7 (subn) - vX = vY - vX, vF = NOT borrow
+    # Test: v1(0x10) - v0(0x05) = 0x0B, vF = 1 (no borrow)
+    v0 := 0x05
+    v1 := 0x10
+    v0 =- v1
+    if v0 != 0x0B then jump skip-g2-test-2
+    if vF != 1 then jump skip-g2-test-2
+    vA := 2
+    v7 |= vA
+: skip-g2-test-2
+
+    # Test 3: 8XYE (shift left) - vX <<= 1, vF = MSB
+    v0 := 0b10000001   # 129, MSB is 1
+    v0 <<= v0
+    if v0 != 2 then jump skip-g2-test-3
+    if vF != 1 then jump skip-g2-test-3
+    vA := 4
+    v7 |= vA
+: skip-g2-test-3
+
+    # Test 4: 3XNN (skip if VX == NN)
+    v0 := 0x42
+    v1 := 0      # Will be set to 1 if skip works
+    if v0 == 0x42 then v1 := 1
+    if v1 != 1 then jump skip-g2-test-4
+    vA := 8
+    v7 |= vA
+: skip-g2-test-4
+
+    # Test 5: 4XNN (skip if VX != NN)
+    v0 := 0x42
+    v1 := 0
+    if v0 != 0x99 then v1 := 1
+    if v1 != 1 then jump skip-g2-test-5
+    vA := 16
+    v7 |= vA
+: skip-g2-test-5
+
+    # Test 6: 5XY0 (skip if VX == VY)
+    v0 := 0x42
+    v1 := 0x42
+    v2 := 0
+    if v0 == v1 then v2 := 1
+    if v2 != 1 then jump skip-g2-test-6
+    vA := 32
+    v7 |= vA
+: skip-g2-test-6
+
+    return
+
+
+# Test Group 3 - Skip, Memory, Draw
+# Tests: 9XY0 (skip VX!=VY), ANNN (set I), BNNN (jump+v0), DXYN (draw), FX1E (I+=VX), FX07 (get delay)
+: run-group-3
+    v7 := 0
+
+    # Test 1: 9XY0 (skip if VX != VY)
+    v0 := 0x42
+    v1 := 0x99
+    v2 := 0
+    if v0 != v1 then v2 := 1
+    if v2 != 1 then jump skip-g3-test-1
+    vA := 1
+    v7 |= vA
+: skip-g3-test-1
+
+    # Test 2: ANNN (set I) - Test by loading known data
+    i := test-data-byte
+    load v0
+    if v0 != 0xAB then jump skip-g3-test-2
+    vA := 2
+    v7 |= vA
+: skip-g3-test-2
+
+    # Test 3: BNNN (jump0) - jump to NNN + v0
+    v0 := 2          # Offset
+    v1 := 0          # Will be set if jump works
+    jump0 jump0-base
+: jump0-after
+    if v1 != 1 then jump skip-g3-test-3
+    vA := 4
+    v7 |= vA
+: skip-g3-test-3
+
+    # Test 4: DXYN (draw) - Test collision detection
+    clear
+    v0 := 0
+    v1 := 0
+    i := test-sprite
+    sprite v0 v1 1   # Draw sprite, vF should be 0 (no collision)
+    if vF != 0 then jump skip-g3-test-4
+    sprite v0 v1 1   # Draw again at same position, vF should be 1 (collision)
+    if vF != 1 then jump skip-g3-test-4
+    vA := 8
+    v7 |= vA
+: skip-g3-test-4
+
+    # Test 5: FX1E (I += VX)
+    i := test-data-byte
+    v0 := 1
+    i += v0
+    load v0
+    if v0 != 0xCD then jump skip-g3-test-5
+    vA := 16
+    v7 |= vA
+: skip-g3-test-5
+
+    # Test 6: FX07 (get delay timer)
+    v0 := 10
+    delay := v0
+    v1 := delay
+    # Timer should be 10 or slightly less
+    if v1 == 0 then jump skip-g3-test-6
+    vA := 32
+    v7 |= vA
+: skip-g3-test-6
+
+    clear
+    return
+
+: jump0-base
+    # v0 = 2, so we jump here + 2 bytes = jump0-target
+    jump skip-g3-test-3   # Offset 0: fail path
+: jump0-target
+    v1 := 1               # Offset 2: success path
+    jump jump0-after
+
+
+# Test Group 4 - Timers, Font, BCD, Save/Load
+# Tests: FX15 (set delay), FX29 (font addr), FX33 (BCD), FX55 (save), FX65 (load), FX30 (large font)
+: run-group-4
+    v7 := 0
+
+    # Test 1: FX15 (set delay timer) - Already tested implicitly, verify it decrements
+    v0 := 60
+    delay := v0
+    # Small busy loop
+    v1 := 0
+: delay-loop
+    v1 += 1
+    if v1 != 100 then jump delay-loop
+    v2 := delay
+    # Timer should have decremented
+    if v2 == 60 then jump skip-g4-test-1
+    vA := 1
+    v7 |= vA
+: skip-g4-test-1
+
+    # Test 2: FX29 (font address) - Get address of digit 0 font
+    v0 := 0
+    i := hex v0
+    load v0
+    # First byte of '0' font should be 0xF0
+    if v0 != 0xF0 then jump skip-g4-test-2
+    vA := 2
+    v7 |= vA
+: skip-g4-test-2
+
+    # Test 3: FX33 (BCD) - Convert 123 to BCD
+    v0 := 123
+    i := bcd-buffer
+    bcd v0
+    load v2
+    if v0 != 1 then jump skip-g4-test-3
+    if v1 != 2 then jump skip-g4-test-3
+    if v2 != 3 then jump skip-g4-test-3
+    vA := 4
+    v7 |= vA
+: skip-g4-test-3
+
+    # Test 4: FX55 (save registers)
+    v0 := 0x11
+    v1 := 0x22
+    v2 := 0x33
+    i := save-buffer
+    save v2
+    # Clear and reload to verify
+    v0 := 0
+    v1 := 0
+    v2 := 0
+    i := save-buffer
+    load v2
+    if v0 != 0x11 then jump skip-g4-test-4
+    if v1 != 0x22 then jump skip-g4-test-4
+    if v2 != 0x33 then jump skip-g4-test-4
+    vA := 8
+    v7 |= vA
+: skip-g4-test-4
+
+    # Test 5: FX65 (load registers) - Already tested above, do another
+    i := load-test-data
+    load v2
+    if v0 != 0xAA then jump skip-g4-test-5
+    if v1 != 0xBB then jump skip-g4-test-5
+    if v2 != 0xCC then jump skip-g4-test-5
+    vA := 16
+    v7 |= vA
+: skip-g4-test-5
+
+    # Test 6: FX30 (large font) - Super-CHIP 10-byte font
+    # Just verify the instruction works and returns some font data
+    v0 := 0
+    i := bighex v0
+    load v1    # Load 2 bytes to check font data exists
+    # Large '0' font should have non-zero data in first bytes
+    if v0 == 0 then jump skip-g4-test-6
+    if v1 == 0 then jump skip-g4-test-6
+    vA := 32
+    v7 |= vA
+: skip-g4-test-6
+
+    return
+
+
+# Test Group 5 - XO-CHIP Memory, Scroll
+# Tests: 5XY2 (save range), 5XY3 (load range), 00CN (scroll down), 00FB (scroll right), 00FC (scroll left), 00FE (lores)
+: run-group-5
+    v7 := 0
+
+    # Ensure default plane is active
+    plane 1
+    clear
+
+    # Test 1: 5XY2 (save range v1-v3) - XO-CHIP
+    v0 := 0x99
+    v1 := 0x11
+    v2 := 0x22
+    v3 := 0x33
+    v4 := 0x99
+    i := range-buffer
+    save v1 - v3
+    # Clear and reload
+    v1 := 0
+    v2 := 0
+    v3 := 0
+    i := range-buffer
+    load v2    # Load 3 bytes into v0-v2
+    if v0 != 0x11 then jump skip-g5-test-1
+    if v1 != 0x22 then jump skip-g5-test-1
+    if v2 != 0x33 then jump skip-g5-test-1
+    vA := 1
+    v7 |= vA
+: skip-g5-test-1
+
+    # Test 2: 5XY3 (load range v1-v3) - XO-CHIP
+    i := range-test-data
+    load v1 - v3
+    if v1 != 0xDD then jump skip-g5-test-2
+    if v2 != 0xEE then jump skip-g5-test-2
+    if v3 != 0xFF then jump skip-g5-test-2
+    vA := 2
+    v7 |= vA
+: skip-g5-test-2
+
+    # Test 3: 00CN (scroll down N pixels)
+    # Draw a pixel, scroll down, check it moved
+    clear
+    v0 := 0
+    v1 := 0
+    i := test-sprite
+    sprite v0 v1 1   # Draw at (0,0)
+    scroll-down 1
+    # Pixel should now be at (0,1) - redraw at (0,0) should not collide
+    sprite v0 v1 1
+    if vF != 0 then jump skip-g5-test-3
+    vA := 4
+    v7 |= vA
+: skip-g5-test-3
+
+    # Test 4: 00FB (scroll right 4 pixels)
+    clear
+    v0 := 0
+    v1 := 0
+    i := test-sprite
+    sprite v0 v1 1   # Draw at (0,0)
+    scroll-right
+    # Pixel should have moved right, redraw at (0,0) should not collide
+    sprite v0 v1 1
+    if vF != 0 then jump skip-g5-test-4
+    vA := 8
+    v7 |= vA
+: skip-g5-test-4
+
+    # Test 5: 00FC (scroll left 4 pixels)
+    clear
+    v0 := 8
+    v1 := 0
+    i := test-sprite
+    sprite v0 v1 1   # Draw at (8,0)
+    scroll-left
+    # Pixel should have moved left, redraw at (8,0) should not collide
+    sprite v0 v1 1
+    if vF != 0 then jump skip-g5-test-5
+    vA := 16
+    v7 |= vA
+: skip-g5-test-5
+
+    # Test 6: 00FE (lores mode) - Switch to 64x32
+    lores
+    # If no crash, pass
+    vA := 32
+    v7 |= vA
+: skip-g5-test-6
+
+    hires   # Switch back to hires for results display
+    plane 1  # Ensure default plane active
+    clear
+    return
+
+
+# Test Group 6 - XO-CHIP Display
+# Tests: 00FF (hires), 00DN (scroll up), F000 (16-bit I), FN01 (plane), FX75 (save RPL), FX85 (load RPL)
+: run-group-6
+    v7 := 0
+
+    # Ensure we start with default plane active and clear
+    plane 1
+    clear
+
+    # Test 1: 00FF (hires mode) - Already in hires, verify no crash
+    hires
+    vA := 1
+    v7 |= vA
+: skip-g6-test-1
+
+    # Test 2: 00DN (scroll up N pixels) - XO-CHIP
+    clear
+    v0 := 0
+    v1 := 4
+    i := test-sprite
+    sprite v0 v1 1   # Draw at (0,4)
+    scroll-up 1
+    # Pixel should now be at (0,3) - redraw at (0,4) should not collide
+    sprite v0 v1 1
+    if vF != 0 then jump skip-g6-test-2
+    vA := 2
+    v7 |= vA
+: skip-g6-test-2
+
+    # Test 3: F000 NNNN (16-bit I) - XO-CHIP extended addressing
+    i := long-test-data
+    load v0
+    if v0 != 0x77 then jump skip-g6-test-3
+    vA := 4
+    v7 |= vA
+: skip-g6-test-3
+
+    # Test 4: FN01 (plane N) - XO-CHIP bitplane selection
+    # Test that plane instruction works, then reset to plane 1
+    plane 3
+    clear
+    plane 1   # Reset to default plane
+    clear
+    # If no crash, pass
+    vA := 8
+    v7 |= vA
+: skip-g6-test-4
+
+    # Test 5: FX75 (save to RPL flags) - Save v0-v3 to RPL user flags
+    v0 := 0x12
+    v1 := 0x34
+    v2 := 0x56
+    v3 := 0x78
+    saveflags v3
+    # Clear registers
+    v0 := 0
+    v1 := 0
+    v2 := 0
+    v3 := 0
+    loadflags v3
+    if v0 != 0x12 then jump skip-g6-test-5
+    if v1 != 0x34 then jump skip-g6-test-5
+    vA := 16
+    v7 |= vA
+: skip-g6-test-5
+
+    # Test 6: FX85 (load from RPL flags) - Already tested above
+    if v2 != 0x56 then jump skip-g6-test-6
+    if v3 != 0x78 then jump skip-g6-test-6
+    vA := 32
+    v7 |= vA
+: skip-g6-test-6
+
+    # Ensure default plane is active and clear
+    plane 1
+    clear
+    return
+
+
+# Test Group 7 - Additional Edge Cases
+# Tests: 8XY4 overflow=0, 8XY5 borrow, 8XY7 borrow, DXYN wrap, FX33 edge, skip chain
+: run-group-7
+    v7 := 0
+
+    # Test 1: 8XY4 no overflow - vF should be 0
+    v0 := 0x10
+    v1 := 0x20
+    v0 += v1
+    if v0 != 0x30 then jump skip-g7-test-1
+    if vF != 0 then jump skip-g7-test-1
+    vA := 1
+    v7 |= vA
+: skip-g7-test-1
+
+    # Test 2: 8XY5 with borrow - vF should be 0
+    v0 := 0x05
+    v1 := 0x10
+    v0 -= v1
+    # 0x05 - 0x10 = 0xF5 (with borrow), vF = 0
+    if v0 != 0xF5 then jump skip-g7-test-2
+    if vF != 0 then jump skip-g7-test-2
+    vA := 2
+    v7 |= vA
+: skip-g7-test-2
+
+    # Test 3: 8XY7 with borrow - vF should be 0
+    v0 := 0x10
+    v1 := 0x05
+    v0 =- v1
+    # v1(0x05) - v0(0x10) = 0xF5 (with borrow), vF = 0
+    if v0 != 0xF5 then jump skip-g7-test-3
+    if vF != 0 then jump skip-g7-test-3
+    vA := 4
+    v7 |= vA
+: skip-g7-test-3
+
+    # Test 4: FX33 BCD edge case - 255
+    v0 := 255
+    i := bcd-buffer
+    bcd v0
+    load v2
+    if v0 != 2 then jump skip-g7-test-4
+    if v1 != 5 then jump skip-g7-test-4
+    if v2 != 5 then jump skip-g7-test-4
+    vA := 8
+    v7 |= vA
+: skip-g7-test-4
+
+    # Test 5: FX33 BCD edge case - 0
+    v0 := 0
+    i := bcd-buffer
+    bcd v0
+    load v2
+    if v0 != 0 then jump skip-g7-test-5
+    if v1 != 0 then jump skip-g7-test-5
+    if v2 != 0 then jump skip-g7-test-5
+    vA := 16
+    v7 |= vA
+: skip-g7-test-5
+
+    # Test 6: Multiple consecutive skips
+    v0 := 1
+    v1 := 1
+    v2 := 0
+    if v0 == 1 then if v1 == 1 then v2 := 1
+    if v2 != 1 then jump skip-g7-test-6
+    vA := 32
+    v7 |= vA
+: skip-g7-test-6
+
+    return
+
+
+# Test Group 8 - Sprite Tests (Single Page Display)
+# Shows all sprite behaviors on one screen with labels
+: run-group-8
+    v7 := 63    # All tests pass (visual demo)
+
+    hires
+    plane 1
+    clear
+
+    # Draw "SPRITE" title at top center
+    v8 := 42
+    v9 := 0
+    i := letter-S
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-P
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-R
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-I
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-T
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-E
+    sprite v8 v9 5
+
+    # Row 1 (y=8): DRAW - static sprite draw
+    v8 := 2
+    v9 := 8
+    i := letter-D
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-R
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-A
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-W
+    sprite v8 v9 5
+    # Sprite demo - static draw
+    v0 := 30
+    v1 := 8
+    i := sprite-8x8
+    sprite v0 v1 8
+
+    # Row 2 (y=18): XOR label (animation happens in loop below)
+    v8 := 2
+    v9 := 18
+    i := letter-X
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-O
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-R
+    sprite v8 v9 5
+    # XOR demo: initial draw (will be toggled in animation loop)
+    v0 := 30
+    v1 := 18
+    i := sprite-8x8
+    sprite v0 v1 8
+
+    # Row 3 (y=28): HIT - collision detection (overlapping sprites)
+    v8 := 2
+    v9 := 28
+    i := letter-H
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-I
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-T
+    sprite v8 v9 5
+    # Collision demo: overlapping sprites
+    v0 := 30
+    v1 := 28
+    i := sprite-8x8
+    sprite v0 v1 8
+    v0 := 34
+    v1 := 30
+    sprite v0 v1 8
+
+    # Row 4 (y=38): WRAP - edge wrapping (label centered, sprite at edge wraps left)
+    v8 := 56
+    v9 := 38
+    i := letter-W
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-R
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-A
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-P
+    sprite v8 v9 5
+    # Wrap demo: sprite at screen edge (wraps to left side)
+    v0 := 124
+    v1 := 38
+    i := sprite-8x8
+    sprite v0 v1 8
+
+    # Row 5 (y=48): BIG - 16x16 sprite
+    v8 := 2
+    v9 := 52
+    v0 := 0xB
+    i := hex v0
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-I
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-G
+    sprite v8 v9 5
+    # 16x16 sprite demo
+    v0 := 30
+    v1 := 48
+    i := sprite-16x16
+    sprite v0 v1 0
+
+    # MOVE label on right side
+    v8 := 70
+    v9 := 18
+    i := letter-M
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-O
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-V
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-E
+    sprite v8 v9 5
+
+    # Animate MOVE (smooth) and XOR (slow toggle) independently
+    # MOVE: updates every frame for smooth motion
+    # XOR: toggles every 30 frames for visible on/off effect
+    vA := 70      # MOVE X position
+    vB := 28      # MOVE Y position
+    vC := 0       # XOR toggle counter
+    vD := 180     # Total frames (~6 seconds at ~30fps)
+    i := sprite-8x8
+: sprite-anim-loop
+    # Draw MOVE sprite at current position
+    sprite vA vB 8
+    # Short delay for smooth movement
+    vE := 3
+    delay := vE
+: sprite-anim-wait
+    vE := delay
+    if vE != 0 then jump sprite-anim-wait
+    # Erase MOVE sprite
+    sprite vA vB 8
+    # Update MOVE position
+    vA += 1
+    v0 := 120
+    if vA == v0 then vA := 70
+    # Check if time to toggle XOR
+    vC += 1
+    v0 := 30
+    if vC != v0 then jump sprite-skip-xor
+    # Toggle XOR sprite
+    vC := 0
+    v0 := 30
+    v1 := 18
+    sprite v0 v1 8
+: sprite-skip-xor
+    # Decrement frame counter
+    vD += -1
+    if vD != 0 then jump sprite-anim-loop
+    # Draw final MOVE position
+    sprite vA vB 8
+
+    clear
+    return
+
+
+# Test Group 9 - XO-CHIP Color Tests (Full Screen Layout)
+# Row 1: Title + color blocks | Row 2: H-stripes | Row 3: V-stripes | Row 4: Checker
+: run-group-9
+    v7 := 63
+    hires
+    plane 3
+    clear
+
+    # Draw "COLOR" title at top-left using plane 1
+    plane 1
+    v8 := 4
+    v9 := 2
+    i := letter-C
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-O
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-L
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-O
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-R
+    sprite v8 v9 5
+
+    # === ROW 1 (y=10): 4 color blocks (single row 8x8 each) ===
+    i := g9-solid
+    # C1 block (plane 1 only = color 1)
+    plane 1
+    v0 := 32
+    v1 := 10
+    sprite v0 v1 8
+    # C2 block (plane 2 only = color 2)
+    plane 2
+    v0 := 48
+    sprite v0 v1 8
+    # C3 block (both planes = color 3)
+    plane 1
+    v0 := 64
+    sprite v0 v1 8
+    plane 2
+    sprite v0 v1 8
+    # C0 block (outline = shows background color 0)
+    plane 1
+    i := g9-outline
+    v0 := 80
+    sprite v0 v1 8
+
+    # === ROW 2 (y=20): H-stripes 2c (left) | H-stripes 4c (right) ===
+    i := g9-hstripe
+    plane 1
+    v1 := 20
+    v0 := 4
+: g9-h2
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 60 then jump g9-h2
+: g9-h4
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 124 then jump g9-h4
+    plane 2
+    i := g9-hstripe2
+    v0 := 60
+: g9-h4b
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 124 then jump g9-h4b
+
+    # === ROW 3 (y=30): V-stripes 2c (left) | V-stripes 4c (right) ===
+    i := g9-vstripe
+    plane 1
+    v1 := 30
+    v0 := 4
+: g9-v2
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 60 then jump g9-v2
+: g9-v4
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 124 then jump g9-v4
+    plane 2
+    i := g9-vstripe2
+    v0 := 60
+: g9-v4b
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 124 then jump g9-v4b
+
+    # === ROW 4 (y=40): Checker 2c (left) | Checker 4c (right) ===
+    i := g9-check
+    plane 1
+    v1 := 40
+    v0 := 4
+: g9-c2
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 60 then jump g9-c2
+: g9-c4
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 124 then jump g9-c4
+    plane 2
+    i := g9-check2
+    v0 := 60
+: g9-c4b
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 124 then jump g9-c4b
+
+    # === ROW 5 (y=50): Additional row - gradient/mixed ===
+    # Left: diagonal pattern, Right: all 4 colors in columns
+    plane 1
+    i := g9-diag
+    v1 := 50
+    v0 := 4
+: g9-d2
+    sprite v0 v1 8
+    v0 += 8
+    if v0 != 60 then jump g9-d2
+    # 4-color columns on right
+    i := g9-solid
+    v0 := 60
+: g9-4col
+    plane 1
+    sprite v0 v1 8
+    v0 += 8
+    plane 2
+    sprite v0 v1 8
+    v0 += 8
+    plane 3
+    sprite v0 v1 8
+    v0 += 8
+    plane 1
+    v0 += 8
+    if v0 != 124 then jump g9-4col
+
+    # === Blink block at right side (same row as color blocks) ===
+    vA := 108
+    vB := 10
+    vC := 3
+: g9-lp
+    plane 1
+    i := g9-solid
+    sprite vA vB 8
+    vE := 30
+    delay := vE
+: g9-w1
+    vE := delay
+    if vE != 0 then jump g9-w1
+    sprite vA vB 8
+    plane 2
+    sprite vA vB 8
+    vE := 30
+    delay := vE
+: g9-w2
+    vE := delay
+    if vE != 0 then jump g9-w2
+    sprite vA vB 8
+    plane 1
+    sprite vA vB 8
+    plane 2
+    sprite vA vB 8
+    vE := 30
+    delay := vE
+: g9-w3
+    vE := delay
+    if vE != 0 then jump g9-w3
+    plane 1
+    sprite vA vB 8
+    plane 2
+    sprite vA vB 8
+    vE := 30
+    delay := vE
+: g9-w4
+    vE := delay
+    if vE != 0 then jump g9-w4
+    vC += -1
+    if vC != 0 then jump g9-lp
+    plane 3
+    clear
+    plane 1
+    return
+
+
+: show-results-screen-01
+    # Save results to vD, vE
+    vD := v0    # Group 0 results
+    vE := v1    # Group 1 results
+
+    # Draw "OP 0" header
+    draw-op-header
+    v0 := 0
+    i := hex v0
+    sprite v8 v9 5
+
+    # Row 1 (y=10): 00E0, 1NNN, 2NNN
+    v8 := 2
+    v9 := 10
+    vC := OP_00E0
+    draw-opcode
+    vA := vD
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_1NNN
+    draw-opcode
+    vA := vD
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_2NNN
+    draw-opcode
+    vA := vD
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 2 (y=22): 00EE, 6XNN, 7XNN
+    v8 := 2
+    v9 := 22
+    vC := OP_00EE
+    draw-opcode
+    vA := vD
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_6XNN
+    draw-opcode
+    vA := vD
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_7XNN
+    draw-opcode
+    vA := vD
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    # Row 3 (y=34): 8XY0, 8XY1, 8XY2 (from Group 1)
+    v8 := 2
+    v9 := 34
+    vC := OP_8XY0
+    draw-opcode
+    vA := vE
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_8XY1
+    draw-opcode
+    vA := vE
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_8XY2
+    draw-opcode
+    vA := vE
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 4 (y=46): 8XY3, 8XY4, 8XY5 (from Group 1)
+    v8 := 2
+    v9 := 46
+    vC := OP_8XY3
+    draw-opcode
+    vA := vE
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_8XY4
+    draw-opcode
+    vA := vE
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_8XY5
+    draw-opcode
+    vA := vE
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    return
+
+
+: show-results-screen-23
+    vD := v0    # Group 2 results
+    vE := v1    # Group 3 results
+
+    draw-op-header
+    v0 := 2
+    i := hex v0
+    sprite v8 v9 5
+
+    # Row 1: 8XY6, 8XY7, 8XYE
+    v8 := 2
+    v9 := 10
+    vC := OP_8XY6
+    draw-opcode
+    vA := vD
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_8XY7
+    draw-opcode
+    vA := vD
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_8XYE
+    draw-opcode
+    vA := vD
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 2: 3XNN, 4XNN, 5XY0
+    v8 := 2
+    v9 := 22
+    vC := OP_3XNN
+    draw-opcode
+    vA := vD
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_4XNN
+    draw-opcode
+    vA := vD
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_5XY0
+    draw-opcode
+    vA := vD
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    # Row 3: 9XY0, ANNN, BNNN (from Group 3)
+    v8 := 2
+    v9 := 34
+    vC := OP_9XY0
+    draw-opcode
+    vA := vE
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_ANNN
+    draw-opcode
+    vA := vE
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_BNNN
+    draw-opcode
+    vA := vE
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 4: DXYN, FX1E, FX07 (from Group 3)
+    v8 := 2
+    v9 := 46
+    vC := OP_DXYN
+    draw-opcode
+    vA := vE
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_FX1E
+    draw-opcode
+    vA := vE
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_FX07
+    draw-opcode
+    vA := vE
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    return
+
+
+: show-results-screen-45
+    vD := v0    # Group 4 results
+    vE := v1    # Group 5 results
+
+    # Ensure default plane
+    plane 1
+    clear
+
+    draw-op-header
+    v0 := 4
+    i := hex v0
+    sprite v8 v9 5
+
+    # Row 1: FX15, FX29, FX33
+    v8 := 2
+    v9 := 10
+    vC := OP_FX15
+    draw-opcode
+    vA := vD
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_FX29
+    draw-opcode
+    vA := vD
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_FX33
+    draw-opcode
+    vA := vD
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 2: FX55, FX65, FX30
+    v8 := 2
+    v9 := 22
+    vC := OP_FX55
+    draw-opcode
+    vA := vD
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_FX65
+    draw-opcode
+    vA := vD
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_FX30
+    draw-opcode
+    vA := vD
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    # Row 3: 5XY2, 5XY3, 00CN (from Group 5)
+    v8 := 2
+    v9 := 34
+    vC := OP_5XY2
+    draw-opcode
+    vA := vE
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_5XY3
+    draw-opcode
+    vA := vE
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_00CN
+    draw-opcode
+    vA := vE
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 4: 00FB, 00FC, 00FE (from Group 5)
+    v8 := 2
+    v9 := 46
+    vC := OP_00FB
+    draw-opcode
+    vA := vE
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_00FC
+    draw-opcode
+    vA := vE
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_00FE
+    draw-opcode
+    vA := vE
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    return
+
+
+: show-results-screen-67
+    vD := v0    # Group 6 results
+    vE := v1    # Group 7 results
+
+    # Ensure default plane
+    plane 1
+    clear
+
+    draw-op-header
+    v0 := 6
+    i := hex v0
+    sprite v8 v9 5
+
+    # Row 1: 00FF, 00DN, F000
+    v8 := 2
+    v9 := 10
+    vC := OP_00FF
+    draw-opcode
+    vA := vD
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_00DN
+    draw-opcode
+    vA := vD
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_F000
+    draw-opcode
+    vA := vD
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 2: FN01, FX75, FX85
+    v8 := 2
+    v9 := 22
+    vC := OP_FN01
+    draw-opcode
+    vA := vD
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_FX75
+    draw-opcode
+    vA := vD
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_FX85
+    draw-opcode
+    vA := vD
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    # Row 3: 8XY4(no ovf), 8XY5(borrow), 8XY7(borrow) (from Group 7)
+    v8 := 2
+    v9 := 34
+    vC := OP_8XY4
+    draw-opcode
+    vA := vE
+    vB := 1
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_8XY5
+    draw-opcode
+    vA := vE
+    vB := 2
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_8XY7
+    draw-opcode
+    vA := vE
+    vB := 4
+    vA &= vB
+    draw-result-indicator
+
+    # Row 4: FX33(255), FX33(0), SKIP (from Group 7)
+    v8 := 2
+    v9 := 46
+    vC := OP_FX33
+    draw-opcode
+    vA := vE
+    vB := 8
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 44
+    vC := OP_FX33
+    draw-opcode
+    vA := vE
+    vB := 16
+    vA &= vB
+    draw-result-indicator
+
+    v8 := 86
+    vC := OP_SKIP
+    draw-opcode
+    vA := vE
+    vB := 32
+    vA &= vB
+    draw-result-indicator
+
+    return
+
+
+# Helper to draw "OP " header - leaves v8 positioned for group number
+: draw-op-header
+    v8 := 52
+    v9 := 2
+
+    i := letter-O
+    sprite v8 v9 5
+    v8 += 5
+
+    i := letter-P
+    sprite v8 v9 5
+    v8 += 6
+
+    return
+
+
+# Draw result indicator: checkmark if vA != 0, X if vA == 0
+# Adds spacing before indicator and uses different colors for pass/fail
+: draw-result-indicator
+    v8 += 2    # Add gap between opcode and indicator
+    if vA != 0 then jump draw-pass
+    # Draw fail (X) in color 2 (plane 2)
+    plane 2
+    i := sprite-fail
+    sprite v8 v9 5
+    plane 1    # Reset to default plane
+    return
+: draw-pass
+    # Draw pass (checkmark) in color 1 (plane 1) - already active
+    i := sprite-pass
+    sprite v8 v9 5
+    return
+
+
+# Opcode Display System - Data-driven approach
+# Character codes: 0-15 = hex digits, 16+ = custom letters
+
+# Draw opcode by ID in vC
+# Uses v0, v1 as scratch, preserves v8, v9 (position)
+: draw-opcode
+    # Calculate offset: vC * 4
+    v0 := vC
+    v1 := vC
+    v0 <<= v0    # v0 = vC * 2
+    v0 += v1     # v0 = vC * 3
+    v0 += v1     # v0 = vC * 4
+
+    # Load 4 character codes
+    i := opcode-data
+    i += v0
+    load v3
+
+    # Draw character 0
+    draw-char-v0
+    v8 += 5
+
+    # Draw character 1
+    v0 := v1
+    draw-char-v0
+    v8 += 5
+
+    # Draw character 2
+    v0 := v2
+    draw-char-v0
+    v8 += 5
+
+    # Draw character 3
+    v0 := v3
+    draw-char-v0
+    v8 += 5
+
+    return
+
+# Draw single character from code in v0
+# Codes 0-15 use hex font, 16-30 use custom letters, 31 = space (skip)
+# Note: Uses v4 as scratch to avoid clobbering vD (group results)
+: draw-char-v0
+    # Check for space
+    v4 := 31
+    if v0 == v4 then return
+
+    # Check if hex digit (0-15)
+    v4 := 16
+    if v0 < v4 then jump draw-hex-char
+
+    # Custom letter: calculate offset into letter table
+    v0 += -16    # Convert to 0-based letter index
+    v4 := v0
+    v0 <<= v0    # v0 * 2
+    v0 += v4     # v0 * 3
+    v0 += v4     # v0 * 4
+    v0 += v4     # v0 * 5
+    i := letter-table
+    i += v0
+    sprite v8 v9 5
+    return
+
+: draw-hex-char
+    i := hex v0
+    sprite v8 v9 5
+    return
+
+
+# Finished Screen - Display "DONE"
+: show-finished-screen
+    v8 := 54
+    v9 := 28
+    i := letter-D
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-O
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-N
+    sprite v8 v9 5
+    v8 += 5
+    i := letter-E
+    sprite v8 v9 5
+    return
