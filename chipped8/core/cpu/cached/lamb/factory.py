@@ -375,9 +375,9 @@ def get_op_instr(opcode):
     nnn = opcode & 0x0FFF
 
     match code:
-        case 0x0000 if (opcode & 0x0FFF) == 0x00C0:
+        case 0x0000 if (opcode & 0x0FF0) == 0x00C0:
             return (InstrKind.OPERATION, lambda cpu, n=n: _execute_00CN(cpu, n))
-        case 0x0000 if (opcode & 0x0FFF) == 0x00D0:
+        case 0x0000 if (opcode & 0x0FF0) == 0x00D0:
             return (InstrKind.OPERATION, lambda cpu, n=n: _execute_00DN(cpu, n))
         case 0x0000 if (opcode & 0x0FFF) == 0x00E0:
             return (InstrKind.OPERATION, lambda cpu: _execute_00E0(cpu))

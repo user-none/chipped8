@@ -72,10 +72,11 @@ ROMs. A selection of relevant metadata can be displayed as an overly.
 
 Multiple interpreters are supported.
 
-1. Pure: `pure`. A pure interpreter that uses a decode 
+1. Pure: `pure`. A pure interpreter that uses a decode
 2. Cached: `cachedo`. A Build-Then-Execute interpreter that uses class objects for instruction caching
 3. Cached: `cachedolp`. A Build-Then-Execute interpreter that uses captured lambdas for instruction caching
-3. Cached: `cachedolh`. An Execute-While-Building instruction that uses captured lambdas for instruction caching
+4. Cached: `cachedolh`. An Execute-While-Building interpreter that uses captured lambdas for instruction caching
+5. Dynarec: `dynarec`. A JIT compiler that translates Chip-8 bytecode to native ARM64 machine code (Apple Silicon only)
 
 The different interpreters are provided mainly to understand and test the differences between
 various interpreter designs. None is better then another with chip-8 due to how few cycles take place

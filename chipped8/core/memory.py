@@ -96,6 +96,8 @@ class Memory:
         return self._memory[idx]
 
     def get_range(self, start, length) -> bytearray:
+        if start + length > MEMORY_SIZE:
+            raise IndexError(f'Memory read out of bounds: start={start:#x}, length={length}')
         return deepcopy(self._memory[start : start+length])
 
     def set_byte(self, idx: int, val: int) -> None:

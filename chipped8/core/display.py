@@ -27,7 +27,7 @@ from copy import deepcopy
 from enum import Enum, Flag, auto
 
 from .registers import Registers
-from .memory import Memory
+from .memory import Memory, MEMORY_SIZE
 
 SCREEN_WIDTH = 128
 SCREEN_HEIGHT = 64
@@ -123,8 +123,8 @@ class Displaly():
 
     def get_pixels(self) -> NDArray[np.uint8]:
         '''
-        Return a 2D NumPy array of pixel indices (0–3) for fast rendering.
-        Each index maps to a color via.
+        Return a 2D NumPy array of pixel indices (0-3) for fast rendering.
+        Each index maps to a color.
         '''
         plane0 = np.array(self._screen_planes[0], dtype=np.uint8)
         plane1 = np.array(self._screen_planes[1], dtype=np.uint8)
@@ -277,6 +277,13 @@ class Displaly():
     def _draw_s8(self, x, y, n, wrap, registers, memory):
         registers.set_V(0xF, 0)
         I = registers.get_I()
+
+        # Bounds check: validate total bytes needed for all planes
+        num_planes = len(self._target_plane)
+        total_bytes = n * num_planes
+        if I + total_bytes > MEMORY_SIZE:
+            raise IndexError(f'Sprite memory read out of bounds: I={I:#x}, bytes={total_bytes}')
+
         for plane in self._target_plane:
             for i in range(n):
                 sprite = memory.get_byte(I + i)
@@ -300,6 +307,13 @@ class Displaly():
     def _draw_s16(self, x, y, registers, memory):
         registers.set_V(0xF, 0)
         I = registers.get_I()
+
+        # Bounds check: 16x16 sprite reads 32 bytes per plane
+        num_planes = len(self._target_plane)
+        total_bytes = 32 * num_planes
+        if I + total_bytes > MEMORY_SIZE:
+            raise IndexError(f'Sprite memory read out of bounds: I={I:#x}, bytes={total_bytes}')
+
         for plane in self._target_plane:
             for i in range(16):
                 sprite = (memory.get_byte(I + (i*2)) << 8) | memory.get_byte(I + (i*2) + 1)
