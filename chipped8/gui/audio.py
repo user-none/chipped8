@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import time
-
 from collections import deque
 from PySide6.QtCore import QObject, QTimer, Slot
 from PySide6.QtMultimedia import QAudioSink, QAudioFormat, QMediaDevices
@@ -41,29 +39,27 @@ class AudioPlayer(QObject):
         self._phase = 0.0
 
         # Setup audio format
-        aformat = QAudioFormat()
-        aformat.setSampleRate(self._sample_rate)
-        aformat.setChannelCount(1)
-        aformat.setSampleFormat(QAudioFormat.UInt8)
+        self._aformat = QAudioFormat()
+        self._aformat.setSampleRate(self._sample_rate)
+        self._aformat.setChannelCount(1)
+        self._aformat.setSampleFormat(QAudioFormat.UInt8)
 
-        # Create and start audio sink
-        self._sink = QAudioSink(QMediaDevices.defaultAudioOutput(), aformat)
-        self._sink.setBufferSize(max_buffer_size)
-        self._sink_io = self._sink.start()
-
-        # Clock-based pacing
-        self._last_write_ns = time.perf_counter_ns()
-        self._frame_interval_ns = 1_000_000_000 // 60  # 16666666 ns which is ~16.666ms which is 1 frame
-
+        self._max_buffer_size = max_buffer_size
         self._last_pattern = bytes(16)
         self._last_pitch = None
 
     @Slot()
     def start(self):
-        # Drain the audio buffer multilpe times a frame
-        # We need to keep the audio sink full even if
-        # were writing silence to prevent popping when
-        # the DAC powers up to write audio.
+        # Create and start audio sink together with the feed timer
+        # to avoid a gap where the sink runs but nothing feeds it
+        self._sink = QAudioSink(QMediaDevices.defaultAudioOutput(), self._aformat)
+        self._sink.setBufferSize(self._max_buffer_size)
+        self._sink_io = self._sink.start()
+
+        # Pre-fill with silence immediately to avoid any gap
+        self._sink_io.write(bytes([0x80] * self._max_buffer_size))
+
+        # Keep the audio sink buffer full with real audio or silence
         self._timer = QTimer(self)
         self._timer.setInterval(5)
         self._timer.timeout.connect(self._feed_audio)
@@ -74,22 +70,18 @@ class AudioPlayer(QObject):
         self._timer.stop()
 
     def _feed_audio(self):
-        now_ns = time.perf_counter_ns()
+        # Always keep the audio sink buffer full to prevent pops
+        bytes_free = self._sink.bytesFree()
+        if bytes_free < 1:
+            return
 
-        # Keep writing until we're caught up (in case we fell behind)
-        while now_ns - self._last_write_ns >= self._frame_interval_ns:
-            to_write = min(self._frame_samples, self._sink.bytesFree())
-            if to_write < 1:
-                return  # truly nothing can be written
+        output = bytearray()
+        real_audio = min(len(self._buffer), bytes_free)
+        output.extend([self._buffer.popleft() for _ in range(real_audio)])
+        # Pad with silence if there isn't enough data
+        output.extend([0x80] * (bytes_free - real_audio))
 
-            output = bytearray()
-            real_audio = min(len(self._buffer), to_write)
-            output.extend([self._buffer.popleft() for _ in range(real_audio)])
-            # Pad / write silence if there isn't enough data
-            output.extend([0x80] * (to_write - real_audio))
-
-            self._sink_io.write(bytes(output))
-            self._last_write_ns += self._frame_interval_ns
+        self._sink_io.write(bytes(output))
 
     def _pitch_changed_enough(self, current: int, previous: int | None, threshold: int = 2) -> bool:
         if previous is None:
